@@ -291,7 +291,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 
     <div class="panel">
       <h2>공정성 지표</h2>
-      <p class="desc">활성 근무자 기준. 각 항목의 인원·평균·표준편차·변동계수(CV)·최소~최대·지니계수. CV·지니가 낮을수록 균등합니다.</p>
+      <p class="desc">활성·비신병 근무자 기준(신병은 의도적으로 많이 투입되므로 공정성 분산 계산에서 제외 — 카운트 표에는 그대로 표시됩니다). 각 항목의 인원·평균·표준편차·변동계수(CV)·최소~최대·지니계수. CV·지니가 낮을수록 균등합니다.</p>
       <div class="tbl-wrap"><table id="cFair"></table></div>
     </div>
 
@@ -479,6 +479,7 @@ function normSched(s){
     assign:s.assign||{}, night:s.night||{},
     fixed:s.fixed||{}, patrolExtra:s.patrolExtra||null,
     relaxed:s.relaxed||{}, warnings:s.warnings||[], tier:s.tier||1,
+    activeIds: Array.isArray(s.activeIds) ? s.activeIds : null,
     generatedAt:s.generatedAt||null
   };
 }
@@ -528,6 +529,9 @@ function inInactive(w, ds){
 function presentOn(w, ds, sched){
   if(inInactive(w,ds)) return false;
   if(sched && (sched.bothEx||[]).includes(w.id)) return false; // 전체열외 → 분모 제외
+  // 비활성: 그 근무표가 '비활성 상태일 때 생성'됐으면 분모 제외(활성이던 시절 기록은 보존).
+  // 생성 시점의 활성자 스냅샷(activeIds)으로 판단. 스냅샷 없는 구버전 표는 종전처럼 포함.
+  if(sched && Array.isArray(sched.activeIds) && !sched.activeIds.includes(w.id)) return false;
   return true;
 }
 
@@ -758,6 +762,10 @@ function solve(vars, domains, ctx, tier, prevNight){
   function varKey(v){ return v.type==='day' ? 'D'+v.key : 'N'+v.bunchoId; }
   function eligible(v, wid){
     if(assign && Object.values(assign).includes(wid) && !flags.allowReuse) return false;
+    // 하드 제약(완화 불가): 한 사람은 같은 날 야간 번초 1개까지 — 1번초+3번초 같은 이중 야간 금지
+    if(v.type==='night'){
+      for(const k in assign){ if(k[0]==='N' && assign[k]===wid) return false; }
+    }
     const sl = slotsOf(v);
     // 전날 야간자 → 다음날 아침 슬롯 열외
     if(!flags.allowPrevNightMorning && v.type==='day' && MORNING_AFTER_NIGHT.includes(v.key) && prevNight.has(wid)) return false;
@@ -845,7 +853,9 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
     const isNight = v.type==='night';
     const sl = slotsOf(v);
     const noAdj = wid => !(usedSlots[wid] && adjacent(usedSlots[wid], sl));   // 하드 제약: 인접 슬롯 절대 금지
-    const okHard = wid => !(banMorning && prevNight.has(wid)) && noAdj(wid);
+    // 하드 제약(완화 불가): 같은 날 야간 번초 1개까지 — 이중 야간 금지
+    const hasNight = wid => { for(const k in assign){ if(k[0]==='N' && assign[k]===wid) return true; } return false; };
+    const okHard = wid => !(banMorning && prevNight.has(wid)) && noAdj(wid) && !(isNight && hasNight(wid));
     const okSoft = wid => okHard(wid) && !(isNight && prevNight.has(wid));   // 야간 이틀연속 회피(소프트)
     // 1차: 미사용 + 야간연속 회피, 2차: 중복 허용+야간연속 회피, 3차(최후): 야간연속까지 허용(아침·인접 금지는 유지)
     let pool = domains[idx].filter(wid=>!used.has(wid) && okSoft(wid));
@@ -1113,6 +1123,7 @@ function generateDay(input){
     mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx,
     nextWorkHoliday:ctx.nextWorkHoliday,
     assign, night, fixed, patrolExtra, relaxed, warnings, tier:usedTier,
+    activeIds: activeWorkers().map(w=>w.id),   // 생성 시점 활성자 스냅샷 → 비활성자는 이 날 분모에서 제외
     generatedAt:new Date().toISOString()
   };
   return sched;
@@ -1384,6 +1395,11 @@ function validateSchedule(s){
   });
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id && nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨'); });
 
+  // 4-2) 같은 날 야간 번초 2개 이상 (이중 야간 금지 — 하드 규칙)
+  const nightCnt={};
+  NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id) nightCnt[id]=(nightCnt[id]||0)+1; });
+  Object.keys(nightCnt).forEach(id=>{ if(nightCnt[id]>=2) push(nameOf(id)+' 같은 날 야간 번초 '+nightCnt[id]+'개 배정(이중 야간 금지)'); });
+
   // 5) 당일 밥교대가 야간 1~4번초에 포함? (야간열외 대상이면 예외)
   if(s.mealId){
     const mealNightEx = new Set([s.prevDutyId,s.dutyId,s.nextDutyId,s.prevSituationId,s.situationId,s.nextSituationId,...(s.nightEx||[]),...(s.bothEx||[])].filter(Boolean)).has(s.mealId);
@@ -1617,14 +1633,14 @@ $('#vCsv').addEventListener('click',()=>{
 function renderCount(){
   const st=buildStats(null);
   const ws=DB.workers.filter(w=>w.active||st[w.id].denom>0);
-  // KPI: 분포 균등도 (총 근무시간 기준)
-  const hours=ws.map(w=>st[w.id].hours);
+  // KPI 분포 균등도(총 근무시간): 신병은 원래 많이 투입되므로 공정성 계산에서 제외(활성·비신병 기준)
+  const fairHours=activeWorkers().filter(w=>!isRecruit(w)).map(w=>st[w.id].hours);
   const kpi=$('#cKpi'); kpi.innerHTML='';
   const totalSched=Object.keys(DB.schedules).length;
   addKpi(kpi,'생성된 근무표', totalSched+'일');
   addKpi(kpi,'근무자', ws.length+'명');
-  addKpi(kpi,'시간 CV', (cv(hours)*100).toFixed(1)+'%');
-  addKpi(kpi,'시간 지니', gini(hours).toFixed(3));
+  addKpi(kpi,'시간 CV (비신병)', (cv(fairHours)*100).toFixed(1)+'%');
+  addKpi(kpi,'시간 지니 (비신병)', gini(fairHours).toFixed(3));
 
   const t=$('#cTable'); t.innerHTML='';
   const head=el('tr');
@@ -1687,7 +1703,7 @@ function fairnessRow(label, vals, dec){
   return tr;
 }
 function renderFairness(st){
-  const ws=activeWorkers();
+  const ws=activeWorkers().filter(w=>!isRecruit(w));   // 신병 제외: 의도적 과투입이라 공정성 분산에서 빼야 의미가 있음
   const t=$('#cFair'); t.innerHTML='';
   const head=el('tr'); ['지표','인원','평균','표준편차','CV','최소~최대','지니'].forEach(h=>head.appendChild(el('th',/인원|평균|편차|CV|최소|지니/.test(h)?'num':'',h)));
   t.appendChild(head);
@@ -1957,4 +1973,4 @@ function init(){
 init();
 </script>
 </body>
-</html>
+  </html>

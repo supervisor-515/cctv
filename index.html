@@ -463,6 +463,7 @@ function normWorker(w,i){
     baseHours: Number(w.baseHours)||0,
     active: w.active!==undefined ? !!w.active : true,
     countResetAt: w.countResetAt || null,
+    createdAt: w.createdAt || null,
     inactivePeriods: Array.isArray(w.inactivePeriods)? w.inactivePeriods.filter(p=>p&&p.start) : []
   };
 }
@@ -528,10 +529,12 @@ function inInactive(w, ds){
 // 그 날짜에 '존재/가용'한가 (분모 계산용 기본조건)
 function presentOn(w, ds, sched){
   if(inInactive(w,ds)) return false;
-  if(sched && (sched.bothEx||[]).includes(w.id)) return false; // 전체열외 → 분모 제외
-  // 비활성: 그 근무표가 '비활성 상태일 때 생성'됐으면 분모 제외(활성이던 시절 기록은 보존).
-  // 생성 시점의 활성자 스냅샷(activeIds)으로 판단. 스냅샷 없는 구버전 표는 종전처럼 포함.
-  if(sched && Array.isArray(sched.activeIds) && !sched.activeIds.includes(w.id)) return false;
+  if(sched){
+    if((sched.bothEx||[]).includes(w.id)) return false;            // 전체열외 → 분모 제외
+    if(Array.isArray(sched.activeIds)) return sched.activeIds.includes(w.id); // 생성시 활성자 스냅샷이 정답
+    // 스냅샷 없는 구버전 표: 그 표가 만들어질 때 근무자가 아직 없었으면 제외(신규 추가자는 분모 0부터)
+    if(w.createdAt && sched.generatedAt && sched.generatedAt < w.createdAt) return false;
+  }
   return true;
 }
 
@@ -1886,7 +1889,8 @@ $('#pAdd').addEventListener('click',()=>{
   const role=$('#pRole').value;
   DB.workers.push(normWorker({
     name, roleReady: role!=='recruit', roleType: role==='recruit'?'duty':role,
-    canMeal:$('#pMeal').checked, baseHours:Number($('#pBase').value)||0, active:true
+    canMeal:$('#pMeal').checked, baseHours:Number($('#pBase').value)||0, active:true,
+    createdAt:new Date().toISOString()
   }, DB.workers.length));
   $('#pName').value=''; $('#pBase').value='0';
   save(); refreshAll();
@@ -1973,4 +1977,4 @@ function init(){
 init();
 </script>
 </body>
-  </html>
+</html>

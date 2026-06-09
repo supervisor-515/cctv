@@ -658,13 +658,13 @@ function nightCandidates(ds, ctx){
   const ex = new Set([
     ctx.prevDutyId, ctx.dutyId, ctx.nextDutyId,
     ctx.prevSituationId, ctx.situationId, ctx.nextSituationId,
-    ctx.nextMealId,            // 다음날 밥교대 = 내일 야간 확정자 → 오늘 야간 금지(야간 이틀연속 방지)
+    ctx.nextMealId,            // 다음날 밥교대 → 내일 야간 투입 가능성 → 오늘 야간 금지(야간 이틀연속 방지)
     ...ctx.nightEx, ...ctx.bothEx
   ].filter(Boolean));
   return baseEligible(ds).filter(w=>!ex.has(w.id));
 }
 /* 밥교대 후보: 투입가능 + 전날·당일 당직/상황병·주간열외 제외 (다음날 당직/상황병은 포함)
-   + 전날 야간자 회피(밥교대는 오늘 야간 강제 → 이틀연속 방지). 후보 고갈 시에만 완화. */
+   + 전날 야간자 회피(야간 후보 부족 시 밥교대가 야간에 투입될 수 있음 → 이틀연속 방지). 후보 고갈 시에만 완화. */
 function mealCandidates(ds, ctx){
   const ex = new Set([
     ctx.prevDutyId, ctx.dutyId, ctx.prevSituationId, ctx.situationId,
@@ -702,6 +702,15 @@ function score(w, slotKey, opts){
   return s;
 }
 
+/* 당일 배정 개수의 '균등 비교 기준값'.
+   신병은 기본 하루 2개씩 받도록 1개를 깎아서 비교한다 →
+   신병 2개씩 → 비신병 1개씩(점수순) → 신병 3개째 → 비신병 2개째 … 순서가 된다. */
+function effTodayCount(wid, cnt){
+  const w = W(wid);
+  cnt = cnt||0;
+  return (w && isRecruit(w)) ? Math.max(0, cnt-1) : cnt;
+}
+
 /* 인접 판정 */
 function slotsOf(varObj){ return varObj.type==='day' ? [varObj.key] : NIGHT_BUNCHO.find(b=>b.id===varObj.bunchoId).slots; }
 function adjacent(slotsA, slotsB){
@@ -723,21 +732,11 @@ function cloneSlotMap(map){
   return out;
 }
 function baseOccupiedSlots(ctx){
-  const out = cloneSlotMap(ctx && ctx._fixedSlotsByWorker);
-  Object.entries((ctx && ctx._forcedSlotsByWorker) || {}).forEach(([wid, slots])=>addSlotsToMap(out, wid, slots));
-  return out;
+  return cloneSlotMap(ctx && ctx._fixedSlotsByWorker);
 }
 function slotsByWorkerFromFixed(fixed){
   const out = {};
   Object.entries(fixed || {}).forEach(([slot, wid])=>addSlotsToMap(out, wid, [slot]));
-  return out;
-}
-function slotsByWorkerFromForced(forced){
-  const out = {};
-  Object.entries(forced || {}).forEach(([bunchoId, wid])=>{
-    const b = NIGHT_BUNCHO.find(x=>String(x.id)===String(bunchoId));
-    if(b) addSlotsToMap(out, wid, b.slots);
-  });
   return out;
 }
 function hasAdjacentOccupied(ctx, wid, slots){
@@ -806,13 +805,14 @@ function solve(vars, domains, ctx, tier, prevNight){
     if(bestSize===0) return false; // 막힘 → 백트랙
     const v=vars[best];
     const dg=ctx._dayGrp, ng=ctx._nightGrp;
-    // 후보 정렬(사전식): ①당일 배정개수 적은 사람 먼저(고정 포함 1개씩 먼저) →
-    //                    ②신병 먼저(평균과 무관) → ③공정성 점수(평균시간·배정률 등) 오름차순
+    // 후보 정렬(사전식): ①당일 기준개수 적은 사람 먼저(고정 포함 — 신병은 1개를 깎아 비교하므로
+    //   신병 2개씩 → 비신병 1개씩 → 신병 3개째 → 비신병 2개째 순) →
+    //                    ②동률이면 신병 먼저 → ③공정성 점수(평균시간·배정률 등) 오름차순
     bestList = bestList.map(wid=>{
       const w=W(wid);
       const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:dg, nightGrp:ng,
                bunchoId:v.type==='night'?v.bunchoId:null};
-      return {wid, cnt:(todayCount[wid]||0), rec:isRecruit(w)?0:1, sc:score(w, v.type==='day'?v.key:null, o)};
+      return {wid, cnt:effTodayCount(wid, todayCount[wid]), rec:isRecruit(w)?0:1, sc:score(w, v.type==='day'?v.key:null, o)};
     }).sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc)).map(x=>x.wid);
 
     const rest = remaining.filter(i=>i!==best);
@@ -868,8 +868,8 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
     if(pool.length===0) return;              // 채울 사람 없음 → 미배정 (인접/아침 금지는 끝까지 유지)
     const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:ctx._dayGrp,
              nightGrp:ctx._nightGrp, bunchoId:v.type==='night'?v.bunchoId:null};
-    // 사전식: 당일 개수 → 신병 우선 → 점수
-    pool = pool.map(wid=>({wid, cnt:(todayCount[wid]||0), rec:isRecruit(W(wid))?0:1, sc:score(W(wid), v.type==='day'?v.key:null, o)}))
+    // 사전식: 당일 기준개수(신병은 1개 깎음 → 기본 2개씩) → 신병 우선 → 점수
+    pool = pool.map(wid=>({wid, cnt:effTodayCount(wid, todayCount[wid]), rec:isRecruit(W(wid))?0:1, sc:score(W(wid), v.type==='day'?v.key:null, o)}))
                .sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc));
     const wid=pool[0].wid;
     assign[key]=wid; used.add(wid);
@@ -911,8 +911,8 @@ function localImprove(vars, domains, ctx, assign, prevNight){
         if(occ[wid] && adjacent(occ[wid], sl)) continue; // 하드 제약: 고정 슬롯 포함 인접 금지
         if(v.type==='day' && MORNING_AFTER_NIGHT.includes(v.key) && prevNight.has(wid)) continue; // 하드 제약
         if(v.type==='night' && prevNight.has(wid)) continue; // 야간 이틀연속 도입 금지
-        // 균등 유지: 새 배정자의 당일 개수가 기존 배정자 이상이 되면(피크 상승) 스왑 금지
-        if((todayCount[wid]||0) + 1 > (todayCount[cur]||0)) continue;
+        // 균등 유지: 새 배정자의 당일 기준개수(신병은 1개 깎음)가 기존 배정자 이상이 되면(피크 상승) 스왑 금지
+        if(effTodayCount(wid, (todayCount[wid]||0) + 1) > effTodayCount(cur, todayCount[cur])) continue;
         const sc=score(W(wid), v.type==='day'?v.key:null, o);
         if(sc < curSc - 0.25){
           assign[key]=wid; improved=true;
@@ -950,7 +950,7 @@ function autoNextMeal(ds, ctx){
     workHoliday: !!ctx.nextWorkHoliday,
     dutyId: ctx.nextDutyId||null, situationId: ctx.nextSituationId||null,   // 다음날 당직/상황병
     prevDutyId: ctx.dutyId||null, prevSituationId: ctx.situationId||null,    // 다음날의 '전날' = 오늘
-    // 오늘 밥교대자는 오늘 야간 강제 투입자 → 다음날 밥교대(=다음날 야간 확정)로 또 뽑히면 이틀 연속.
+    // 오늘 밥교대자는 야간 후보 부족 시 오늘 야간에 투입될 수 있음 → 다음날 밥교대로 또 뽑히면 이틀 연속 우려.
     // 그러므로 다음날 밥교대 후보에서 오늘 밥교대자를 제외한다.
     dayEx: [...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx: ctx.bothEx||[],
     mealId: null,
@@ -1023,7 +1023,7 @@ function generateDay(input){
   const relaxed = {};
   const fixed = {};
 
-  /* 1) 오늘 밥교대 결정 (전날 야간자 제외 → 강제 야간투입 시 이틀연속 방지) */
+  /* 1) 오늘 밥교대 결정 (전날 야간자 회피 → 야간 폴백 투입 시 이틀연속 방지) */
   ctx.mealId = assignMeal(ds, ctx);
   if(!ctx.mealId) warnings.push('밥교대 후보가 없어 미배정되었습니다.');
 
@@ -1044,35 +1044,25 @@ function generateDay(input){
 
   /* 3) 변수 집합: 주간 슬롯(14:30 고정 제외) + 야간 번초 */
   const dayVars = DAY_SLOTS.filter(s=>!(s==='14:30'&&fixed['14:30'])).map(key=>({type:'day',key}));
-  let nightVars = NIGHT_BUNCHO.map(b=>({type:'night',bunchoId:b.id}));
+  const nightVars = NIGHT_BUNCHO.map(b=>({type:'night',bunchoId:b.id}));
 
-  /* 3-1) 밥교대 인원은 야간 1~4번초 중 하나 필수 (단 야간열외면 제외) */
+  /* 3-1) 밥교대 인원은 기본적으로 야간 제외 — 야간 후보가 부족할 때만 폴백으로 자동 투입(5단계).
+     단 야간열외(다음날 당직/상황병 등) 대상이면 폴백에서도 제외. */
   const mealNightExcluded = ctx.mealId &&
     new Set([ctx.prevDutyId,ctx.dutyId,ctx.nextDutyId,ctx.prevSituationId,ctx.situationId,ctx.nextSituationId,...ctx.nightEx,...ctx.bothEx].filter(Boolean)).has(ctx.mealId);
-  const forced = {}; // bunchoId -> workerId
-  if(ctx.mealId && !mealNightExcluded){
-    // 번초별 배정률이 가장 낮은 곳에 배치
-    const r=ctx.stats[ctx.mealId];
-    const order=[1,2,3,4].sort((a,b)=> rate(r.bunchoNum[a],r.nightDen)-rate(r.bunchoNum[b],r.nightDen));
-    forced[order[0]] = ctx.mealId;
-    nightVars = nightVars.filter(v=>v.bunchoId!==order[0]);
-  } else if(ctx.mealId && mealNightExcluded){
-    warnings.push('밥교대 인원이 야간 열외(다음날 당직/상황병) 대상이라 야간 번초에서 제외되었습니다.');
-  }
 
-  // 인접 금지 기준점: 고정 슬롯과 강제 야간 슬롯을 자동배정 전에 먼저 점유 처리한다.
+  // 인접 금지 기준점: 고정 슬롯을 자동배정 전에 먼저 점유 처리한다.
   // 이로써 16:30 자동 + 17:30 고정 같은 연속근무가 후보 단계에서 차단된다.
   ctx._fixedSlotsByWorker = slotsByWorkerFromFixed(fixed);
-  ctx._forcedSlotsByWorker = slotsByWorkerFromForced(forced);
 
   /* 4) 도메인 */
   const dayCand = dayCandidates(ds, ctx).map(w=>w.id);
   const nightCand = nightCandidates(ds, ctx).map(w=>w.id)
-    .filter(id=> id!==ctx.mealId); // 밥교대는 강제배치로 처리
+    .filter(id=> id!==ctx.mealId); // 밥교대는 기본 야간 제외 (부족 시에만 폴백 투입)
   const vars = dayVars.concat(nightVars);
   const domains = vars.map(v=> v.type==='day'? dayCand.slice() : nightCand.slice());
 
-  // 당일 부하 사전 반영: 고정 역할 슬롯(14:30·17:30·18:30·19:30·20:30·21:30) + 강제 밥교대(야간 1개).
+  // 당일 부하 사전 반영: 고정 역할 슬롯(14:30·17:30·18:30·19:30·20:30·21:30).
   // 이렇게 해야 '고정까지 포함해 하루 균등'이 되고, 다음날 상황/당직병(주간 후보엔 들어감)이 주간을 덧받지 않음.
   Object.entries(fixed).forEach(([slot,id])=>{
     if(!id) return;
@@ -1080,25 +1070,39 @@ function generateDay(input){
     ctx._todayHours[id] = (ctx._todayHours[id]||0) + h;
     ctx._todayCount[id] = (ctx._todayCount[id]||0) + 1;
   });
-  Object.values(forced).forEach(id=>{ if(id){ ctx._todayHours[id]=(ctx._todayHours[id]||0)+1; ctx._todayCount[id]=(ctx._todayCount[id]||0)+1; } });
 
   /* 5) 완화 사다리 1→3 (전날 야간 아침 금지·인접 금지는 절대 완화하지 않음) — prevNight은 위에서 산출
      tier1 깨끗 → tier2 중복 투입 → tier3 야간 연속. 그래도 안 되면 부분 채움(인접·아침 금지는 유지) */
-  let result=null, usedTier=1;
-  for(let tier=1; tier<=3; tier++){
-    const r = solve(vars, domains, ctx, tier, prevNight);
-    if(r.ok){ result=r.assign; usedTier=tier; break; }
-    if(tier===3){ // 완전해 실패 → 부분 채움 (전날 야간 아침·인접 금지 유지)
-      result = greedyFill(vars, domains, ctx, prevNight, r.assign||{});
-      usedTier=4;
+  function runLadder(doms){
+    for(let tier=1; tier<=3; tier++){
+      const r = solve(vars, doms, ctx, tier, prevNight);
+      if(r.ok) return {assign:r.assign, tier};
+      if(tier===3) // 완전해 실패 → 부분 채움 (전날 야간 아침·인접 금지 유지)
+        return {assign: greedyFill(vars, doms, ctx, prevNight, r.assign||{}), tier:4};
     }
   }
+  let usedDomains = domains;
+  let run = runLadder(domains);
+  /* 5-1) 폴백: 야간 번초가 비었고 밥교대 인원을 투입할 수 있으면 야간 후보에 추가 후 재시도 */
+  const filledCnt = a => Object.values(a).filter(Boolean).length;
+  const nightUnfilled = a => nightVars.some(v=> !a['N'+v.bunchoId]);
+  if(ctx.mealId && !mealNightExcluded && nightUnfilled(run.assign)){
+    const domains2 = vars.map(v=> v.type==='day'? dayCand.slice() : nightCand.concat([ctx.mealId]));
+    const run2 = runLadder(domains2);
+    if(run2.tier<4 || filledCnt(run2.assign) > filledCnt(run.assign)){
+      run = run2; usedDomains = domains2;
+    }
+  }
+  let result = run.assign;
+  const usedTier = run.tier;
   // tier2(중복 투입)은 인원 적은 부대에서 상시 발생하므로 경고하지 않음
   if(usedTier===3) warnings.push('완화: 인원 부족으로 야간 연속(전날 야간자 재투입)을 허용했습니다.');
   if(usedTier===4) warnings.push('인원 부족으로 일부 슬롯을 채우지 못했습니다(미배정). 인접·아침 금지를 지키느라 비워둔 칸일 수 있습니다.');
 
   /* 7) 국소 개선 */
-  result = localImprove(vars, domains, ctx, result, prevNight);
+  result = localImprove(vars, usedDomains, ctx, result, prevNight);
+  if(ctx.mealId && nightVars.some(v=> result['N'+v.bunchoId]===ctx.mealId))
+    warnings.push('야간 후보 부족으로 밥교대 인원을 야간 번초에 투입했습니다.');
 
   /* 8) 결과 조립 */
   const assign={}, night={};
@@ -1108,7 +1112,6 @@ function generateDay(input){
     if(v.type==='day') assign[v.key]=result[key]||null;
     else night[v.bunchoId]=result[key]||null;
   });
-  Object.entries(forced).forEach(([b,id])=>night[b]=id);
 
   // 미배정 경고
   DAY_SLOTS.forEach(s=>{ if(!assign[s] && !fixed[s]) warnings.push('주간 '+s+' 미배정'); });
@@ -1305,7 +1308,7 @@ function previewGen(){
   const dayN=dayCandidates(ds,ctx).length, nightN=nightCandidates(ds,ctx).filter(w=>w.id!==ctx.mealId).length;
   const need=el('div','ln'); need.appendChild(el('span','k','후보 충원'));
   need.appendChild(el('span', dayN>=11?'pill':'miss', '주간 후보 '+dayN+'명'+(dayN<11?' (11슬롯 부족 우려)':'')));
-  need.appendChild(el('span', nightN>=4?'pill':'miss', '야간 후보 '+nightN+'명'+(nightN<4?' (4번초 부족 우려)':'')));
+  need.appendChild(el('span', nightN>=4?'pill':'miss', '야간 후보 '+nightN+'명'+(nightN<4?' (4번초 부족 — 밥교대 인원 자동 투입 예상)':'')));
   box.appendChild(need);
 }
 ['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
@@ -1403,18 +1406,19 @@ function validateSchedule(s){
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id) nightCnt[id]=(nightCnt[id]||0)+1; });
   Object.keys(nightCnt).forEach(id=>{ if(nightCnt[id]>=2) push(nameOf(id)+' 같은 날 야간 번초 '+nightCnt[id]+'개 배정(이중 야간 금지)'); });
 
-  // 5) 당일 밥교대가 야간 1~4번초에 포함? (야간열외 대상이면 예외)
+  // 5) 당일 밥교대는 기본적으로 야간 제외 — 야간 후보 부족 폴백으로만 투입되므로 별도 경고 없음.
+  //    단, 야간열외(다음날 당직/상황병 등) 대상인데 야간에 들어가 있으면 경고.
   if(s.mealId){
     const mealNightEx = new Set([s.prevDutyId,s.dutyId,s.nextDutyId,s.prevSituationId,s.situationId,s.nextSituationId,...(s.nightEx||[]),...(s.bothEx||[])].filter(Boolean)).has(s.mealId);
     const inNight = Object.values(night).includes(s.mealId);
-    if(!mealNightEx && !inNight) push('밥교대('+nameOf(s.mealId)+')가 야간 번초에 배정되지 않았습니다.');
+    if(mealNightEx && inNight) push('밥교대('+nameOf(s.mealId)+')가 야간 열외 대상인데 야간 번초에 배정되었습니다.');
   }
 
   // 6) 다음날 밥교대 == 다음날 당직/상황병 → 17:30/18:30/19:30 충돌
   if(s.nextMealId && s.nextMealId===s.nextDutyId) push('다음날 밥교대=다음날 당직: 17:30·19:30 충돌('+nameOf(s.nextMealId)+')');
   if(s.nextMealId && s.nextMealId===s.nextSituationId) push('다음날 밥교대=다음날 상황병: 17:30·18:30 충돌('+nameOf(s.nextMealId)+')');
   if(s.nextDutyId && s.nextDutyId===s.nextSituationId) push('다음날 당직=다음날 상황병: 18:30·19:30 충돌('+nameOf(s.nextDutyId)+')');
-  if(s.nextMealId && s.nextMealId===s.mealId) push('다음날 밥교대=오늘 밥교대('+nameOf(s.mealId)+'): 오늘·내일 야간 강제투입 → 이틀 연속 야간 발생');
+  if(s.nextMealId && s.nextMealId===s.mealId) push('다음날 밥교대=오늘 밥교대('+nameOf(s.mealId)+'): 야간 후보 부족 시 이틀 연속 야간 우려');
 
   // 7) 추가순찰 미배정 / 16:30·17:30 근무자와 중복
   if(!s.patrolExtra) push('17:00 추가순찰 미배정');
@@ -1607,7 +1611,7 @@ function renderSchedTable(s, compact){
     }else{ row.appendChild(el('div','nm', s.nextMealId?esc(nameOf(s.nextMealId)):'—')); }
     meta.appendChild(row);
   }
-  meta.appendChild(el('div','slot', '<div class="t"></div><div class="nm" style="font-size:11px;color:var(--ink-faint);font-weight:400">다음날 밥교대(=다음날 야간 확정자)를 바꾸면 그날 표가 전체 재생성됩니다(오늘 야간 후보 재계산, 수동 편집 초기화). 외출 등으로 17:30 근무자만 바꿀 때는 위 저녁 블록의 17:30 칸을 직접 수정하세요 — 카운트에만 반영되고 재생성하지 않습니다.</div>'));
+  meta.appendChild(el('div','slot', '<div class="t"></div><div class="nm" style="font-size:11px;color:var(--ink-faint);font-weight:400">다음날 밥교대를 바꾸면 그날 표가 전체 재생성됩니다(오늘 야간 후보 재계산, 수동 편집 초기화). 외출 등으로 17:30 근무자만 바꿀 때는 위 저녁 블록의 17:30 칸을 직접 수정하세요 — 카운트에만 반영되고 재생성하지 않습니다.</div>'));
   grid.appendChild(meta);
   return grid;
 }

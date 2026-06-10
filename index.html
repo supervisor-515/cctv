@@ -189,7 +189,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .cal-dow:first-child{color:var(--red)}
 .cal-dow:last-child{color:var(--blue)}
 .cal-cell{
-  border:1px solid var(--line);border-radius:9px;background:var(--panel2);min-height:88px;
+  border:1px solid var(--line);border-radius:9px;background:var(--panel2);min-height:88px;min-width:0;
   padding:6px 7px;cursor:pointer;transition:.12s;display:flex;flex-direction:column;gap:3px;overflow:hidden;
 }
 .cal-cell:hover{border-color:#314056}
@@ -204,11 +204,36 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .cal-ln{font-size:10.5px;line-height:1.4;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-ln b{color:var(--ink);font-weight:600}
 .cal-ln .tag{font-size:9px;padding:1px 4px;margin-right:2px}
+/* 모바일용 마커 점: 데스크톱에선 숨김 */
+.cal-dots{display:none;gap:3px;flex-wrap:wrap;margin-top:auto;padding-top:2px}
+.cal-dots i{width:7px;height:7px;border-radius:2px;display:block;flex:none}
+.cal-dots i.d-duty{background:var(--blue)}
+.cal-dots i.d-sit{background:var(--amber)}
+.cal-dots i.d-meal{background:var(--night)}
+.cal-dots i.d-vac{background:var(--red)}
+.cal-dots i.d-ex{background:transparent;border:1px dashed var(--amber)}
+.cal-dots i.d-resv-duty{background:transparent;border:1px solid var(--blue)}
+.cal-dots i.d-resv-sit{background:transparent;border:1px solid var(--amber)}
+.cal-legend{display:none;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:10.5px;color:var(--ink-dim)}
+.cal-legend span{display:flex;align-items:center;gap:4px}
+.cal-legend i{width:7px;height:7px;border-radius:2px;display:block}
+.cal-legend i.d-duty{background:var(--blue)}
+.cal-legend i.d-sit{background:var(--amber)}
+.cal-legend i.d-meal{background:var(--night)}
+.cal-legend i.d-vac{background:var(--red)}
+.cal-legend i.d-ex{background:transparent;border:1px dashed var(--amber)}
+.cal-legend i.d-resv-duty{background:transparent;border:1px solid var(--blue)}
+.cal-legend i.d-resv-sit{background:transparent;border:1px solid var(--amber)}
 @media(max-width:640px){
   .cal-grid{gap:3px}
-  .cal-cell{min-height:62px;padding:4px 5px;border-radius:7px}
-  .cal-ln{font-size:9px}
-  .cal-d{font-size:11px}
+  .cal-cell{min-height:48px;padding:4px 4px;border-radius:7px}
+  .cal-ln{display:none}
+  .cal-dots{display:flex}
+  .cal-d{font-size:11px;gap:3px}
+  .cal-d .hol{display:none}
+  .cal-head .field{flex:1 1 100%}
+  .cal-head .field select{width:100%}
+  .cal-legend{display:flex}
 }
 @media print{
   body{background:#fff;color:#000}
@@ -270,17 +295,21 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
         <div class="field"><label>근무자 하이라이트</label><select id="calWho"></select></div>
       </div>
       <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend">
+        <span><i class="d-duty"></i>당직</span><span><i class="d-sit"></i>상황병</span><span><i class="d-meal"></i>밥교대</span>
+        <span><i class="d-vac"></i>휴가</span><span><i class="d-ex"></i>열외</span><span><i class="d-resv-duty"></i>당직예약</span><span><i class="d-resv-sit"></i>상황예약</span>
+      </div>
       <p class="hint">● = 근무표 생성됨. 날짜를 누르면 상세·일정이 아래에 표시됩니다.</p>
       <div id="calDetail" style="margin-top:10px"></div>
     </div>
 
     <div class="panel">
       <h2>일정 사전 등록</h2>
-      <p class="desc">휴가·열외·당직·상황병을 미리 등록해두면 [근무표 생성]에서 그 날짜를 열 때 자동으로 반영됩니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
+      <p class="desc">휴가·열외·당직·상황병을 미리 등록해두면 [근무표 생성]에서 그 날짜를 열 때 자동으로 반영됩니다. 휴가는 마지막날(복귀일)만 주간 열외로 적용되어 그날 야간부터 투입 가능합니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
       <div class="row">
         <div class="field"><label>종류</label>
           <select id="pbKind">
-            <option value="vacation">휴가 (모두 열외·분모 제외)</option>
+            <option value="vacation">휴가 (복귀일은 주간만 열외)</option>
             <option value="exday">주간 열외</option>
             <option value="exboth">모두 열외 (분모 제외)</option>
             <option value="duty">당직 예약</option>
@@ -1284,8 +1313,9 @@ function refreshGenSelectors(){
     nm.value = existing ? (existing.nextMealAuto ? '' : (existing.nextMealId || '__none__')) : '';  // 신규일=자동
   }
   fillSelect($('#gMeal'), mealList(), {blank:'— 자동 배정 —', selected: existing?existing.mealId:(prev?prev.nextMealId:null)});
-  genEx.day  = new Set(existing? (existing.dayEx||[])  : pb.filter(p=>p.kind==='exday').map(p=>p.wid));
-  genEx.both = new Set(existing? (existing.bothEx||[]) : pb.filter(p=>p.kind==='vacation'||p.kind==='exboth').map(p=>p.wid));
+  // 휴가 마지막날(복귀일)은 주간만 열외 — 복귀날 야간부터 투입 가능
+  genEx.day  = new Set(existing? (existing.dayEx||[])  : pb.filter(p=> p.kind==='exday' || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid));
+  genEx.both = new Set(existing? (existing.bothEx||[]) : pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid));
   renderExChips();
   $('#gHoliday').checked = existing?existing.workHoliday: (prev&&prev.nextWorkHoliday) || dayGroup(ds,false)==='weekend';
   $('#gNextHoliday').checked = existing? !!existing.nextWorkHoliday : dayGroup(addDays(ds,1),false)==='weekend';
@@ -1369,7 +1399,10 @@ function previewGen(){
   const pbs=prebookOn(ds);
   if(pbs.length){
     const lp=el('div','ln'); lp.appendChild(el('span','k','사전등록'));
-    pbs.forEach(p=> lp.appendChild(el('span','pill', esc(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)))));
+    pbs.forEach(p=>{
+      const returning = p.kind==='vacation' && ds===p.end && p.end!==p.start;
+      lp.appendChild(el('span','pill', esc((returning?'휴가 복귀일(주간만 열외)':PREBOOK_KR[p.kind])+' · '+nameOf(p.wid))));
+    });
     box.appendChild(lp);
   }
 
@@ -1800,9 +1833,24 @@ function renderCal(){
         }
       }
     }
+    const dots=[];
+    if(s && !who){
+      if(s.dutyId) dots.push('d-duty');
+      if(s.situationId) dots.push('d-sit');
+      if(s.mealId) dots.push('d-meal');
+    }
     prebookOn(ds).filter(p=>!who||p.wid===who).forEach(p=>{
-      cell.appendChild(el('div','cal-ln','<span class="tag '+PREBOOK_TAGCLS[p.kind]+'">'+PREBOOK_SHORT[p.kind]+'</span>'+esc(nameOf(p.wid))));
+      const returning = p.kind==='vacation' && ds===p.end && p.end!==p.start; // 복귀일: 주간만 열외
+      const short = returning ? '복귀' : PREBOOK_SHORT[p.kind];
+      const cls = returning ? 'relax' : PREBOOK_TAGCLS[p.kind];
+      cell.appendChild(el('div','cal-ln','<span class="tag '+cls+'">'+short+'</span>'+esc(nameOf(p.wid))));
+      dots.push(p.kind==='duty'?'d-resv-duty': p.kind==='situation'?'d-resv-sit': (p.kind==='vacation'&&!returning)?'d-vac':'d-ex');
     });
+    if(dots.length){
+      const dd=el('div','cal-dots');
+      dots.slice(0,8).forEach(c=> dd.appendChild(el('i',c)));
+      cell.appendChild(dd);
+    }
     cell.addEventListener('click',()=>{
       calSelDate=ds;
       $('#pbStart').value=ds;
@@ -1838,11 +1886,25 @@ function renderCalDetail(){
   });
   hdr.appendChild(go);
   box.appendChild(hdr);
+  // 하이라이트 근무자가 선택돼 있으면 그날 슬롯 상세 표시 (모바일에서 셀 내용 대신 사용)
+  const who=$('#calWho').value||null;
+  if(s && who){
+    const mk=workerDayMarks(s,who);
+    if(mk.roles.length||mk.slots.length){
+      const ln=el('div','flexgap'); ln.style.marginBottom='8px';
+      ln.appendChild(el('span','muted',esc(nameOf(who))+' —'));
+      mk.roles.forEach(r=> ln.appendChild(el('span','pill',esc(r))));
+      if(mk.slots.length) ln.appendChild(el('span','pill',esc(mk.slots.join(' · '))));
+      box.appendChild(ln);
+    }
+  }
   const pbs=prebookOn(ds);
   if(pbs.length){
     const wrap=el('div','flexgap');
     pbs.forEach(p=>{
-      const chip=el('span','pill', esc(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)+(p.end!==p.start?' ('+p.start+'~'+p.end+')':''))+' ✕');
+      const returning = p.kind==='vacation' && ds===p.end && p.end!==p.start;
+      const label = returning ? '휴가 복귀일 (주간만 열외)' : PREBOOK_KR[p.kind];
+      const chip=el('span','pill', esc(label+' · '+nameOf(p.wid)+(p.end!==p.start?' ('+p.start+'~'+p.end+')':''))+' ✕');
       chip.style.cursor='pointer'; chip.title='클릭하면 이 일정을 삭제합니다';
       chip.addEventListener('click',()=>{
         if(!confirm(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)+' 일정을 삭제할까요?')) return;

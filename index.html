@@ -200,7 +200,12 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .cal-d{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink-dim);display:flex;align-items:center;gap:5px}
 .cal-d.sun{color:var(--red)}.cal-d.sat{color:var(--blue)}
 .cal-d .dot2{width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 6px var(--acc);flex:none}
-.cal-d .hol{font-size:9px;color:var(--amber);font-family:var(--kr);font-weight:600}
+.cal-d .hol{font-size:9px;color:var(--amber);font-family:var(--kr);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-d.hd{color:var(--red)}
+.cal-d .wico{font-size:10px;line-height:1;flex:none}
+.cal-cell.holiday{background:rgba(255,107,107,.05)}
+.kpi.cal-kpi{margin-bottom:12px}
+.kpi.cal-kpi .c .v{font-size:17px}
 .cal-ln{font-size:10.5px;line-height:1.4;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-ln b{color:var(--ink);font-weight:600}
 .cal-ln .tag{font-size:9px;padding:1px 4px;margin-right:2px}
@@ -294,13 +299,28 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
         <div class="spacer" style="flex:1"></div>
         <div class="field"><label>근무자 하이라이트</label><select id="calWho"></select></div>
       </div>
+      <div class="kpi cal-kpi" id="calKpi"></div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-legend">
         <span><i class="d-duty"></i>당직</span><span><i class="d-sit"></i>상황병</span><span><i class="d-meal"></i>밥교대</span>
         <span><i class="d-vac"></i>휴가</span><span><i class="d-ex"></i>열외</span><span><i class="d-resv-duty"></i>당직예약</span><span><i class="d-resv-sit"></i>상황예약</span>
       </div>
-      <p class="hint">● = 근무표 생성됨. 날짜를 누르면 상세·일정이 아래에 표시됩니다.</p>
+      <p class="hint">● = 근무표 생성됨 · ⚠ = 점검 필요(제약 위반·미배정) · 빨간 날짜 = 휴무일. 날짜를 누르면 그날 근무표 전체와 일정이 아래에 표시됩니다.</p>
       <div id="calDetail" style="margin-top:10px"></div>
+    </div>
+
+    <div class="panel">
+      <h2>휴무일 지정</h2>
+      <p class="desc">부대 휴무·전투휴무 등을 미리 지정하면 달력에 표시되고, [근무표 생성]에서 그 날짜를 열 때 ‘직장 휴무일’·‘다음날 휴무일’이 자동으로 체크됩니다. 대한민국 공휴일(2025~2027)은 자동 반영됩니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
+      <div class="row">
+        <div class="field"><label>휴무 이름</label><input id="hdName" placeholder="예: 전투휴무"></div>
+        <div class="field"><label>시작일</label><input type="date" id="hdStart"></div>
+        <div class="field"><label>종료일 (비우면 하루)</label><input type="date" id="hdEnd"></div>
+        <button class="btn" id="hdAdd">휴무일 등록</button>
+      </div>
+      <div id="hdStatus" style="margin-top:10px"></div>
+      <div class="divider"></div>
+      <div class="tbl-wrap"><table id="hdTable"></table></div>
     </div>
 
     <div class="panel">
@@ -533,7 +553,7 @@ const WEIGHT_LABELS = {
 const DEFAULT_SETTINGS = {patrolBonus:0.5, enable1430OnHoliday:false, weights:{...DEFAULT_WEIGHTS}};
 
 /* ---------- 상태 ---------- */
-let DB = {version:2, lastBackupAt:null, workers:[], schedules:{}, prebook:[], settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))};
+let DB = {version:2, lastBackupAt:null, workers:[], schedules:{}, prebook:[], holidays:{}, settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))};
 
 /* ---------- 저장/로드 + 구버전 호환 ---------- */
 function load(){
@@ -545,9 +565,12 @@ function load(){
 function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); invalidateStats(); }
 
 function migrate(obj){
-  const out = {version:2, lastBackupAt:null, workers:[], schedules:{}, prebook:[], settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))};
+  const out = {version:2, lastBackupAt:null, workers:[], schedules:{}, prebook:[], holidays:{}, settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))};
   if(!obj || typeof obj!=='object') return out;
   out.prebook = (Array.isArray(obj.prebook)?obj.prebook:[]).map(normPrebook).filter(Boolean);
+  if(obj.holidays && typeof obj.holidays==='object' && !Array.isArray(obj.holidays)){
+    Object.keys(obj.holidays).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(k)) out.holidays[k]=String(obj.holidays[k]||'휴무'); });
+  }
   out.lastBackupAt = obj.lastBackupAt || null;
   // settings
   if(obj.settings){
@@ -592,11 +615,37 @@ function normPrebook(p){
 /* 해당 날짜에 걸리는 사전등록 목록 */
 function prebookOn(ds){ return (DB.prebook||[]).filter(p=> ds>=p.start && ds<=p.end); }
 
+/* ---------- 휴무일 ---------- */
+/* 대한민국 공휴일 2025~2027 (대체공휴일 포함, 참고용 내장 데이터) */
+const KR_HOLIDAYS = {
+  '2025-01-01':'신정','2025-01-27':'임시공휴일','2025-01-28':'설연휴','2025-01-29':'설날','2025-01-30':'설연휴',
+  '2025-03-01':'삼일절','2025-03-03':'대체공휴일','2025-05-05':'어린이날·석가탄신일','2025-05-06':'대체공휴일',
+  '2025-06-03':'대통령선거','2025-06-06':'현충일','2025-08-15':'광복절',
+  '2025-10-03':'개천절','2025-10-05':'추석연휴','2025-10-06':'추석','2025-10-07':'추석연휴','2025-10-08':'대체공휴일','2025-10-09':'한글날',
+  '2025-12-25':'성탄절',
+  '2026-01-01':'신정','2026-02-16':'설연휴','2026-02-17':'설날','2026-02-18':'설연휴',
+  '2026-03-01':'삼일절','2026-03-02':'대체공휴일','2026-05-05':'어린이날','2026-05-24':'석가탄신일','2026-05-25':'대체공휴일',
+  '2026-06-03':'지방선거','2026-06-06':'현충일','2026-08-15':'광복절','2026-08-17':'대체공휴일',
+  '2026-09-24':'추석연휴','2026-09-25':'추석','2026-09-26':'추석연휴',
+  '2026-10-03':'개천절','2026-10-05':'대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절',
+  '2027-01-01':'신정','2027-02-05':'설연휴','2027-02-06':'설날','2027-02-07':'설연휴','2027-02-08':'대체공휴일',
+  '2027-03-01':'삼일절','2027-05-05':'어린이날','2027-05-13':'석가탄신일','2027-06-06':'현충일',
+  '2027-08-15':'광복절','2027-08-16':'대체공휴일',
+  '2027-09-14':'추석연휴','2027-09-15':'추석','2027-09-16':'추석연휴',
+  '2027-10-03':'개천절','2027-10-04':'대체공휴일','2027-10-09':'한글날','2027-10-11':'대체공휴일',
+  '2027-12-25':'성탄절','2027-12-27':'대체공휴일'
+};
+/* 휴무일 이름: 직접 지정 > 내장 공휴일 > null */
+function holidayName(ds){ return (DB.holidays&&DB.holidays[ds]) || KR_HOLIDAYS[ds] || null; }
+function isHolidayDate(ds){ return !!holidayName(ds); }
+
 function normSched(s){
   s = s||{};
   return {
     date: s.date,
     workHoliday: !!s.workHoliday,
+    nextWorkHoliday: !!s.nextWorkHoliday,
+    nextMealAuto: !!s.nextMealAuto,
     dutyId:s.dutyId||null, situationId:s.situationId||null,
     nextDutyId:s.nextDutyId||null, nextSituationId:s.nextSituationId||null, nextMealId:s.nextMealId||null,
     prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null,
@@ -1324,8 +1373,8 @@ function refreshGenSelectors(){
   genEx.day  = new Set(existing? (existing.dayEx||[])  : pb.filter(p=> p.kind==='exday' || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid));
   genEx.both = new Set(existing? (existing.bothEx||[]) : pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid));
   renderExChips();
-  $('#gHoliday').checked = existing?existing.workHoliday: (prev&&prev.nextWorkHoliday) || dayGroup(ds,false)==='weekend';
-  $('#gNextHoliday').checked = existing? !!existing.nextWorkHoliday : dayGroup(addDays(ds,1),false)==='weekend';
+  $('#gHoliday').checked = existing?existing.workHoliday: (prev&&prev.nextWorkHoliday) || dayGroup(ds,false)==='weekend' || isHolidayDate(ds);
+  $('#gNextHoliday').checked = existing? !!existing.nextWorkHoliday : dayGroup(addDays(ds,1),false)==='weekend' || isHolidayDate(addDays(ds,1));
   // 전날 당직/상황병: 전날 표가 있으면 자동·비활성, 없으면 직접 입력 활성화
   const pd=$('#gPrevDuty'), ps=$('#gPrevSit'), pv=$('#gPrevView');
   if(prev){
@@ -1400,6 +1449,11 @@ function previewGen(){
   g1.appendChild(el('span','k','적용 주간그룹'));
   g1.appendChild(el('span','pill', DAYGROUP_KR[dayGroup(ds,ctx.workHoliday)]+' · '+ds+'('+DOW_KR[dow(ds)]+')'));
   g1.appendChild(el('span','pill','야간그룹 '+(nightGroup(ds,ctx.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')));
+  const _hn=holidayName(ds);
+  if(_hn) g1.appendChild(el('span','pill','휴무일 · '+esc(_hn)));
+  if(_hn && !ctx.workHoliday) g1.appendChild(el('span','miss','휴무일로 지정된 날인데 ‘직장 휴무일’이 꺼져 있습니다'));
+  const _hnN=holidayName(addDays(ds,1));
+  if(_hnN && !ctx.nextWorkHoliday) g1.appendChild(el('span','miss','다음날('+esc(_hnN)+')이 휴무일인데 ‘다음날 휴무일’이 꺼져 있습니다'));
   box.appendChild(g1);
 
   // 사전등록 일정 안내 (달력·일정 탭에서 등록한 항목)
@@ -1585,6 +1639,7 @@ function renderView(){
   const body=$('#vBody'); body.innerHTML='';
   const hdr=el('div','dayhdr');
   hdr.appendChild(el('div','d', ds+' ('+DOW_KR[dow(ds)]+')'));
+  { const hn=holidayName(ds); if(hn) hdr.appendChild(el('span','pill','휴무일 · '+esc(hn))); }
   if(s){
     hdr.appendChild(el('span','pill','주간그룹 '+DAYGROUP_KR[dayGroup(ds,s.workHoliday)]));
     hdr.appendChild(el('span','pill','야간그룹 '+(nightGroup(ds,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')));
@@ -1813,18 +1868,26 @@ function renderCal(){
   const lead=dow(calYM+'-01');
   const days=new Date(y,m,0).getDate();
   const today=todayStr();
+  let madeCnt=0, warnDays=0, holCnt=0;
   for(let i=0;i<lead;i++) grid.appendChild(el('div','cal-cell out'));
   for(let d=1;d<=days;d++){
     const ds=calYM+'-'+pad(d);
     const s=DB.schedules[ds];
     const wd=dow(ds);
+    const hn=holidayName(ds);
+    const issues = s ? validateSchedule(s) : [];
+    if(s){ madeCnt++; if(issues.length) warnDays++; }
+    if(hn) holCnt++;
     const cell=el('div','cal-cell');
     if(ds===today) cell.classList.add('today');
     if(ds===calSelDate) cell.classList.add('sel');
-    const dn=el('div','cal-d'+(wd===0?' sun':wd===6?' sat':''));
+    if(hn || (s&&s.workHoliday)) cell.classList.add('holiday');
+    const dn=el('div','cal-d'+(wd===0?' sun':wd===6?' sat':'')+(hn?' hd':''));
     dn.appendChild(el('span',null,String(d)));
     if(s) dn.appendChild(el('span','dot2'));
-    if(s&&s.workHoliday) dn.appendChild(el('span','hol','휴무'));
+    if(issues.length) dn.appendChild(el('span','wico','⚠'));
+    if(hn) dn.appendChild(el('span','hol',esc(hn)));
+    else if(s&&s.workHoliday) dn.appendChild(el('span','hol','휴무'));
     cell.appendChild(dn);
     if(s){
       if(!who){
@@ -1862,13 +1925,27 @@ function renderCal(){
       calSelDate=ds;
       $('#pbStart').value=ds;
       if($('#pbEnd').value && $('#pbEnd').value<ds) $('#pbEnd').value='';
+      $('#hdStart').value=ds;
+      if($('#hdEnd').value && $('#hdEnd').value<ds) $('#hdEnd').value='';
       renderCal();
     });
     grid.appendChild(cell);
   }
+  // 월 요약 KPI
+  {
+    const k=$('#calKpi'); k.innerHTML='';
+    const mStart=calYM+'-01', mEnd=calYM+'-'+pad(days);
+    const pbCnt=(DB.prebook||[]).filter(p=> p.start<=mEnd && p.end>=mStart).length;
+    addKpi(k,'근무표 생성', madeCnt+'/'+days+'일');
+    addKpi(k,'점검 필요 ⚠', warnDays+'일');
+    addKpi(k,'휴무일·공휴일', holCnt+'일');
+    addKpi(k,'등록 일정', pbCnt+'건');
+  }
   renderCalDetail();
   renderPrebookForm();
   renderPrebookTable();
+  renderHolidayTable();
+  if(!$('#hdStart').value) $('#hdStart').value=todayStr();
 }
 
 function renderCalDetail(){
@@ -1877,6 +1954,7 @@ function renderCalDetail(){
   const ds=calSelDate, s=DB.schedules[ds];
   const hdr=el('div','dayhdr');
   hdr.appendChild(el('div','d', ds+' ('+DOW_KR[dow(ds)]+')'));
+  { const hn=holidayName(ds); if(hn) hdr.appendChild(el('span','pill','휴무일 · '+esc(hn))); }
   if(s){
     hdr.appendChild(el('span','pill','당직 '+esc(nameOf(s.dutyId))));
     hdr.appendChild(el('span','pill','상황병 '+esc(nameOf(s.situationId))));
@@ -1921,7 +1999,66 @@ function renderCalDetail(){
     });
     box.appendChild(wrap);
   }
+  // 근무표가 있으면 경고 + 표 전체를 그 자리에서 열람 (탭 이동 불필요)
+  if(s){
+    const issues=validateSchedule(s);
+    if(issues.length) box.appendChild(el('div','warn','⚠ 점검 필요 '+issues.length+'건<br>'+issues.map(esc).join('<br>')));
+    const det=el('details','adv');
+    det.appendChild(el('summary',null,'근무표 전체 보기'));
+    const inner=el('div'); inner.style.padding='0 0 14px';
+    inner.appendChild(renderSchedTable(s,true));
+    det.appendChild(inner);
+    if(window.innerWidth>780) det.open=true;
+    box.appendChild(det);
+  }
 }
+
+/* ----- 휴무일 지정 ----- */
+function renderHolidayTable(){
+  const t=$('#hdTable'); if(!t) return;
+  const today=todayStr();
+  const dates=Object.keys(DB.holidays||{}).sort();
+  t.innerHTML='<tr><th>기간</th><th>이름</th><th style="width:70px"></th></tr>';
+  if(!dates.length){
+    const tr=el('tr'); const td=el('td',null,'<span class="muted">직접 지정한 휴무일이 없습니다. 공휴일은 자동으로 달력에 표시됩니다. 달력의 날짜를 누르면 시작일이 채워집니다.</span>');
+    td.colSpan=3; tr.appendChild(td); t.appendChild(tr); return;
+  }
+  // 같은 이름의 연속 날짜는 한 행으로 묶어 표시
+  const runs=[];
+  dates.forEach(d=>{
+    const nm=DB.holidays[d];
+    const last=runs[runs.length-1];
+    if(last && last.name===nm && addDays(last.end,1)===d) last.end=d;
+    else runs.push({start:d,end:d,name:nm});
+  });
+  runs.forEach(r=>{
+    const tr=el('tr', r.end<today?'inactive-row':null);
+    tr.appendChild(el('td',null, esc(r.start)+' <span class="muted">('+DOW_KR[dow(r.start)]+')</span>'+(r.end!==r.start?' ~ '+esc(r.end)+' <span class="muted">('+DOW_KR[dow(r.end)]+')</span>':'')));
+    tr.appendChild(el('td',null,'<b>'+esc(r.name)+'</b>'));
+    const td=el('td'); const del=el('button','btn danger sm','삭제');
+    del.addEventListener('click',()=>{
+      for(let d=r.start; d<=r.end; d=addDays(d,1)) delete DB.holidays[d];
+      save(); renderCal(); refreshGenSelectors();
+    });
+    td.appendChild(del); tr.appendChild(td);
+    t.appendChild(tr);
+  });
+}
+$('#hdAdd').addEventListener('click',()=>{
+  const name=($('#hdName').value||'').trim()||'부대 휴무';
+  const start=$('#hdStart').value; let end=$('#hdEnd').value;
+  const st=$('#hdStatus');
+  if(!start){ st.innerHTML='<div class="err">시작일을 선택하세요.</div>'; return; }
+  if(!end || end<start) end=start;
+  let n=0; for(let d=start; d<=end; d=addDays(d,1)){ if(++n>60){ st.innerHTML='<div class="err">한 번에 60일까지만 등록할 수 있습니다.</div>'; return; } }
+  DB.holidays=DB.holidays||{};
+  for(let d=start; d<=end; d=addDays(d,1)) DB.holidays[d]=name;
+  save();
+  st.innerHTML='<div class="ok">✓ '+esc(name+' · '+start+(end!==start?' ~ '+end:''))+' 휴무일로 지정했습니다. 생성 시 자동 반영됩니다.</div>';
+  $('#hdEnd').value=''; $('#hdName').value='';
+  calYM=start.slice(0,7); calSelDate=start;
+  renderCal(); refreshGenSelectors();
+});
 
 /* ----- 일정 사전 등록 ----- */
 function renderPrebookForm(){
@@ -2334,7 +2471,7 @@ $('#bCsvAll').addEventListener('click',()=>{
   });
   downloadCsv('전체근무표.csv',rows);
 });
-$('#bClear').addEventListener('click',()=>{ if(confirm('모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없습니다.')){ localStorage.removeItem(STORE_KEY); DB={version:2,lastBackupAt:null,workers:[],schedules:{},prebook:[],settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))}; invalidateStats(); refreshAll(); } });
+$('#bClear').addEventListener('click',()=>{ if(confirm('모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없습니다.')){ localStorage.removeItem(STORE_KEY); DB={version:2,lastBackupAt:null,workers:[],schedules:{},prebook:[],holidays:{},settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))}; invalidateStats(); refreshAll(); } });
 
 /* ---------- 초기화 ---------- */
 function refreshAll(){ renderPeople(); renderSettings(); refreshGenSelectors(); renderView(); renderCal(); renderBackupInfo(); }

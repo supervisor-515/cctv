@@ -381,7 +381,14 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
   <section class="view" id="count">
     <div class="panel">
       <h2>근무 카운트 · 배정률</h2>
-      <p class="desc">평균은 ‘달력 일수’가 아니라 각자 카운트 기준 이후 실제 생성된 근무표 수를 분모로 합니다. 비활성·전체열외 날은 분모에서 제외됩니다.</p>
+      <p class="desc">평균은 ‘달력 일수’가 아니라 각자 카운트 기준 이후 실제 생성된 근무표 수를 분모로 합니다. 비활성·전체열외 날은 분모에서 제외됩니다. 월별 보기는 해당 월에 생성된 근무표만 집계합니다(기존 누적시간 제외) — 신병이 상황병/당직으로 전환된 뒤 월 단위 현황을 볼 때 사용하세요.</p>
+      <div class="row" style="margin-bottom:12px">
+        <div class="field"><label>보기 범위</label>
+          <select id="cView"><option value="all">전체 보기</option><option value="month">월별 보기</option></select>
+        </div>
+        <div class="field" id="cMonthField" style="display:none"><label>월 선택</label><select id="cMonth"></select></div>
+        <label class="chk"><input type="checkbox" id="cNoRecruit"> 신병 제외</label>
+      </div>
       <div class="kpi" id="cKpi"></div>
       <div class="row" style="margin-bottom:10px">
         <button class="btn ghost sm" id="cCsv">카운트 CSV</button>
@@ -663,22 +670,22 @@ function presentOn(w, ds, sched){
    DB가 바뀌는 시점(save)에서만 무효화 → 배정(배치) 로직은 전혀 손대지 않음. */
 let _statsCache = new Map();
 function invalidateStats(){ _statsCache.clear(); }
-function buildStats(uptoDate){
-  const key = (uptoDate==null) ? '\u0000ALL' : uptoDate;
+function buildStats(uptoDate, month){
+  const key = (month||'') + '\u0001' + ((uptoDate==null) ? '\u0000ALL' : uptoDate);
   const hit = _statsCache.get(key);
   if(hit) return hit;
-  const st = _computeStats(uptoDate);
+  const st = _computeStats(uptoDate, month);
   _statsCache.set(key, st);
   return st;
 }
 /* 모든 저장 근무표를 날짜순으로 훑어 각 근무자의
    분모(겪은 근무표 수)와 분자(배정 횟수)를 누적 → 배정률 산출 */
-function _computeStats(uptoDate){
-  const dates = Object.keys(DB.schedules).filter(d=> !uptoDate || d<uptoDate).sort();
+function _computeStats(uptoDate, month){
+  const dates = Object.keys(DB.schedules).filter(d=> (!uptoDate || d<uptoDate) && (!month || d.slice(0,7)===month)).sort();
   const st = {};
   DB.workers.forEach(w=>{
     st[w.id]={
-      hours:w.baseHours||0,
+      hours: month ? 0 : (w.baseHours||0),
       denom:0, dutyCnt:0, sitCnt:0,
       groupNum:{mtth:0,wed:0,fri:0,weekend:0}, groupDen:{mtth:0,wed:0,fri:0,weekend:0},
       slotNum:{}, slotDen:0,
@@ -1975,13 +1982,15 @@ $('#calWho').addEventListener('change', renderCal);
 
 /* ---------- ③ 카운트 탭 ---------- */
 function renderCount(){
-  const st=buildStats(null);
-  const ws=DB.workers.filter(w=>w.active||st[w.id].denom>0);
+  refreshCountMonths();
+  const month=countMonth();
+  const st=countStats();
+  const ws=countWs(st).slice();
   // KPI 분포 균등도(총 근무시간): 신병은 원래 많이 투입되므로 공정성 계산에서 제외(활성·비신병 기준)
   const fairHours=activeWorkers().filter(w=>!isRecruit(w)).map(w=>st[w.id].hours);
   const kpi=$('#cKpi'); kpi.innerHTML='';
-  const totalSched=Object.keys(DB.schedules).length;
-  addKpi(kpi,'생성된 근무표', totalSched+'일');
+  const totalSched=Object.keys(DB.schedules).filter(d=>!month||d.slice(0,7)===month).length;
+  addKpi(kpi,month?'생성된 근무표 ('+month+')':'생성된 근무표', totalSched+'일');
   addKpi(kpi,'근무자', ws.length+'명');
   addKpi(kpi,'시간 CV (비신병)', (cv(fairHours)*100).toFixed(1)+'%');
   addKpi(kpi,'시간 지니 (비신병)', gini(fairHours).toFixed(3));
@@ -2020,10 +2029,26 @@ function renderCount(){
   renderPatrolRates(st);
   if(!$('#cSlotGrp').options.length){
     fillGroupFilter($('#cSlotGrp'));
-    $('#cSlotGrp').addEventListener('change',()=>renderSlotRates(buildStats(null)));
+    $('#cSlotGrp').addEventListener('change',()=>renderSlotRates(countStats()));
   }
   renderSlotRates(st);
 }
+/* 카운트 탭 필터 상태: 전체/월별 보기 + 신병 제외 */
+function countMonth(){ return $('#cView').value==='month' ? ($('#cMonth').value||null) : null; }
+function countStats(){ return buildStats(null, countMonth()); }
+function refreshCountMonths(){
+  const sel=$('#cMonth');
+  const months=[...new Set(Object.keys(DB.schedules).map(d=>d.slice(0,7)))].sort().reverse();
+  const cur=sel.value;
+  sel.innerHTML='';
+  months.forEach(m=>{ const o=el('option'); o.value=m; o.textContent=m.replace('-','년 ')+'월'; sel.appendChild(o); });
+  if(months.includes(cur)) sel.value=cur;
+  else if(months.includes(todayStr().slice(0,7))) sel.value=todayStr().slice(0,7);
+  $('#cMonthField').style.display = $('#cView').value==='month' ? '' : 'none';
+}
+$('#cView').addEventListener('change',renderCount);
+$('#cMonth').addEventListener('change',renderCount);
+$('#cNoRecruit').addEventListener('change',renderCount);
 function fillGroupFilter(sel){
   sel.innerHTML='';
   const o0=el('option'); o0.value='all'; o0.textContent='전체 합산'; sel.appendChild(o0);
@@ -2058,7 +2083,11 @@ function renderFairness(st){
   t.appendChild(fairnessRow('추가순찰 평일', ws.map(w=>st[w.id].patrolGNum.weekday), 1));
   t.appendChild(fairnessRow('추가순찰 주말/휴일', ws.map(w=>st[w.id].patrolGNum.weekend), 1));
 }
-function countWs(st){ return DB.workers.filter(w=>w.active||st[w.id].denom>0); }
+function countWs(st){
+  let ws=DB.workers.filter(w=>w.active||st[w.id].denom>0);
+  if($('#cNoRecruit').checked) ws=ws.filter(w=>!isRecruit(w));
+  return ws;
+}
 function renderNightRates(st){
   const ws=countWs(st).sort((a,b)=>rate(st[b.id].nightNum,st[b.id].nightDen)-rate(st[a.id].nightNum,st[a.id].nightDen));
   const t=$('#cNight'); t.innerHTML='';
@@ -2121,50 +2150,51 @@ function pct(n,d){ return d>0?Math.round(100*n/d)+'%':'–'; }
 function cv(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; if(m===0)return 0; const v=arr.reduce((a,b)=>a+(b-m)*(b-m),0)/arr.length; return Math.sqrt(v)/m; }
 function gini(arr){ const a=arr.filter(x=>x>=0).slice().sort((x,y)=>x-y); const n=a.length; if(n===0)return 0; const s=a.reduce((x,y)=>x+y,0); if(s===0)return 0; let cum=0; for(let i=0;i<n;i++) cum+=(2*(i+1)-n-1)*a[i]; return cum/(n*s); }
 
+function countCsvName(base){ const m=countMonth(); return base+(m?'_'+m:'')+'.csv'; }
 $('#cCsv').addEventListener('click',()=>{
-  const st=buildStats(null);
+  const st=countStats();
   const rows=[['근무자','구분','분모','누적시간','평균시간','월화목%','수%','금%','토일%','야간%','번초1','번초2','번초3','번초4','밥교대','순찰']];
-  DB.workers.forEach(w=>{ const r=st[w.id];
+  countWs(st).forEach(w=>{ const r=st[w.id];
     rows.push([w.name, isRecruit(w)?'신병':(w.roleType==='duty'?'당직':'상황병'), r.denom, r.hours.toFixed(1), avgHours(r).toFixed(2),
       pct(r.groupNum.mtth,r.groupDen.mtth),pct(r.groupNum.wed,r.groupDen.wed),pct(r.groupNum.fri,r.groupDen.fri),pct(r.groupNum.weekend,r.groupDen.weekend),
       pct(r.nightNum,r.nightDen), r.bunchoNum[1],r.bunchoNum[2],r.bunchoNum[3],r.bunchoNum[4], r.mealNum, r.patrolNum]);
   });
-  downloadCsv('근무카운트.csv',rows);
+  downloadCsv(countCsvName('근무카운트'),rows);
 });
 
 $('#cNightCsv').addEventListener('click',()=>{
-  const st=buildStats(null);
+  const st=countStats();
   const rows=[['이름','야간_횟수','야간_분모','평일_횟수','평일_분모','휴일_횟수','휴일_분모','번초1','번초2','번초3','번초4']];
   countWs(st).forEach(w=>{ const r=st[w.id];
     rows.push([w.name, r.nightNum, r.nightDen, r.nightGNum.weekday, r.nightGDen.weekday, r.nightGNum.holiday, r.nightGDen.holiday, r.bunchoNum[1],r.bunchoNum[2],r.bunchoNum[3],r.bunchoNum[4]]);
   });
-  downloadCsv('야간배정률.csv',rows);
+  downloadCsv(countCsvName('야간배정률'),rows);
 });
 $('#cMealCsv').addEventListener('click',()=>{
-  const st=buildStats(null);
+  const st=countStats();
   const rows=[['이름','월금_횟수','월금_분모','토일_횟수','토일_분모','합계_횟수','합계_분모']];
   countWs(st).filter(w=>w.canMeal||st[w.id].mealNum>0).forEach(w=>{ const r=st[w.id];
     rows.push([w.name, r.mealGNum.weekday, r.mealGDen.weekday, r.mealGNum.weekend, r.mealGDen.weekend, r.mealNum, r.mealDen]);
   });
-  downloadCsv('밥교대배정률.csv',rows);
+  downloadCsv(countCsvName('밥교대배정률'),rows);
 });
 $('#cPatrolCsv').addEventListener('click',()=>{
-  const st=buildStats(null);
+  const st=countStats();
   const rows=[['이름','평일_횟수','평일_분모','주말휴일_횟수','주말휴일_분모','합계_횟수','합계_분모']];
   countWs(st).forEach(w=>{ const r=st[w.id];
     rows.push([w.name, r.patrolGNum.weekday, r.patrolGDen.weekday, r.patrolGNum.weekend, r.patrolGDen.weekend, r.patrolNum, r.patrolDen]);
   });
-  downloadCsv('추가순찰배정률.csv',rows);
+  downloadCsv(countCsvName('추가순찰배정률'),rows);
 });
 $('#cSlotCsv').addEventListener('click',()=>{
-  const st=buildStats(null);
+  const st=countStats();
   const grp=$('#cSlotGrp').value||'all';
   const rows=[['이름','분모',...DAY_SLOTS]];
   countWs(st).forEach(w=>{ const r=st[w.id];
     const den=grp==='all'?r.slotDen:r.groupDen[grp];
     rows.push([w.name, den, ...DAY_SLOTS.map(sl=> grp==='all'?r.slotNum[sl]:r.slotGNum[grp][sl])]);
   });
-  downloadCsv('시간대배정률_'+(grp==='all'?'전체':DAYGROUP_KR[grp])+'.csv',rows);
+  downloadCsv(countCsvName('시간대배정률_'+(grp==='all'?'전체':DAYGROUP_KR[grp])),rows);
 });
 
 /* ---------- ④ 근무자 관리 ---------- */

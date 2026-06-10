@@ -1,0 +1,227 @@
+/* ============================================================
+   배정 엔진 회귀 테스트 — node --test 로 실행
+   하드 제약(인접 금지·이중 야간 금지·전날 야간자 아침 금지·열외 준수)이
+   어떤 입력에서도 깨지지 않는지를 중심으로 검증한다.
+   ============================================================ */
+"use strict";
+const test = require('node:test');
+const assert = require('node:assert');
+const E = require('../engine.js');
+
+/* 절대 허용되지 않는 위반 메시지 (완화 사다리로도 허용 안 됨)
+   — '야간 연속(전날 야간 → …)'은 tier3 완화로 허용되므로 제외 */
+const HARD = /인접 슬롯 연속근무|이중 야간 금지|에 배정됨\(금지\)|주간열외인데|야간\/전체열외인데|날짜경계 연속근무/;
+
+function freshDB(over = {}) {
+  return Object.assign({
+    version: 2, lastBackupAt: null, workers: [], schedules: {}, prebook: [], holidays: {},
+    settings: JSON.parse(JSON.stringify(E.DEFAULT_SETTINGS))
+  }, over);
+}
+function mkWorker(name, opts = {}) {
+  return E.normWorker(Object.assign({ name, roleReady: true, roleType: 'duty', canMeal: true, active: true }, opts),
+    Math.floor(Math.random() * 1e6));
+}
+function roster(n, recruits = 0) {
+  const ws = [];
+  for (let i = 0; i < n; i++) ws.push(mkWorker('W' + i, { roleType: i % 2 ? 'duty' : 'situation' }));
+  for (let i = 0; i < recruits; i++) ws.push(mkWorker('R' + i, { roleReady: false }));
+  return ws;
+}
+/* 표 한 장에서 wid가 배정된 주간 슬롯 목록 */
+function daySlotsOf(s, wid) {
+  return E.DAY_SLOTS.filter(sl => (s.assign && s.assign[sl] === wid) || (s.fixed && s.fixed[sl] === wid));
+}
+
+/* ---------- 날짜/그룹 유틸 ---------- */
+test('addDays: 월말·연말 경계', () => {
+  assert.equal(E.addDays('2026-02-28', 1), '2026-03-01');
+  assert.equal(E.addDays('2026-12-31', 1), '2027-01-01');
+  assert.equal(E.addDays('2026-03-01', -1), '2026-02-28');
+});
+
+test('dayGroup/nightGroup/mealGroup 분류', () => {
+  assert.equal(E.dayGroup('2026-06-15', false), 'mtth');   // 월
+  assert.equal(E.dayGroup('2026-06-17', false), 'wed');    // 수
+  assert.equal(E.dayGroup('2026-06-19', false), 'fri');    // 금
+  assert.equal(E.dayGroup('2026-06-20', false), 'weekend');// 토
+  assert.equal(E.dayGroup('2026-06-15', true), 'weekend'); // 휴무일 지정 시
+  assert.equal(E.nightGroup('2026-06-19', false), 'holiday'); // 다음날 토요일
+  assert.equal(E.nightGroup('2026-06-15', false), 'weekday');
+  assert.equal(E.nightGroup('2026-06-15', true), 'holiday');  // 다음날 휴무 지정
+  assert.equal(E.mealGroup('2026-06-20', false), 'weekend');
+});
+
+test('내장 공휴일이 autoInputFor의 휴무 판정에 반영된다', () => {
+  E.setDB(freshDB({ workers: roster(10) }));
+  const inp = E.autoInputFor('2026-08-17'); // 광복절 대체공휴일(월)
+  assert.equal(inp.workHoliday, true);
+});
+
+/* ---------- 마이그레이션/정규화 ---------- */
+test('migrate: 구버전(people 배열·schedules 배열) 호환', () => {
+  const out = E.migrate({
+    people: [{ name: '갑', roleType: 'duty' }],
+    schedules: [{ date: '2026-01-05', assign: {} }],
+    settings: { weights: { avgHours: 9 } }
+  });
+  assert.equal(out.workers.length, 1);
+  assert.equal(out.workers[0].roleReady, true);
+  assert.ok(out.schedules['2026-01-05']);
+  assert.equal(out.settings.weights.avgHours, 9);
+  assert.equal(out.settings.weights.slotRate, E.DEFAULT_WEIGHTS ? E.DEFAULT_WEIGHTS.slotRate : 5.0);
+});
+
+test('normPrebook: 필수값 누락 → null, end<start 보정', () => {
+  assert.equal(E.normPrebook(null), null);
+  assert.equal(E.normPrebook({ kind: 'vacation', start: '2026-01-01' }), null); // wid 없음
+  const p = E.normPrebook({ kind: 'vacation', wid: 'x', start: '2026-01-10', end: '2026-01-05' });
+  assert.equal(p.end, '2026-01-10');
+});
+
+/* ---------- 단일 생성: 완전 배정 + 하드 제약 ---------- */
+test('generateDay: 충분한 인원이면 전 슬롯 배정 + 하드 위반 없음', () => {
+  E.setDB(freshDB({ workers: roster(14) }));
+  const ds = '2026-06-15';
+  const s = E.generateDay(E.autoInputFor(ds));
+  E.getDB().schedules[ds] = s; E.invalidateStats();
+  const issues = E.validateSchedule(s);
+  assert.deepEqual(issues.filter(m => HARD.test(m)), []);
+  assert.deepEqual(issues.filter(m => /미배정/.test(m)), []);
+  E.DAY_SLOTS.forEach(sl => assert.ok(s.assign[sl] || (s.fixed && s.fixed[sl]), sl + ' 비어 있음'));
+  [1, 2, 3, 4].forEach(b => assert.ok(s.night[b], b + '번초 비어 있음'));
+});
+
+test('generateDay: 주간 열외(dayEx)·전체 열외(bothEx) 준수', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-16';
+  const inp = E.autoInputFor(ds);
+  inp.dayEx = [ws[0].id];
+  inp.bothEx = [ws[1].id];
+  const s = E.generateDay(inp);
+  assert.deepEqual(daySlotsOf(s, ws[0].id), [], '주간 열외자가 주간에 배정됨');
+  assert.deepEqual(daySlotsOf(s, ws[1].id), [], '전체 열외자가 주간에 배정됨');
+  assert.ok(!Object.values(s.night).includes(ws[1].id), '전체 열외자가 야간에 배정됨');
+});
+
+test('generateDay: 전날 야간자는 다음날 아침(06:30~08:30) 금지', () => {
+  E.setDB(freshDB({ workers: roster(14) }));
+  const d1 = '2026-06-15', d2 = '2026-06-16';
+  const s1 = E.generateDay(E.autoInputFor(d1));
+  E.getDB().schedules[d1] = s1; E.invalidateStats();
+  const s2 = E.generateDay(E.autoInputFor(d2));
+  E.getDB().schedules[d2] = s2; E.invalidateStats();
+  const prevNight = Object.values(s1.night).filter(Boolean);
+  E.MORNING_AFTER_NIGHT.forEach(sl => {
+    assert.ok(!prevNight.includes(s2.assign[sl]), sl + '에 전날 야간자 배정됨');
+  });
+  assert.deepEqual(E.validateSchedule(s2).filter(m => HARD.test(m)), []);
+});
+
+/* ---------- 무작위 입력 강건성 (2-opt 포함 전 파이프라인) ---------- */
+test('무작위 부대 구성 25회: 이틀 연속 생성에서 하드 제약이 절대 깨지지 않음', () => {
+  for (let iter = 0; iter < 25; iter++) {
+    const n = 8 + Math.floor(Math.random() * 9);          // 8~16명
+    const recruits = Math.floor(Math.random() * 3);       // 0~2명
+    const ws = roster(n, recruits);
+    E.setDB(freshDB({ workers: ws }));
+    const base = '2026-0' + (1 + Math.floor(Math.random() * 9)) + '-' + String(10 + Math.floor(Math.random() * 18));
+    for (const ds of [base, E.addDays(base, 1)]) {
+      const inp = E.autoInputFor(ds);
+      // 무작위 열외 0~2명
+      const shuffled = ws.slice().sort(() => Math.random() - 0.5);
+      if (Math.random() < .5) inp.dayEx = [shuffled[0].id];
+      if (Math.random() < .3) inp.bothEx = [shuffled[1].id];
+      const s = E.generateDay(inp);
+      E.getDB().schedules[ds] = s; E.invalidateStats();
+      const hard = E.validateSchedule(s).filter(m => HARD.test(m));
+      assert.deepEqual(hard, [], `iter=${iter} ds=${ds} n=${n} recruits=${recruits}: ${hard.join(' / ')}`);
+      // 이중 야간 직접 확인
+      const cnt = {};
+      Object.values(s.night).forEach(id => { if (id) cnt[id] = (cnt[id] || 0) + 1; });
+      Object.entries(cnt).forEach(([id, c]) => assert.ok(c <= 1, `iter=${iter} 이중 야간: ${id}`));
+    }
+  }
+});
+
+/* ---------- 사전등록 충돌 검사 ---------- */
+test('prebookConflictsFor: 휴가 기간에 배정된 기존 표를 충돌로 보고', () => {
+  const ws = roster(12);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const s = E.generateDay(E.autoInputFor(ds));
+  E.getDB().schedules[ds] = s; E.invalidateStats();
+  // 그날 실제로 주간 배정된 사람을 골라 휴가(기간 중)를 소급 등록
+  const victim = E.DAY_SLOTS.map(sl => s.assign[sl]).find(Boolean);
+  const p = E.normPrebook({ kind: 'vacation', wid: victim, start: ds, end: E.addDays(ds, 3) });
+  const confs = E.prebookConflictsFor(p, s);
+  assert.ok(confs.length >= 1, '충돌이 보고되지 않음');
+  assert.ok(confs.every(m => m.startsWith('사전등록 충돌')));
+  // validateSchedule에도 소급 반영되는지
+  E.getDB().prebook.push(p); E.invalidateStats();
+  assert.ok(E.validateSchedule(s).some(m => m.startsWith('사전등록 충돌')));
+});
+
+test('prebookConflictsFor: 휴가 복귀일은 주간만 점검(야간 배정은 허용)', () => {
+  const ws = roster(12);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const s = E.generateDay(E.autoInputFor(ds));
+  const nightWorker = Object.values(s.night).find(Boolean);
+  const p = E.normPrebook({ kind: 'vacation', wid: nightWorker, start: E.addDays(ds, -2), end: ds }); // ds=복귀일
+  const confs = E.prebookConflictsFor(p, s);
+  assert.ok(!confs.some(m => /야간/.test(m)), '복귀일 야간 배정이 충돌로 잘못 보고됨: ' + confs.join(' / '));
+});
+
+test('prebookConflictsFor: 당직 예약과 표의 당직이 다르면 충돌', () => {
+  const ws = roster(12);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const inp = E.autoInputFor(ds);
+  inp.dutyId = ws[0].id;
+  const s = E.generateDay(inp);
+  const p = E.normPrebook({ kind: 'duty', wid: ws[2].id, start: ds, end: ds });
+  assert.ok(E.prebookConflictsFor(p, s).some(m => /당직 예약/.test(m)));
+  const pOk = E.normPrebook({ kind: 'duty', wid: ws[0].id, start: ds, end: ds });
+  assert.deepEqual(E.prebookConflictsFor(pOk, s), []);
+});
+
+/* ---------- 통계/보조 ---------- */
+test('buildStats: 생성된 표가 다음날 통계에 누적된다', () => {
+  const ws = roster(12);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const s = E.generateDay(E.autoInputFor(ds));
+  E.getDB().schedules[ds] = s; E.invalidateStats();
+  const st = E.buildStats(E.addDays(ds, 1));
+  const totalHours = ws.reduce((a, w) => a + st[w.id].hours, 0);
+  assert.ok(totalHours > 0, '누적 시간이 0');
+  const denomSum = ws.reduce((a, w) => a + st[w.id].denom, 0);
+  assert.ok(denomSum > 0, '분모가 0');
+  // 캐시: 같은 인자는 동일 객체 반환
+  assert.equal(E.buildStats(E.addDays(ds, 1)), st);
+});
+
+test('scheduleRefCount: 배정·역할·고정 슬롯 등장 일수 집계', () => {
+  const ws = roster(12);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const s = E.generateDay(E.autoInputFor(ds));
+  E.getDB().schedules[ds] = s; E.invalidateStats();
+  const someone = E.DAY_SLOTS.map(sl => s.assign[sl]).find(Boolean);
+  assert.equal(E.scheduleRefCount(someone), 1);
+  assert.equal(E.scheduleRefCount('없는사람'), 0);
+});
+
+test('validateScheduleCached: 같은 날짜는 캐시 재사용, invalidate 후 재계산', () => {
+  const ws = roster(12);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const s = E.generateDay(E.autoInputFor(ds));
+  E.getDB().schedules[ds] = s; E.invalidateStats();
+  const a = E.validateScheduleCached(s);
+  assert.equal(E.validateScheduleCached(s), a);   // 동일 객체 = 캐시 적중
+  E.invalidateStats();
+  assert.notEqual(E.validateScheduleCached(s), a); // 새로 계산
+});

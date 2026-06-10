@@ -1,0 +1,8 @@
+{
+  "name": "cctv-roster",
+  "private": true,
+  "description": "CCTV 근무표 자동배정 — 정적 웹앱 (index.html + engine.js)",
+  "scripts": {
+    "test": "node --test"
+  }
+}

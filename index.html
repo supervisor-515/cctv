@@ -35,21 +35,6 @@ header.top{
 .logo .sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);letter-spacing:.18em;text-transform:uppercase}
 .top .spacer{flex:1}
 .clock{font-family:var(--mono);color:var(--ink-dim);font-size:12px;letter-spacing:.1em}
-.credit{
-  display:flex;align-items:center;gap:9px;margin-right:16px;padding:6px 14px;border-radius:999px;
-  border:1px solid rgba(70,224,163,.25);
-  background:linear-gradient(135deg,rgba(70,224,163,.07),rgba(124,131,255,.09));
-  box-shadow:0 0 18px -8px var(--acc), inset 0 1px 0 rgba(255,255,255,.04);
-}
-.credit .by{font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);letter-spacing:.24em;text-transform:uppercase}
-.credit .name{
-  font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.12em;white-space:nowrap;
-  background:linear-gradient(90deg,var(--acc),var(--blue),var(--night),var(--acc));background-size:300% 100%;
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
-  animation:creditFlow 7s linear infinite;
-}
-@keyframes creditFlow{to{background-position:300% 0}}
-@media (max-width:680px){.credit .by{display:none}.credit{padding:5px 10px;margin-right:10px}}
 
 nav.tabs{display:flex;gap:4px;margin:16px 0 18px;flex-wrap:wrap}
 nav.tabs button{
@@ -217,10 +202,6 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
       </div>
     </div>
     <div class="spacer"></div>
-    <div class="credit" title="Lee Seungsu">
-      <span class="by">made by</span>
-      <span class="name">이승수 · LEE SEUNGSU</span>
-    </div>
     <div class="clock" id="clock">--:--</div>
   </header>
 

@@ -145,6 +145,25 @@ test('무작위 부대 구성 25회: 이틀 연속 생성에서 하드 제약이
   }
 });
 
+/* ---------- 넘침(인원 부족) 시 배정 순서 ---------- */
+test('넘침 시 추가분은 비신병에게: 신병은 하루 2개 상한, 비신병이 2개째를 받는다', () => {
+  // 비신병 8 + 신병 2 → 수요 15칸: 신병2씩+비신병1씩(밥교대 제외)으로 10칸 → 5칸 넘침.
+  // 새 규칙: 넘침분은 비신병 2개째로 흡수, 신병은 3개째를 받지 않는다.
+  for (let iter = 0; iter < 10; iter++) {
+    const ws = [];
+    for (let i = 0; i < 8; i++) ws.push(mkWorker('W' + i, { roleType: i % 2 ? 'duty' : 'situation' }));
+    for (let i = 0; i < 2; i++) ws.push(mkWorker('R' + i, { roleReady: false, canMeal: false }));
+    E.setDB(freshDB({ workers: ws }));
+    const s = E.generateDay(E.autoInputFor('2026-06-15'));
+    const cnt = {};
+    [s.fixed, s.assign, s.night].forEach(m => Object.values(m || {}).forEach(id => { if (id) cnt[id] = (cnt[id] || 0) + 1; }));
+    const recCnt = ws.filter(w => w.name[0] === 'R').map(w => cnt[w.id] || 0);
+    const nonCnt = ws.filter(w => w.name[0] === 'W').map(w => cnt[w.id] || 0);
+    recCnt.forEach(c => assert.ok(c <= 2, `iter=${iter} 신병이 ${c}개 배정됨 (상한 2)`));
+    assert.ok(nonCnt.some(c => c >= 2), `iter=${iter} 넘침분이 비신병 2개째로 가지 않음: ${nonCnt.join(',')}`);
+  }
+});
+
 /* ---------- 사전등록 충돌 검사 ---------- */
 test('prebookConflictsFor: 휴가 기간에 배정된 기존 표를 충돌로 보고', () => {
   const ws = roster(12);

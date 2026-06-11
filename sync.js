@@ -55,8 +55,8 @@
 
   const cfg=loadCfg();
   if(cfg){
-    qs('#syCfg').value=JSON.stringify(cfg.config,null,2);
-    qs('#syAdmin').value=cfg.adminEmail||'';
+    // 연결 설정이 이미 있으면(내장 firebase-config.js 또는 저장된 설정) 설정 폼은 숨긴다
+    const box=qs('#sySetup'); if(box) box.style.display='none';
   }
   if(!cfg){
     status('<div class="warn">동기화 미설정 — 이 브라우저에만 저장됩니다. 아래 [⚙ 연결 설정]에 Firebase 설정을 입력하세요 (FIREBASE_SETUP.md 참고).</div>');

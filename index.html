@@ -248,6 +248,14 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
   .slot .nm.empty{color:#000}
   .tag{border:1px solid #999;color:#000!important;background:#eee!important}
 }
+/* 열람 전용(동기화 뷰어) 모드 — 관리자 아닌 계정으로 로그인 시 sync.js가 body.ro 부여 */
+body.ro nav.tabs button[data-v=gen],body.ro nav.tabs button[data-v=people]{display:none}
+body.ro #gen,body.ro #people{display:none!important}
+body.ro #settings .panel:not(.sync-panel){display:none}
+body.ro .btn.danger{display:none!important}
+body.ro .no-ro{display:none!important}
+body.ro select.cellsel{pointer-events:none;opacity:.7}
+#roBadge{background:rgba(255,180,84,.16);color:var(--amber);border-color:#4a3a1c}
 </style>
 </head>
 <body>
@@ -261,6 +269,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
       </div>
     </div>
     <div class="spacer"></div>
+    <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
 
@@ -312,7 +321,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
     <div class="panel">
       <h2>휴무일 지정</h2>
       <p class="desc">부대 휴무·전투휴무 등을 미리 지정하면 달력에 표시되고, [근무표 생성]에서 그 날짜를 열 때 ‘직장 휴무일’·‘다음날 휴무일’이 자동으로 체크됩니다. 대한민국 공휴일(2025~2027)은 자동 반영됩니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
-      <div class="row">
+      <div class="row no-ro">
         <div class="field"><label>휴무 이름</label><input id="hdName" placeholder="예: 전투휴무"></div>
         <div class="field"><label>시작일</label><input type="date" id="hdStart"></div>
         <div class="field"><label>종료일 (비우면 하루)</label><input type="date" id="hdEnd"></div>
@@ -326,7 +335,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
     <div class="panel">
       <h2>일정 사전 등록</h2>
       <p class="desc">휴가·열외·당직·상황병을 미리 등록해두면 [근무표 생성]에서 그 날짜를 열 때 자동으로 반영됩니다. 휴가는 마지막날(복귀일)만 주간 열외로 적용되어 그날 야간부터 투입 가능합니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
-      <div class="row">
+      <div class="row no-ro">
         <div class="field"><label>종류</label>
           <select id="pbKind">
             <option value="vacation">휴가 (복귀일은 주간만 열외)</option>
@@ -518,6 +527,30 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
       </div>
       <div id="bBackupInfo" style="margin-top:10px"></div>
       <div id="bStatus" style="margin-top:10px"></div>
+    </div>
+    <div class="panel sync-panel">
+      <h2>서버 동기화 (Firebase)</h2>
+      <p class="desc">행보관(관리자)만 수정하고 구성원은 실시간 열람만 하도록 동기화합니다. 관리자가 저장하면 자동 업로드되고, 구성원 화면은 실시간으로 갱신됩니다. 미설정 시 기존처럼 이 브라우저에만 저장됩니다. 설정 절차: 저장소의 <b>FIREBASE_SETUP.md</b> 참고.</p>
+      <div id="syStatus" style="margin-bottom:10px"></div>
+      <div class="row" id="syLoginRow">
+        <div class="field"><label>이메일</label><input id="syEmail" type="email" autocomplete="username"></div>
+        <div class="field"><label>비밀번호</label><input id="syPass" type="password" autocomplete="current-password"></div>
+        <button class="btn" id="syLogin">로그인</button>
+        <button class="btn ghost" id="syLogout" style="display:none">로그아웃</button>
+        <button class="btn ghost" id="syUpload" style="display:none">지금 업로드</button>
+      </div>
+      <details class="adv">
+        <summary>연결 설정 (최초 1회 — FIREBASE_SETUP.md 참고)</summary>
+        <div class="field" style="margin-bottom:10px"><label>Firebase 설정 (firebaseConfig 붙여넣기)</label>
+          <textarea id="syCfg" rows="7" style="font-family:var(--mono);font-size:11.5px" placeholder='{ apiKey: "...", authDomain: "....firebaseapp.com", projectId: "...", appId: "..." }'></textarea>
+        </div>
+        <div class="row" style="margin-bottom:12px">
+          <div class="field"><label>관리자(행보관) 이메일</label><input id="syAdmin" type="email" placeholder="admin@example.com"></div>
+          <button class="btn" id="syCfgSave">연결 설정 저장</button>
+          <button class="btn danger" id="syCfgClear">동기화 해제</button>
+        </div>
+        <p class="smallnote">실제 권한(읽기=로그인한 사용자만, 쓰기=관리자만)은 Firebase 콘솔의 <b>Firestore 보안 규칙</b>이 강제합니다 — FIREBASE_SETUP.md의 규칙을 반드시 적용하세요. 저장소에 firebase-config.js 파일을 두면 구성원은 이 설정 입력 없이 로그인만 하면 됩니다.</p>
+      </details>
     </div>
     <div class="panel">
       <h2 style="font-size:13px;color:var(--ink-dim)">시간 구조 참고</h2>
@@ -1715,6 +1748,13 @@ function init(){
 }
 init();
 </script>
+<!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
+     오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="sync.js"></script>
 </body>
 </html>
 

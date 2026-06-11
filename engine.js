@@ -218,7 +218,7 @@ function _computeStats(uptoDate, month){
       slotGNum:{mtth:{},wed:{},fri:{},weekend:{}},
       nightNum:0, nightDen:0, nightGNum:{weekday:0,holiday:0}, nightGDen:{weekday:0,holiday:0},
       bunchoNum:{1:0,2:0,3:0,4:0},
-      mealNum:0, mealDen:0, mealGNum:{weekday:0,weekend:0}, mealGDen:{weekday:0,weekend:0},
+      mealNum:0, mealDen:0, mealGNum:{weekday:0,weekend:0}, mealGDen:{weekday:0,weekend:0}, lastMeal:null,
       patrolNum:0, patrolDen:0, patrolGNum:{weekday:0,weekend:0}, patrolGDen:{weekday:0,weekend:0}
     };
     DAY_SLOTS.forEach(s=>st[w.id].slotNum[s]=0);
@@ -261,9 +261,9 @@ function _computeStats(uptoDate, month){
         st[id].hours += 1;
       }
     });
-    // 밥교대 (근무시간 부여 안 함 — 카운트만)
+    // 밥교대 (근무시간 부여 안 함 — 카운트만). 날짜 오름차순 순회라 lastMeal은 가장 최근 날짜가 남음
     if(s.mealId && st[s.mealId]){
-      st[s.mealId].mealNum++; st[s.mealId].mealGNum[mg]++;
+      st[s.mealId].mealNum++; st[s.mealId].mealGNum[mg]++; st[s.mealId].lastMeal=ds;
     }
     // 순찰(전용 추가자)
     if(s.patrolExtra && st[s.patrolExtra]){
@@ -369,11 +369,15 @@ function effTodayCount(wid, cnt){
 }
 
 /* 같은 기준개수(동률)에서의 신병/비신병 우선순위.
-   기본 단계(기준개수 0 = 신병 2개·비신병 1개 채우는 중)에는 신병 먼저,
-   넘침 단계(기준개수 1 이상)에는 비신병 먼저 — 신병 3개째는 비신병 2개째보다 뒤로 민다. */
-function recruitOrder(w, effCnt){
+   주간: 기본 단계(기준개수 0)에는 신병 먼저(하루 2개 보장) / 넘침 단계(1+)에는 비신병 먼저.
+   야간: 신병 우선 없음 — 야간·번초 배정률 점수로만 경쟁.
+   (신병 우선이 야간에도 적용되면 야간 변수가 먼저 처리되는 솔버 특성상
+    신병이 매일 야간·같은 번초만 도맡는 쏠림이 생긴다) */
+function recruitOrder(w, effCnt, isNight){
   const rec = w && isRecruit(w);
-  return effCnt===0 ? (rec?0:1) : (rec?1:0);
+  if(effCnt>0) return rec?1:0;     // 넘침: 비신병 먼저 (신병 3개째는 최후)
+  if(isNight) return 0;            // 야간 기본 단계: 동순위 → 점수로 결정
+  return rec?0:1;                  // 주간 기본 단계: 신병 먼저 (2개 채움)
 }
 
 /* 인접 판정 */
@@ -485,7 +489,7 @@ function solve(vars, domains, ctx, tier, prevNight){
       const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:dg, nightGrp:ng,
                bunchoId:v.type==='night'?v.bunchoId:null};
       const cnt=effTodayCount(wid, todayCount[wid]);
-      return {wid, cnt, rec:recruitOrder(w, cnt), sc:score(w, v.type==='day'?v.key:null, o)};
+      return {wid, cnt, rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o)};
     }).sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc)).map(x=>x.wid);
 
     const rest = remaining.filter(i=>i!==best);
@@ -544,7 +548,7 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
     // 사전식: 당일 기준개수(신병은 1개 깎음 → 기본 2개씩) → 동률이면 기본 단계 신병 먼저·넘침 단계 비신병 먼저 → 점수
     pool = pool.map(wid=>{
       const cnt=effTodayCount(wid, todayCount[wid]);
-      return {wid, cnt, rec:recruitOrder(W(wid), cnt), sc:score(W(wid), v.type==='day'?v.key:null, o)};
+      return {wid, cnt, rec:recruitOrder(W(wid), cnt, v.type==='night'), sc:score(W(wid), v.type==='day'?v.key:null, o)};
     }).sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc));
     const wid=pool[0].wid;
     assign[key]=wid; used.add(wid);
@@ -639,7 +643,12 @@ function localImprove(vars, domains, ctx, assign, prevNight){
   return assign;
 }
 
-/* ----- 밥교대 자동배정 ----- */
+/* ----- 밥교대 자동배정 -----
+   사전식 균등: ① 오늘 그룹(평일/주말·휴일) 횟수가 적은 사람 →
+               ② 전체 밥교대 횟수가 적은 사람 →
+               ③ 마지막 밥교대가 가장 오래된(또는 한 적 없는) 사람 →
+               ④ 미세 점수(그룹 배정률·평균시간·신병 보정·난수)
+   → 두 그룹이 각각 고르게 + 전체 횟수도 고르게 + 동률이면 오래 쉰 사람부터. */
 function assignMeal(ds, ctx){
   if(ctx.mealId) return ctx.mealId; // 수동 지정/이전됨
   const cands = mealCandidates(ds, ctx);
@@ -651,8 +660,13 @@ function assignMeal(ds, ctx){
     sc += DB.settings.weights.avgHours * avgHours(r) * 0.5;
     if(isRecruit(w)) sc += DB.settings.weights.recruitBias;
     sc += (Math.random()-0.5)*DB.settings.weights.jitter;
-    return {id:w.id, sc};
-  }).sort((a,b)=>a.sc-b.sc);
+    return {id:w.id,
+            g: r.mealGNum[mg]||0,
+            t: (r.mealGNum.weekday||0)+(r.mealGNum.weekend||0),
+            last: r.lastMeal||'',      // ''(한 적 없음)이 가장 먼저
+            sc};
+  }).sort((a,b)=> (a.g-b.g) || (a.t-b.t) ||
+                  (a.last<b.last?-1:a.last>b.last?1:0) || (a.sc-b.sc));
   return scored[0].id;
 }
 
@@ -758,6 +772,13 @@ function generateDay(input){
 
   /* 3) 변수 집합: 주간 슬롯(14:30 고정 제외) + 야간 번초 */
   const dayVars = DAY_SLOTS.filter(s=>!(s==='14:30'&&fixed['14:30'])).map(key=>({type:'day',key}));
+  // 주간 변수 처리 순서 무작위화: 후보 동률(특히 '신병 먼저')일 때 늘 같은 이른 슬롯부터
+  // 배정되는 쏠림(신병이 매일 06:30 등 특정 시간대만 받는 현상)을 깬다.
+  // 시간대별 누적 공정성은 점수의 slotRate·slotCnt 페널티와 2-opt가 계속 맞춘다.
+  for(let i=dayVars.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [dayVars[i],dayVars[j]]=[dayVars[j],dayVars[i]];
+  }
   const nightVars = NIGHT_BUNCHO.map(b=>({type:'night',bunchoId:b.id}));
 
   /* 3-1) 밥교대 인원은 기본적으로 야간 제외 — 야간 후보가 부족할 때만 폴백으로 자동 투입(5단계).

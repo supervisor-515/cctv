@@ -359,12 +359,21 @@ function score(w, slotKey, opts){
 }
 
 /* 당일 배정 개수의 '균등 비교 기준값'.
-   신병은 기본 하루 2개씩 받도록 1개를 깎아서 비교한다 →
-   신병 2개씩 → 비신병 1개씩(점수순) → 신병 3개째 → 비신병 2개째 … 순서가 된다. */
+   신병은 기본 하루 2개씩 받도록 1개를 깎아서 비교한다.
+   동률 시 신병/비신병 우선순위는 recruitOrder() 참고 — 합치면
+   신병 2개씩 → 비신병 1개씩(점수순) → 그래도 넘치면 비신병 2개째(점수순) → 신병 3개째 … 순서가 된다. */
 function effTodayCount(wid, cnt){
   const w = W(wid);
   cnt = cnt||0;
   return (w && isRecruit(w)) ? Math.max(0, cnt-1) : cnt;
+}
+
+/* 같은 기준개수(동률)에서의 신병/비신병 우선순위.
+   기본 단계(기준개수 0 = 신병 2개·비신병 1개 채우는 중)에는 신병 먼저,
+   넘침 단계(기준개수 1 이상)에는 비신병 먼저 — 신병 3개째는 비신병 2개째보다 뒤로 민다. */
+function recruitOrder(w, effCnt){
+  const rec = w && isRecruit(w);
+  return effCnt===0 ? (rec?0:1) : (rec?1:0);
 }
 
 /* 인접 판정 */
@@ -467,14 +476,16 @@ function solve(vars, domains, ctx, tier, prevNight){
     if(bestSize===0) return false; // 막힘 → 백트랙
     const v=vars[best];
     const dg=ctx._dayGrp, ng=ctx._nightGrp;
-    // 후보 정렬(사전식): ①당일 기준개수 적은 사람 먼저(고정 포함 — 신병은 1개를 깎아 비교하므로
-    //   신병 2개씩 → 비신병 1개씩 → 신병 3개째 → 비신병 2개째 순) →
-    //                    ②동률이면 신병 먼저 → ③공정성 점수(평균시간·배정률 등) 오름차순
+    // 후보 정렬(사전식): ①당일 기준개수 적은 사람 먼저(고정 포함 — 신병은 1개를 깎아 비교) →
+    //   ②동률이면 기본 단계는 신병 먼저, 넘침 단계는 비신병 먼저
+    //   (신병 2개씩 → 비신병 1개씩 → 비신병 2개째 → 신병 3개째 순) →
+    //                    ③공정성 점수(평균시간·배정률 등) 오름차순
     bestList = bestList.map(wid=>{
       const w=W(wid);
       const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:dg, nightGrp:ng,
                bunchoId:v.type==='night'?v.bunchoId:null};
-      return {wid, cnt:effTodayCount(wid, todayCount[wid]), rec:isRecruit(w)?0:1, sc:score(w, v.type==='day'?v.key:null, o)};
+      const cnt=effTodayCount(wid, todayCount[wid]);
+      return {wid, cnt, rec:recruitOrder(w, cnt), sc:score(w, v.type==='day'?v.key:null, o)};
     }).sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc)).map(x=>x.wid);
 
     const rest = remaining.filter(i=>i!==best);
@@ -530,9 +541,11 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
     if(pool.length===0) return;              // 채울 사람 없음 → 미배정 (인접/아침 금지는 끝까지 유지)
     const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:ctx._dayGrp,
              nightGrp:ctx._nightGrp, bunchoId:v.type==='night'?v.bunchoId:null};
-    // 사전식: 당일 기준개수(신병은 1개 깎음 → 기본 2개씩) → 신병 우선 → 점수
-    pool = pool.map(wid=>({wid, cnt:effTodayCount(wid, todayCount[wid]), rec:isRecruit(W(wid))?0:1, sc:score(W(wid), v.type==='day'?v.key:null, o)}))
-               .sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc));
+    // 사전식: 당일 기준개수(신병은 1개 깎음 → 기본 2개씩) → 동률이면 기본 단계 신병 먼저·넘침 단계 비신병 먼저 → 점수
+    pool = pool.map(wid=>{
+      const cnt=effTodayCount(wid, todayCount[wid]);
+      return {wid, cnt, rec:recruitOrder(W(wid), cnt), sc:score(W(wid), v.type==='day'?v.key:null, o)};
+    }).sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc));
     const wid=pool[0].wid;
     assign[key]=wid; used.add(wid);
     todayCount[wid]=(todayCount[wid]||0)+1;

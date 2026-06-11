@@ -57,7 +57,6 @@
   if(cfg){
     qs('#syCfg').value=JSON.stringify(cfg.config,null,2);
     qs('#syAdmin').value=cfg.adminEmail||'';
-    const det=qs('#sySetup'); if(det) det.open=false;  // 설정 완료 → 폼은 접어둔다 (HTML 기본은 open)
   }
   if(!cfg){
     status('<div class="warn">동기화 미설정 — 이 브라우저에만 저장됩니다. 아래 [⚙ 연결 설정]에 Firebase 설정을 입력하세요 (FIREBASE_SETUP.md 참고).</div>');

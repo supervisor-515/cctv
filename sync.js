@@ -59,8 +59,9 @@
     qs('#syAdmin').value=cfg.adminEmail||'';
   }
   if(!cfg){
-    status('<div class="warn">동기화 미설정 — 이 브라우저에만 저장됩니다. 아래 [연결 설정]에서 Firebase 설정을 입력하세요 (FIREBASE_SETUP.md 참고).</div>');
+    status('<div class="warn">동기화 미설정 — 이 브라우저에만 저장됩니다. 아래 [⚙ 연결 설정]을 펼쳐 Firebase 설정을 입력하세요 (FIREBASE_SETUP.md 참고).</div>');
     qs('#syLoginRow').style.display='none';
+    const det=qs('#sySetup'); if(det) det.open=true;   // 미설정이면 설정 폼을 바로 펼쳐 보여준다
     return;
   }
   if(typeof firebase==='undefined'){

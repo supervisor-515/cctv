@@ -138,7 +138,7 @@
       const d=snap.data();
       if(!d || !d.json) return;
       if(S.admin){
-        // 관리자는 접속 직후 1회만 서버와 대조 — 이후엔 이 브라우저가 원본
+        // 접속 직후 1회: 서버와 로컬이 다르면 어느 쪽을 쓸지 확인
         if(!adminBooted){
           adminBooted=true;
           if(d.json!==JSON.stringify(DB)){
@@ -146,7 +146,12 @@
               adopt(d.json);
             else upload();
           }
+          refreshStatus();
+          return;
         }
+        // 이후: 같은 관리자 계정의 다른 기기에서 올린 변경도 실시간 수신
+        // 단, 이 기기의 변경이 업로드 대기 중(dirty)이면 보류 — 업로드가 우선
+        if(!S.dirty && d.json!==JSON.stringify(DB)) adopt(d.json);
         refreshStatus();
         return;
       }

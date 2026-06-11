@@ -269,6 +269,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v3.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -539,8 +540,9 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
         <button class="btn ghost" id="syLogout" style="display:none">로그아웃</button>
         <button class="btn ghost" id="syUpload" style="display:none">지금 업로드</button>
       </div>
-      <details class="adv" id="sySetup">
-        <summary>⚙ 연결 설정 — 여기를 눌러 펼치기 (최초 1회, FIREBASE_SETUP.md 참고)</summary>
+      <!-- 기본 open: 동기화 설정이 이미 있으면 sync.js가 접는다 -->
+      <details class="adv" id="sySetup" open>
+        <summary>⚙ 연결 설정 (최초 1회, FIREBASE_SETUP.md 참고)</summary>
         <div class="field" style="margin-bottom:10px"><label>Firebase 설정 (firebaseConfig 붙여넣기)</label>
           <textarea id="syCfg" rows="7" style="font-family:var(--mono);font-size:11.5px" placeholder='{ apiKey: "...", authDomain: "....firebaseapp.com", projectId: "...", appId: "..." }'></textarea>
         </div>

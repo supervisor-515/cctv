@@ -164,6 +164,74 @@ test('넘침 시 추가분은 비신병에게: 신병은 하루 2개 상한, 비
   }
 });
 
+/* ---------- 밥교대 균등·로테이션 ---------- */
+/* 통계 시딩용 최소 근무표 (mealId만 의미 있음) */
+function mkMealSched(mealId, ids) {
+  return { workHoliday: false, nextWorkHoliday: false, assign: {}, night: {}, fixed: {},
+           mealId, patrolExtra: null, activeIds: ids, dayEx: [], nightEx: [], bothEx: [] };
+}
+
+test('밥교대: 횟수 동률이면 마지막으로 한 지 가장 오래된 사람이 들어간다', () => {
+  const meals = [0, 1, 2, 3].map(i => mkWorker('M' + i));            // 밥교대 가능 4명
+  const others = [0, 1, 2, 3, 4, 5, 6, 7].map(i => mkWorker('O' + i, { canMeal: false }));
+  const ws = meals.concat(others);
+  const ids = ws.map(w => w.id);
+  E.setDB(freshDB({ workers: ws }));
+  // 6/8(월)~6/11(목) 평일에 M0→M1→M2→M3 순서로 밥교대 이력 시딩 (전원 평일 1회 동률)
+  ['2026-06-08', '2026-06-09', '2026-06-10', '2026-06-11'].forEach((ds, i) => {
+    E.getDB().schedules[ds] = mkMealSched(meals[i].id, ids);
+  });
+  E.invalidateStats();
+  // 6/12(금·평일): 동률이므로 가장 오래 쉰 M0이 선정되어야 한다 (난수 무관, 사전식)
+  const s = E.generateDay(E.autoInputFor('2026-06-12'));
+  assert.equal(s.mealId, meals[0].id);
+});
+
+test('밥교대: 그룹별 카운트 분리 + 전체 횟수 균형 — 주말만 한 사람보다 0회인 사람 우선', () => {
+  const m1 = mkWorker('M1'), m2 = mkWorker('M2');
+  const others = [0, 1, 2, 3, 4, 5, 6, 7].map(i => mkWorker('O' + i, { canMeal: false }));
+  const ws = [m1, m2].concat(others);
+  const ids = ws.map(w => w.id);
+  E.setDB(freshDB({ workers: ws }));
+  // M1은 주말 밥교대만 2회 (6/13 토, 6/14 일)
+  E.getDB().schedules['2026-06-13'] = mkMealSched(m1.id, ids);
+  E.getDB().schedules['2026-06-14'] = mkMealSched(m1.id, ids);
+  E.invalidateStats();
+  // 6/15(월·평일): 평일 카운트는 둘 다 0 동률 → 전체 횟수(M1=2, M2=0)로 M2 선정
+  const s = E.generateDay(E.autoInputFor('2026-06-15'));
+  assert.equal(s.mealId, m2.id);
+  // 6/20(토·주말): 주말 카운트 M1=2, M2=0 → M2 선정 (그룹별 분리 카운트)
+  E.getDB().schedules['2026-06-15'] = s; E.invalidateStats();
+  const s2 = E.generateDay(E.autoInputFor('2026-06-20'));
+  assert.equal(s2.mealId, m2.id);
+});
+
+/* ---------- 신병 시간대 분산 ---------- */
+test('신병도 시간대가 분산된다: 같은 주간 슬롯·야간 독점 금지', () => {
+  const ws = roster(10, 2);
+  E.setDB(freshDB({ workers: ws }));
+  let ds = '2026-06-01';
+  const days = 21;
+  for (let d = 0; d < days; d++) {
+    const s = E.generateDay(E.autoInputFor(ds));
+    E.getDB().schedules[ds] = s; E.invalidateStats();
+    ds = E.addDays(ds, 1);
+  }
+  const st = E.buildStats(null);
+  ws.filter(w => w.name[0] === 'R').forEach(w => {
+    const r = st[w.id];
+    // 야간 독점 금지: 신병이 거의 매일 야간에 들어가면 안 됨
+    assert.ok(r.nightNum <= days * 0.6, `${w.name} 야간 ${r.nightNum}/${days}회 — 야간 쏠림`);
+    const cnts = Object.values(r.slotNum);
+    const totalDay = cnts.reduce((a, b) => a + b, 0);
+    const distinct = cnts.filter(c => c > 0).length;
+    // 주간이 한두 시간대에 몰리면 안 됨: 최댓값이 본인 주간 배정의 35% 이하 + 4개 이상 슬롯 경험
+    assert.ok(distinct >= 4, `${w.name} 주간 슬롯 종류 ${distinct}개 — 특정 시간대 쏠림`);
+    assert.ok(Math.max(...cnts) <= Math.max(2, totalDay * 0.35),
+      `${w.name} 특정 슬롯 ${Math.max(...cnts)}/${totalDay}회 집중`);
+  });
+});
+
 /* ---------- 사전등록 충돌 검사 ---------- */
 test('prebookConflictsFor: 휴가 기간에 배정된 기존 표를 충돌로 보고', () => {
   const ws = roster(12);

@@ -29,7 +29,7 @@ const DEFAULT_WEIGHTS = {
 };
 const WEIGHT_LABELS = {
   avgHours:'누적평균시간', todayHours:'당일 이미받은시간', groupRate:'그룹 배정률',
-  slotRate:'슬롯 배정률', nightRate:'야간 배정률', bunchoRate:'번초 배정률',
+  slotRate:'슬롯 배정률(그룹별)', nightRate:'야간 배정률', bunchoRate:'번초 배정률',
   mealRate:'밥교대 배정률', patrolRate:'순찰 배정률', recruitBias:'신병 보정', jitter:'미세 난수'
 };
 const DEFAULT_SETTINGS = {patrolBonus:0.5, enable1430OnHoliday:false, weights:{...DEFAULT_WEIGHTS}};
@@ -345,11 +345,17 @@ function score(w, slotKey, opts){
     // 번초 반복은 비율만 보면 약하게 먹기 때문에 원횟수도 같이 페널티.
     s += 0.45 * (r.bunchoNum[opts.bunchoId]||0);
   }else{
-    const slotCnt = r.slotNum[slotKey]||0;
-    s += W_.groupRate * rate(r.groupNum[opts.dayGrp], r.groupDen[opts.dayGrp]);
-    s += W_.slotRate * rate(slotCnt, r.slotDen);
-    // 핵심 보정: 특정 시간대(예: 06:30)가 이미 많이 들어간 사람은 강하게 뒤로 민다.
-    s += 0.65 * slotCnt;
+    const g = opts.dayGrp;
+    const slotCnt = r.slotNum[slotKey]||0;                       // 전체(그룹 무관) 해당 슬롯 횟수
+    const gSlotCnt = (r.slotGNum[g]||{})[slotKey]||0;            // 같은 그룹에서 해당 슬롯 횟수
+    s += W_.groupRate * rate(r.groupNum[g], r.groupDen[g]);
+    // 핵심: 오늘과 같은 그룹(월화목/수/금/토일)에서 이 시간대에 들어간 '비율'이 낮은 사람부터.
+    // 전체 비율만 보면 '수요일마다 06:30'처럼 그룹 안에서 반복되는 쏠림이 묻히기 때문에,
+    // 통계 탭의 그룹별 슬롯 배정률(slotGNum/groupDen)을 그대로 배정 기준으로 쓴다.
+    s += W_.slotRate * rate(gSlotCnt, r.groupDen[g]);
+    // 원횟수 페널티: 같은 그룹 같은 시간대 반복은 강하게, 그룹 무관 전체 반복은 보조로 민다.
+    s += 0.65 * gSlotCnt;
+    s += 0.2 * slotCnt;
     // 보조 보정: 고정 역할이 적다는 이유로 일반 주간칸 전체가 한 명에게 몰리는 현상 방지.
     s += 0.08 * daySlotTotal(r);
   }
@@ -1051,7 +1057,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini,
     // 배정
-    generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates,
+    generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor
   };

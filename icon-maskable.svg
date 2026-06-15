@@ -1,0 +1,61 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CCTV 근무표" data-variant="maskable">
+  <defs>
+    <radialGradient id="bg" cx="78%" cy="-8%" r="95%">
+      <stop offset="0%" stop-color="#16202e"/>
+      <stop offset="60%" stop-color="#0c0f14"/>
+      <stop offset="100%" stop-color="#0c0f14"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2b3749"/>
+      <stop offset="100%" stop-color="#161d28"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#0a3a2a"/>
+      <stop offset="70%" stop-color="#072018"/>
+      <stop offset="100%" stop-color="#04130e"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#46e0a3" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#46e0a3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- full-bleed background (maskable-safe) -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- faint scanline texture -->
+  <g opacity="0.05" fill="#ffffff">
+    <rect x="0" y="120" width="512" height="2"/>
+    <rect x="0" y="220" width="512" height="2"/>
+    <rect x="0" y="320" width="512" height="2"/>
+    <rect x="0" y="420" width="512" height="2"/>
+  </g>
+
+  <!-- camera, kept within central safe zone -->
+  <g transform="translate(256 262) scale(0.8) rotate(-16)">
+    <!-- ceiling mount + arm -->
+    <rect x="-30" y="-150" width="60" height="20" rx="8" fill="#1c2533"/>
+    <rect x="-10" y="-138" width="20" height="92" rx="9" fill="#243043"/>
+
+    <!-- body -->
+    <rect x="-128" y="-52" width="232" height="104" rx="52" fill="url(#body)" stroke="#3a4a60" stroke-width="3"/>
+    <!-- sun shield rim -->
+    <rect x="56" y="-58" width="20" height="116" rx="10" fill="#0f141d"/>
+
+    <!-- lens housing -->
+    <circle cx="104" cy="0" r="58" fill="#0f141d"/>
+    <circle cx="104" cy="0" r="50" fill="url(#lens)" stroke="#46e0a3" stroke-width="4"/>
+    <circle cx="104" cy="0" r="50" fill="url(#glow)"/>
+    <circle cx="88" cy="-16" r="11" fill="#bff4dd" opacity="0.85"/>
+
+    <!-- recording LED -->
+    <circle cx="-92" cy="-26" r="9" fill="#ff6b6b"/>
+    <circle cx="-92" cy="-26" r="16" fill="#ff6b6b" opacity="0.25"/>
+  </g>
+
+  <!-- signal / schedule ticks emanating from lens -->
+  <g transform="translate(256 262) scale(0.8) rotate(-16)" fill="none" stroke="#46e0a3" stroke-linecap="round">
+    <path d="M168 -10 a40 40 0 0 1 0 20" stroke-width="8" opacity="0.85"/>
+    <path d="M186 -22 a64 64 0 0 1 0 44" stroke-width="8" opacity="0.5"/>
+    <path d="M204 -34 a88 88 0 0 1 0 68" stroke-width="8" opacity="0.28"/>
+  </g>
+</svg>

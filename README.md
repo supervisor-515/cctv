@@ -8,6 +8,21 @@
 `index.html`을 브라우저로 열면 됩니다 (`engine.js`가 같은 폴더에 있어야 합니다).
 별도 빌드·설치 과정이 없습니다.
 
+## 앱으로 설치 (PWA)
+
+설치형 웹앱(PWA)이라 휴대폰·PC 홈 화면/시작 메뉴에 앱처럼 추가할 수 있습니다.
+
+- **조건**: `http://` 또는 `https://`(또는 `localhost`)로 접속해야 합니다.
+  `file://`로 열면 설치·오프라인 캐시가 동작하지 않습니다. 간단히는 폴더에서
+  `python3 -m http.server` 후 표시되는 주소로 접속하세요.
+- **설치 방법**
+  - Android/Chrome·Edge: 주소창의 *설치* 아이콘 또는 메뉴 → *앱 설치 / 홈 화면에 추가*
+  - iOS/Safari: 공유 → *홈 화면에 추가*
+  - 데스크톱 Chrome·Edge: 주소창 오른쪽 *설치* 아이콘
+- **오프라인**: 한 번 열어두면 서비스 워커(`sw.js`)가 앱 셸을 캐시해 인터넷 없이도
+  실행됩니다. 온라인일 때는 항상 최신본을 받아옵니다(network-first).
+- 아이콘·이름·색상은 `manifest.webmanifest`에서 정의합니다.
+
 ## 파일 구조
 
 | 파일 | 역할 |
@@ -17,6 +32,9 @@
 | `sync.js` | 서버 동기화(선택, Firebase). 관리자만 수정, 구성원은 실시간 열람 전용. |
 | `firebase-config.sample.js` | 동기화 자동 설정 견본 — `firebase-config.js`로 복사해 사용 |
 | `FIREBASE_SETUP.md` | 동기화 설정 가이드 (프로젝트 생성 → 계정 → 보안 규칙 → 연결) |
+| `manifest.webmanifest` | PWA 매니페스트(앱 이름·색상·아이콘). 홈 화면 설치 정보. |
+| `sw.js` | 서비스 워커. 앱 셸 캐시로 오프라인 실행·설치 지원. |
+| `icon.svg` / `icon-*.png` | 앱 아이콘(원본 SVG + 192/512 일반·maskable, apple-touch, favicon). |
 | `test/engine.test.js` | 엔진 회귀 테스트 (`node --test`) |
 
 ## 시간 구조

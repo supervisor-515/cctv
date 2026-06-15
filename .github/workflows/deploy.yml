@@ -1,0 +1,74 @@
+name: Deploy to GitHub Pages
+
+# main 에 푸시되면 정적 사이트를 GitHub Pages 로 배포합니다.
+# 배포되면 https://<사용자>.github.io/<저장소>/ 링크가 생기고,
+# 그 링크에서 브라우저의 "홈 화면에 추가 / 앱 설치"로 PWA처럼 설치됩니다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Pages 배포에 필요한 권한
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시에 한 번만 배포 (진행 중인 실행은 취소하지 않고 큐잉)
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run engine tests
+        run: npm test
+
+      - name: Assemble site (_site)
+        run: |
+          mkdir -p _site
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='test' \
+            --exclude='_site' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='*.md' \
+            --exclude='.gitignore' \
+            --exclude='firebase-config.sample.js' \
+            ./ _site/
+          ls -la _site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          # 저장소 설정에서 Pages를 켜두지 않았어도 자동으로 활성화 시도
+          enablement: true
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

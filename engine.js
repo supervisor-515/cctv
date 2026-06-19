@@ -22,8 +22,9 @@ const STORE_KEY = 'cctv_roster_v2';
 
 /* ---------- 기본 설정/가중치 ---------- */
 const DEFAULT_WEIGHTS = {
-  // 신병 우선순위는 기존처럼 유지하되, 특정 시간대·번초 반복만 더 강하게 막는다.
-  avgHours:0.8, todayHours:1.6, groupRate:1.8, slotRate:5.0,
+  // 신병은 하루 개수(2칸)만 우선 보장하고, '어느 시간대'인지는 시간대 공정성(slotFairKey + slotRate)으로
+  // 분산시킨다 → 신병이 이른 칸(아침·09:30)만 도맡지 않도록. 특정 시간대·번초 반복은 강하게 막는다.
+  avgHours:0.8, todayHours:1.6, groupRate:1.8, slotRate:7.0,
   nightRate:1.8, bunchoRate:3.0, mealRate:2.2, patrolRate:2.2,
   recruitBias:-0.3, jitter:0.04
 };
@@ -354,8 +355,9 @@ function score(w, slotKey, opts){
     // 통계 탭의 그룹별 슬롯 배정률(slotGNum/groupDen)을 그대로 배정 기준으로 쓴다.
     s += W_.slotRate * rate(gSlotCnt, r.groupDen[g]);
     // 원횟수 페널티: 같은 그룹 같은 시간대 반복은 강하게, 그룹 무관 전체 반복은 보조로 민다.
-    s += 0.65 * gSlotCnt;
-    s += 0.2 * slotCnt;
+    // (시간대 공정성을 더 강하게: 같은 사람이 같은 시간대를 반복해 받는 쏠림을 키운 계수로 민다)
+    s += 1.3 * gSlotCnt;
+    s += 0.4 * slotCnt;
     // 보조 보정: 고정 역할이 적다는 이유로 일반 주간칸 전체가 한 명에게 몰리는 현상 방지.
     s += 0.08 * daySlotTotal(r);
   }
@@ -384,6 +386,23 @@ function recruitOrder(w, effCnt, isNight){
   if(effCnt>0) return rec?1:0;     // 넘침: 비신병 먼저 (신병 3개째는 최후)
   if(isNight) return 0;            // 야간 기본 단계: 동순위 → 점수로 결정
   return rec?0:1;                  // 주간 기본 단계: 신병 먼저 (2개 채움)
+}
+
+/* 시간대(슬롯) 공정성 정렬키 — 같은 그룹에서 이 시간대를 많이 받은 사람일수록 큰 값(후순위).
+   당일 개수(cnt) 다음, '신병 우선(rec)'보다 먼저 적용한다.
+   이유: rec가 sc보다 앞서면 신병은 동률(cnt)일 때 무조건 먼저 뽑혀 MRV가 먼저 푸는
+   이른 칸(아침/09:30)을 도맡는다. 시간대 공정성을 rec 앞에 두면 '그 시간대를 이미 많이 한
+   사람'은 신병이라도 후순위가 되어, 신병이 이른 칸만 가져가는 쏠림이 끊긴다.
+   개수(cnt)는 1순위로 그대로라 인당 근무개수·평균시간 균등은 영향받지 않는다.
+   야간 번초는 0(영향 없음 — 번초 공정성은 bunchoRate가 담당). */
+function slotFairKey(wid, v, ctx){
+  if(!v || v.type!=='day') return 0;
+  const r = ctx.stats[wid]; if(!r) return 0;
+  const g = ctx._dayGrp;
+  const gSlotCnt = (r.slotGNum[g]||{})[v.key]||0;   // 같은 그룹·같은 시간대 누적 횟수
+  const slotCnt  = r.slotNum[v.key]||0;             // 그룹 무관 전체 해당 시간대 횟수
+  // 정수 버킷: 미세 차이로 신병 우선이 흔들리지 않게 하되, 1회 이상 차이는 분명히 반영
+  return Math.round(gSlotCnt*2 + slotCnt*0.5);
 }
 
 /* 인접 판정 */
@@ -487,16 +506,17 @@ function solve(vars, domains, ctx, tier, prevNight){
     const v=vars[best];
     const dg=ctx._dayGrp, ng=ctx._nightGrp;
     // 후보 정렬(사전식): ①당일 기준개수 적은 사람 먼저(고정 포함 — 신병은 1개를 깎아 비교) →
-    //   ②동률이면 기본 단계는 신병 먼저, 넘침 단계는 비신병 먼저
+    //   ②시간대 공정성(이 시간대를 적게 받은 사람 먼저) — 신병이 이른 칸만 도맡지 않도록 rec보다 앞 →
+    //   ③동률이면 기본 단계는 신병 먼저, 넘침 단계는 비신병 먼저
     //   (신병 2개씩 → 비신병 1개씩 → 비신병 2개째 → 신병 3개째 순) →
-    //                    ③공정성 점수(평균시간·배정률 등) 오름차순
+    //   ④공정성 점수(평균시간·배정률 등) 오름차순
     bestList = bestList.map(wid=>{
       const w=W(wid);
       const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:dg, nightGrp:ng,
                bunchoId:v.type==='night'?v.bunchoId:null};
       const cnt=effTodayCount(wid, todayCount[wid]);
-      return {wid, cnt, rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o)};
-    }).sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc)).map(x=>x.wid);
+      return {wid, cnt, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o)};
+    }).sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc)).map(x=>x.wid);
 
     const rest = remaining.filter(i=>i!==best);
     for(const wid of bestList){
@@ -551,11 +571,11 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
     if(pool.length===0) return;              // 채울 사람 없음 → 미배정 (인접/아침 금지는 끝까지 유지)
     const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:ctx._dayGrp,
              nightGrp:ctx._nightGrp, bunchoId:v.type==='night'?v.bunchoId:null};
-    // 사전식: 당일 기준개수(신병은 1개 깎음 → 기본 2개씩) → 동률이면 기본 단계 신병 먼저·넘침 단계 비신병 먼저 → 점수
+    // 사전식: 당일 기준개수(신병은 1개 깎음 → 기본 2개씩) → 시간대 공정성(적게 받은 사람 먼저) → 기본 단계 신병 먼저·넘침 단계 비신병 먼저 → 점수
     pool = pool.map(wid=>{
       const cnt=effTodayCount(wid, todayCount[wid]);
-      return {wid, cnt, rec:recruitOrder(W(wid), cnt, v.type==='night'), sc:score(W(wid), v.type==='day'?v.key:null, o)};
-    }).sort((a,b)=> (a.cnt-b.cnt) || (a.rec-b.rec) || (a.sc-b.sc));
+      return {wid, cnt, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(W(wid), cnt, v.type==='night'), sc:score(W(wid), v.type==='day'?v.key:null, o)};
+    }).sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
     const wid=pool[0].wid;
     assign[key]=wid; used.add(wid);
     todayCount[wid]=(todayCount[wid]||0)+1;

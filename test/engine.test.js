@@ -279,6 +279,96 @@ test('신병이 이른 칸(06:30~09:30)을 독식하지 않는다: 이른칸 점
   }
 });
 
+/* ---------- 06:30 순번제(로테이션) ---------- */
+/* 통계 시딩용 최소 근무표 (assign만 의미 있음) */
+function mkAssignSched(assign, ids) {
+  return { workHoliday: false, nextWorkHoliday: false, assign, night: {}, fixed: {},
+           mealId: null, patrolExtra: null, activeIds: ids, dayEx: [], nightEx: [], bothEx: [] };
+}
+
+test('06:30 순번제: 누적 06:30 횟수가 가장 적은 사람이 들어간다 (신병/비신병 무관)', () => {
+  const ws = roster(12);
+  ws[11].canMeal = false;               // 기대 인원이 밥교대로 빠지지 않게
+  const ids = ws.map(w => w.id);
+  E.setDB(freshDB({ workers: ws }));
+  // 6/1~6/11: W0~W10이 06:30을 1회씩 → W11만 0회
+  for (let i = 0; i <= 10; i++) {
+    const ds = E.addDays('2026-06-01', i);
+    E.getDB().schedules[ds] = mkAssignSched({ '06:30': ws[i].id }, ids);
+  }
+  E.invalidateStats();
+  const s = E.generateDay(E.autoInputFor('2026-06-12'));
+  assert.equal(s.assign['06:30'], ws[11].id);
+});
+
+test('06:30 순번제: 횟수 동률이면 마지막 06:30이 가장 오래된 사람이 들어간다', () => {
+  const ws = roster(12);
+  ws[0].canMeal = false;
+  const ids = ws.map(w => w.id);
+  E.setDB(freshDB({ workers: ws }));
+  // 6/1~6/12: W0→W1→…→W11 순으로 06:30을 1회씩 → 전원 1회 동률, W0이 가장 오래됨
+  for (let i = 0; i <= 11; i++) {
+    const ds = E.addDays('2026-06-01', i);
+    E.getDB().schedules[ds] = mkAssignSched({ '06:30': ws[i].id }, ids);
+  }
+  E.invalidateStats();
+  const s = E.generateDay(E.autoInputFor('2026-06-13'));
+  assert.equal(s.assign['06:30'], ws[0].id);
+});
+
+test('06:30 순번제: 1순위가 열외면 건너뛰고 다음 순번이 들어간다', () => {
+  const ws = roster(12);
+  ws[0].canMeal = false; ws[1].canMeal = false;
+  const ids = ws.map(w => w.id);
+  E.setDB(freshDB({ workers: ws }));
+  for (let i = 0; i <= 11; i++) {
+    const ds = E.addDays('2026-06-01', i);
+    E.getDB().schedules[ds] = mkAssignSched({ '06:30': ws[i].id }, ids);
+  }
+  E.invalidateStats();
+  const inp = E.autoInputFor('2026-06-13');
+  inp.dayEx = [ws[0].id];               // 1순위(가장 오래된 W0) 주간 열외
+  const s = E.generateDay(inp);
+  assert.equal(s.assign['06:30'], ws[1].id);
+});
+
+test('06:30 순번제: 장기 실행 시 전원 06:30 횟수가 고르게 돈다', () => {
+  const ws = roster(12, 2);             // 신병 포함해도 순번은 동일하게 돈다
+  E.setDB(freshDB({ workers: ws }));
+  let ds = '2026-06-01';
+  for (let d = 0; d < 42; d++) {
+    const s = E.generateDay(E.autoInputFor(ds));
+    E.getDB().schedules[ds] = s; E.invalidateStats();
+    ds = E.addDays(ds, 1);
+  }
+  const st = E.buildStats(null);
+  const cnts = ws.map(w => st[w.id].slotNum['06:30'] || 0);
+  // 42일/14명 = 평균 3회. 열외(전날 야간·밥교대 등)로 건너뛰어도 격차는 2 이내여야 순번제
+  assert.ok(Math.max(...cnts) - Math.min(...cnts) <= 2,
+    `06:30 횟수 격차 과다: [${cnts.join(',')}]`);
+});
+
+/* ---------- 신병 간 공평성: 개수가 갈릴 때 평균시간 많은 신병이 덜 받는다 ---------- */
+test('신병 개수가 갈리는 날: 평균시간 많은 신병이 적은 개수를 받는다', () => {
+  // 비신병 3 + 신병 8(=11명), 밥교대 1명 제외 → 가용 10명, 배정 16칸(슬롯 15+17:30 고정 1)
+  // → 전원 1개(10칸) 후 2개째는 6칸뿐 → 신병 8명 중 2명은 1개로 남는다.
+  // 평균시간(baseHours) 많은 R7은 반드시 '적게 받는 쪽'이어야 한다.
+  for (let iter = 0; iter < 5; iter++) {
+    const ws = [];
+    for (let i = 0; i < 3; i++) ws.push(mkWorker('W' + i, { roleType: i % 2 ? 'duty' : 'situation' }));
+    for (let i = 0; i < 7; i++) ws.push(mkWorker('R' + i, { roleReady: false }));
+    ws.push(mkWorker('R7', { roleReady: false, baseHours: 30 }));   // 누적 평균시간 많은 신병
+    E.setDB(freshDB({ workers: ws }));
+    const s = E.generateDay(E.autoInputFor('2026-06-15'));
+    const cnt = {};
+    [s.fixed, s.assign, s.night].forEach(m => Object.values(m || {}).forEach(id => { if (id) cnt[id] = (cnt[id] || 0) + 1; }));
+    const others = ws.filter(w => w.name[0] === 'R' && w.name !== 'R7').map(w => cnt[w.id] || 0);
+    const r7 = cnt[ws[10].id] || 0;
+    assert.ok(r7 <= Math.min(...others) && r7 < Math.max(...others),
+      `iter=${iter} 평균시간 많은 신병(R7=${r7})이 다른 신병들(${others.join(',')})보다 덜 받지 않음`);
+  }
+});
+
 /* ---------- 그룹별 슬롯 비율이 실제 배정에 반영 ---------- */
 test('score: 같은 그룹에서 그 시간대를 많이 선 사람일수록 뒤로 밀린다', () => {
   // A·B는 전체 통계가 똑같다(06:30×2, 10:30×2, 시간·분모·그룹 횟수 동일).
@@ -328,7 +418,8 @@ test('그룹 안에서도 시간대가 분산된다: 같은 그룹 같은 슬롯
     const st = E.buildStats(null);
     ws.forEach(w => {
       ['mtth', 'wed', 'fri', 'weekend'].forEach(g => {
-        const cnts = Object.values(st[w.id].slotGNum[g]);
+        // 06:30은 순번제(전역 로테이션)라 그룹별 분산 대상이 아님 → 검사에서 제외
+        const cnts = Object.entries(st[w.id].slotGNum[g]).filter(([sl]) => sl !== '06:30').map(([, c]) => c);
         const tot = cnts.reduce((a, b) => a + b, 0);
         if (tot >= 3) { const mx = Math.max(...cnts); worst = Math.max(worst, mx); sumMax += mx; n++; }
       });

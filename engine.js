@@ -215,7 +215,7 @@ function _computeStats(uptoDate, month){
       hours: month ? 0 : (w.baseHours||0),
       denom:0, dutyCnt:0, sitCnt:0,
       groupNum:{mtth:0,wed:0,fri:0,weekend:0}, groupDen:{mtth:0,wed:0,fri:0,weekend:0},
-      slotNum:{}, slotDen:0,
+      slotNum:{}, slotDen:0, slotLast:{},
       slotGNum:{mtth:{},wed:{},fri:{},weekend:{}},
       nightNum:0, nightDen:0, nightGNum:{weekday:0,holiday:0}, nightGDen:{weekday:0,holiday:0},
       bunchoNum:{1:0,2:0,3:0,4:0},
@@ -252,6 +252,7 @@ function _computeStats(uptoDate, month){
       if(id && st[id]){
         st[id].slotNum[slot]++; st[id].groupNum[g]++;
         st[id].slotGNum[g][slot]++;
+        st[id].slotLast[slot]=ds;   // 날짜 오름차순 순회 → 마지막(최근) 배정일이 남음
         st[id].hours += slotHours(slot);
       }
     });
@@ -405,6 +406,42 @@ function slotFairKey(wid, v, ctx){
   return Math.round(gSlotCnt*2 + slotCnt*0.5);
 }
 
+/* ----- 06:30 순번제(로테이션) -----
+   06:30은 점수 경쟁이 아니라 순번으로 돈다: 신병/비신병 구분 없이
+   ①06:30 누적 횟수가 적은 사람 → ②동률이면 마지막 06:30이 가장 오래된(또는 한 적 없는) 사람.
+   하드 제약(전날 야간자 아침 금지·인접·열외 등)에 걸린 사람은 건너뛰고 다음 순번이 들어간다
+   (횟수가 그대로라 다음 기회에 다시 1순위). */
+const ROTATION_SLOT = '06:30';
+function isRotationVar(v){ return v && v.type==='day' && v.key===ROTATION_SLOT; }
+function rotCompare(a, b){
+  return (a.rotCnt-b.rotCnt) || (a.rotLast<b.rotLast?-1:a.rotLast>b.rotLast?1:0);
+}
+function rotKeys(wid, ctx){
+  const r = ctx.stats[wid];
+  if(!r) return {rotCnt:0, rotLast:''};
+  return {rotCnt: r.slotNum[ROTATION_SLOT]||0, rotLast: (r.slotLast&&r.slotLast[ROTATION_SLOT])||''};
+}
+
+/* ----- 신병 간 공평성 -----
+   같은 날 신병이 받는 개수가 갈릴 때(예: 신병 3명이 2·2·1개) 누가 덜 받을지를 정한다:
+   ①당일 원개수(effTodayCount로 깎기 전) 적은 신병 먼저 — 신병끼리 번갈아 채워 몰림 방지 →
+   ②누적 평균시간이 적은 신병 먼저 — 평균시간 많은 신병이 적은 개수를 받는다.
+   평균시간은 0.25h 버킷으로 비교해 미세 차이는 기존 순서(시간대 공정성 등, 안정 정렬)가 유지된다.
+   정렬이 끝난 후보 목록에서 '신병이 있던 자리'끼리만 재배열하므로 비신병과의 상대 순서
+   (당일 개수·시간대 공정성·신병 우선)는 그대로다. 06:30 순번제 슬롯에는 적용하지 않는다. */
+function recruitAvgBucket(wid, ctx){
+  const r = ctx.stats[wid];
+  return r ? Math.round(avgHours(r)*4) : 0;
+}
+function rebalanceRecruits(list){
+  const pos=[], recs=[];
+  list.forEach((e,i)=>{ if(e.isRec){ pos.push(i); recs.push(e); } });
+  if(recs.length<2) return list;
+  recs.sort((a,b)=> (a.raw-b.raw) || (a.ravg-b.ravg));
+  pos.forEach((p,k)=>{ list[p]=recs[k]; });
+  return list;
+}
+
 /* 인접 판정 */
 function slotsOf(varObj){ return varObj.type==='day' ? [varObj.key] : NIGHT_BUNCHO.find(b=>b.id===varObj.bunchoId).slots; }
 function adjacent(slotsA, slotsB){
@@ -495,8 +532,15 @@ function solve(vars, domains, ctx, tier, prevNight){
     if(remaining.length===0) return true;
     if(++nodes>BUDGET) throw 'budget';
     // MRV: 현재 가용 후보 가장 적은 변수
+    // 단 06:30(순번제)은 항상 먼저 확정 — 로테이션 1순위가 다른 슬롯에 선점되지 않게.
     let best=-1, bestList=null, bestSize=1e9;
     for(const idx of remaining){
+      if(isRotationVar(vars[idx])){
+        best=idx; bestList=domains[idx].filter(wid=>eligible(vars[idx],wid)); bestSize=bestList.length;
+        break;
+      }
+    }
+    if(best<0) for(const idx of remaining){
       const v=vars[idx];
       const list = domains[idx].filter(wid=>eligible(v,wid));
       if(list.length<bestSize){ bestSize=list.length; best=idx; bestList=list; }
@@ -515,8 +559,17 @@ function solve(vars, domains, ctx, tier, prevNight){
       const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:dg, nightGrp:ng,
                bunchoId:v.type==='night'?v.bunchoId:null};
       const cnt=effTodayCount(wid, todayCount[wid]);
-      return {wid, cnt, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o)};
-    }).sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc)).map(x=>x.wid);
+      return {wid, cnt, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o),
+              isRec: !!(w&&isRecruit(w)), raw: todayCount[wid]||0, ravg: recruitAvgBucket(wid, ctx), ...rotKeys(wid, ctx)};
+    });
+    if(isRotationVar(v)){
+      // 06:30 순번제: 횟수 적은 순 → 오래된 순. 동률만 기존 공정성 순서로.
+      bestList.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+    }else{
+      bestList.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      if(v.type==='day') rebalanceRecruits(bestList);
+    }
+    bestList = bestList.map(x=>x.wid);
 
     const rest = remaining.filter(i=>i!==best);
     for(const wid of bestList){
@@ -551,7 +604,10 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
   const todayHours={...ctx._todayHours};
   const todayCount={...(ctx._todayCount||{})};
   Object.values(assign).forEach(id=>{ if(id) todayCount[id]=(todayCount[id]||0)+1; });  // partial 반영
-  vars.forEach((v,idx)=>{
+  // 06:30(순번제)부터 채워 로테이션 1순위가 다른 칸에 먼저 쓰이지 않게 한다 (안정 정렬 → 나머지 순서 유지)
+  const fillOrder = vars.map((_,i)=>i).sort((a,b)=>(isRotationVar(vars[a])?0:1)-(isRotationVar(vars[b])?0:1));
+  fillOrder.forEach(idx=>{
+    const v=vars[idx];
     const key=v.type==='day'?'D'+v.key:'N'+v.bunchoId;
     if(assign[key]) return;
     // 하드 제약: 전날 야간자는 아침(06:30/07:30/08:30) 금지 — 위반보다 미배정
@@ -572,10 +628,19 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
     const o={stats:ctx.stats, todayHours, isNight:v.type==='night', dayGrp:ctx._dayGrp,
              nightGrp:ctx._nightGrp, bunchoId:v.type==='night'?v.bunchoId:null};
     // 사전식: 당일 기준개수(신병은 1개 깎음 → 기본 2개씩) → 시간대 공정성(적게 받은 사람 먼저) → 기본 단계 신병 먼저·넘침 단계 비신병 먼저 → 점수
+    // 06:30은 순번제(누적 횟수 → 오래된 순), 그 외 주간칸은 신병끼리 재배열(rebalanceRecruits) 적용
     pool = pool.map(wid=>{
+      const w=W(wid);
       const cnt=effTodayCount(wid, todayCount[wid]);
-      return {wid, cnt, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(W(wid), cnt, v.type==='night'), sc:score(W(wid), v.type==='day'?v.key:null, o)};
-    }).sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      return {wid, cnt, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o),
+              isRec: !!(w&&isRecruit(w)), raw: todayCount[wid]||0, ravg: recruitAvgBucket(wid, ctx), ...rotKeys(wid, ctx)};
+    });
+    if(isRotationVar(v)){
+      pool.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+    }else{
+      pool.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      if(v.type==='day') rebalanceRecruits(pool);
+    }
     const wid=pool[0].wid;
     assign[key]=wid; used.add(wid);
     todayCount[wid]=(todayCount[wid]||0)+1;
@@ -619,11 +684,11 @@ function localImprove(vars, domains, ctx, assign, prevNight){
   function twoOptPass(){
     let changed=false;
     for(let i=0;i<vars.length;i++){
-      const vi=vars[i], ki=keyOf(vi), a=assign[ki]; if(!a) continue;
+      const vi=vars[i], ki=keyOf(vi), a=assign[ki]; if(!a || isRotationVar(vi)) continue; // 06:30 순번제 보호
       const oi=scoreOpts(vi);
       for(let j=i+1;j<vars.length;j++){
         const vj=vars[j], kj=keyOf(vj), b=assign[kj];
-        if(!b || a===b) continue;
+        if(!b || a===b || isRotationVar(vj)) continue;
         if(!domains[i].includes(b) || !domains[j].includes(a)) continue;
         if(!hardOk(vi,b,ki,kj) || !hardOk(vj,a,ki,kj)) continue;
         const oj=scoreOpts(vj);
@@ -642,6 +707,7 @@ function localImprove(vars, domains, ctx, assign, prevNight){
     for(let i=0;i<vars.length;i++){
       const v=vars[i], key=v.type==='day'?'D'+v.key:'N'+v.bunchoId;
       const cur=assign[key]; if(!cur) continue;
+      if(isRotationVar(v)) continue;   // 06:30은 순번제 — 점수 교체로 로테이션을 깨지 않는다
       const o={stats:ctx.stats, todayHours:ctx._todayHours, isNight:v.type==='night', dayGrp:ctx._dayGrp,
                nightGrp:ctx._nightGrp, bunchoId:v.type==='night'?v.bunchoId:null};
       const curSc=score(W(cur), v.type==='day'?v.key:null, o);
@@ -655,6 +721,10 @@ function localImprove(vars, domains, ctx, assign, prevNight){
         if(v.type==='night' && prevNight.has(wid)) continue; // 야간 이틀연속 도입 금지
         // 균등 유지: 새 배정자의 당일 기준개수(신병은 1개 깎음)가 기존 배정자 이상이 되면(피크 상승) 스왑 금지
         if(effTodayCount(wid, (todayCount[wid]||0) + 1) > effTodayCount(cur, todayCount[cur])) continue;
+        // 신병 간 균형 유지: 평균시간이 많거나 같은 신병 쪽으로 개수가 더 늘어나는 교체 금지
+        if(isRecruit(W(wid)) && isRecruit(W(cur)) &&
+           (todayCount[wid]||0)+1 > (todayCount[cur]||0)-1 &&
+           recruitAvgBucket(wid, ctx) >= recruitAvgBucket(cur, ctx)) continue;
         const sc=score(W(wid), v.type==='day'?v.key:null, o);
         if(sc < curSc - 0.25){
           assign[key]=wid; improved=true;

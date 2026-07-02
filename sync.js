@@ -12,9 +12,10 @@
 "use strict";
 (function(){
   const CFG_KEY='cctv_sync_cfg_v1';
+  const MTIME_KEY='cctv_local_mtime_v1';   // 로컬 마지막 수정시각 — index.html save()가 기록
   const qs=s=>document.querySelector(s);
   const S={ on:false, admin:false, readonly:false, user:null, dirty:false,
-            lastUp:null, lastDown:null, timer:null, remote:{} };
+            lastUp:null, lastDown:null, timer:null, remote:{}, remoteAt:0, note:'' };
   window.SYNC=S; // 디버그용
 
   /* ---------- 설정 로드: localStorage > firebase-config.js ---------- */
@@ -129,7 +130,11 @@
       DB = migrate(obj);
       invalidateStats();
       // 오프라인 열람용 캐시 — save() 래퍼를 거치지 않고 직접 기록 (재업로드 방지)
-      try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+      // 수정시각은 서버 기준으로 맞춰 다음 접속의 최신 비교가 어긋나지 않게 한다
+      try{
+        localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+        localStorage.setItem(MTIME_KEY, String(S.remoteAt||Date.now()));
+      }catch(e){}
       S.lastDown=new Date();
       refreshAll();
       refreshStatus();
@@ -189,21 +194,31 @@
     unsub=col.onSnapshot(snap=>{
       if(snap.metadata.hasPendingWrites) return;    // 내 쓰기의 에코 (서버 확정 후 다시 옴)
       const remote={};
-      snap.forEach(doc=>{ const d=doc.data(); if(d&&d.json) remote[doc.id]=d.json; });
-      S.remote=remote;
+      let remoteAt=0;
+      snap.forEach(doc=>{
+        const d=doc.data(); if(!d||!d.json) return;
+        remote[doc.id]=d.json;
+        const t=(d.updatedAt&&d.updatedAt.toMillis)?d.updatedAt.toMillis():0;
+        if(t>remoteAt) remoteAt=t;
+      });
+      S.remote=remote; S.remoteAt=remoteAt;
       if(!Object.keys(remote).length){
         if(S.admin) upload();                       // 서버가 비어 있으면 관리자 로컬 데이터로 초기화
         return;
       }
       if(S.admin){
-        // 접속 직후 1회: 서버와 로컬이 다르면 어느 쪽을 쓸지 확인
+        // 접속 직후 1회: 서버와 로컬이 다르면 마지막 수정시각이 더 최신인 쪽을 자동 반영
         if(!adminBooted){
           adminBooted=true;
           if(!remoteEqualsLocal()){
-            if(confirm('서버에 저장된 데이터가 이 브라우저와 다릅니다.\n[확인] 서버 데이터를 불러옵니다 (이 브라우저 데이터 대체)\n[취소] 이 브라우저 데이터를 서버에 업로드합니다')){
+            const localAt=Number(localStorage.getItem(MTIME_KEY))||0;
+            if(S.remoteAt>localAt){
               const r=buildRemoteDB(); if(r) adopt(r);
+              S.note='서버가 더 최신이라 자동으로 불러옴';
+            }else{
+              S.note='이 기기가 더 최신이라 서버에 업로드';
             }
-            scheduleUpload();   // 선택 결과 기준으로 서버 정리(신형식 전환·main 삭제 포함) — 차이 없으면 0회 쓰기
+            scheduleUpload();   // 반영 결과 기준으로 서버 정리(신형식 전환·main 삭제 포함) — 차이 없으면 0회 쓰기
           }else if(S.remote.main){
             scheduleUpload();   // 내용은 같지만 구형식(main) → 월별 분할로 전환 + main 삭제
           }
@@ -239,7 +254,7 @@
       return;
     }
     if(S.admin){
-      status('<div class="ok">✓ 관리자 모드 · '+esc(S.user.email)+' · 마지막 업로드 '+fmt(S.lastUp)+(S.dirty?' · <b>업로드 대기 중…</b>':'')+'</div>');
+      status('<div class="ok">✓ 관리자 모드 · '+esc(S.user.email)+' · 마지막 업로드 '+fmt(S.lastUp)+(S.dirty?' · <b>업로드 대기 중…</b>':'')+(S.note?' · '+esc(S.note):'')+'</div>');
     }else{
       status('<div class="ok">✓ 열람 전용 · '+esc(S.user.email)+' · 실시간 수신 중 · 마지막 수신 '+fmt(S.lastDown)+'</div>');
     }

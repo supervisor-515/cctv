@@ -245,6 +245,28 @@ test('운항병: 토·일 주간은 일반 근무자처럼 풀에 참여할 수 
   assert.ok(cands.some(w => w.id === nav.id), '운항병이 주말 주간 후보에 없음');
 });
 
+test('운항병 고정 슬롯은 설정(navFixed)으로 바뀐다', () => {
+  const nav = mkNav('NAV');
+  const ws = [nav].concat(roster(15));
+  const db = freshDB({ workers: ws });
+  db.settings.navFixed = { weekday: ['10:30', '15:30'], friday: ['08:30'] };
+  E.setDB(db);
+  // 월: 설정한 10:30·15:30 고정
+  const mon = E.generateDay(E.autoInputFor('2026-06-15'));
+  assert.deepEqual(daySlotsOf(mon, nav.id), ['10:30', '15:30'], '설정한 월~목 슬롯이 반영 안 됨');
+  // 금: 08:30 하나
+  const fri = E.generateDay(E.autoInputFor('2026-06-19'));
+  assert.deepEqual(daySlotsOf(fri, nav.id), ['08:30'], '설정한 금요일 슬롯이 반영 안 됨');
+});
+
+test('migrate: navFixed 기본값 보강 + 잘못된 슬롯 제거', () => {
+  const out = E.migrate({ workers: [], settings: { navFixed: { weekday: ['09:30', '99:99'], friday: [] } } });
+  assert.deepEqual(out.settings.navFixed.weekday, ['09:30'], '유효 슬롯만 남아야');
+  assert.deepEqual(out.settings.navFixed.friday, [], '빈 배열 유지');
+  const out2 = E.migrate({ workers: [], settings: {} });
+  assert.deepEqual(out2.settings.navFixed, E.DEFAULT_SETTINGS.navFixed, '기본값 보강');
+});
+
 /* ---------- 말년 ---------- */
 test('말년: 배정 메커니즘상 신병과 동일(isRecruit) + 정규화 보존', () => {
   const vet = mkWorker('VET', { roleReady: false, isVeteran: true });

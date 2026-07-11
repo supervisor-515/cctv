@@ -281,7 +281,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.3</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.4</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -519,7 +519,13 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       <div class="row" style="margin-top:12px">
         <label class="chk"><input type="checkbox" id="s1430"> 휴무일에도 14:30 당일 상황병 고정</label>
       </div>
-      <p class="desc" style="margin-top:8px">인접(연속) 슬롯 근무는 항상 금지됩니다(하드 제약 — 완화 불가). 전날 야간자의 아침 근무도 항상 금지됩니다.</p>
+      <div style="margin-top:14px">
+        <label style="font-weight:600;font-size:13px">운항병 주간 고정 시간</label>
+        <p class="smallnote" style="margin:4px 0 8px">운항병이 매일 고정으로 들어가는 주간 슬롯을 고릅니다(월~목 / 금 따로). 인접한 두 슬롯을 함께 고르면 연속근무 경고가 뜹니다.</p>
+        <div class="field"><label>월~목 고정 슬롯</label><div id="navWeekdaySlots" class="slotchks"></div></div>
+        <div class="field" style="margin-top:8px"><label>금요일 고정 슬롯</label><div id="navFridaySlots" class="slotchks"></div></div>
+      </div>
+      <p class="desc" style="margin-top:8px">인접(연속) 슬롯 근무는 항상 금지됩니다(하드 제약 — 완화 불가). 전날 야간자의 아침 근무도 항상 금지됩니다. 운항병 야간(금·토 1회)은 자동 배분입니다.</p>
       <details class="adv">
         <summary>공정성 점수 가중치 (낮을수록 우선 배정)</summary>
         <div class="wgrid" id="wGrid"></div>
@@ -579,7 +585,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
     </div>
   </section>
 </div>
-<script src="engine.js?v=4.3"></script>
+<script src="engine.js?v=4.4"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1710,9 +1716,23 @@ $('#pAdd').addEventListener('click',()=>{
 });
 
 /* ---------- ⑤ 설정 탭 ---------- */
+/* 운항병 고정 슬롯 체크박스 그리기 (DAY_SLOTS 전체, 선택된 것 체크) */
+function renderNavSlotChecks(){
+  const nf=(DB.settings&&DB.settings.navFixed)||{weekday:[],friday:[]};
+  [['navWeekdaySlots', nf.weekday||[]],['navFridaySlots', nf.friday||[]]].forEach(([boxId, sel])=>{
+    const box=$('#'+boxId); if(!box) return; box.innerHTML='';
+    DAY_SLOTS.forEach(slot=>{
+      const lab=el('label','chk'); lab.style.marginRight='8px';
+      const c=el('input'); c.type='checkbox'; c.value=slot; c.checked=sel.includes(slot);
+      lab.appendChild(c); lab.appendChild(document.createTextNode(' '+slot));
+      box.appendChild(lab);
+    });
+  });
+}
 function renderSettings(){
   $('#sPatrol').value=DB.settings.patrolBonus;
   $('#s1430').checked=DB.settings.enable1430OnHoliday;
+  renderNavSlotChecks();
   const g=$('#wGrid'); g.innerHTML='';
   Object.keys(DEFAULT_WEIGHTS).forEach(k=>{
     const f=el('div','field'); f.appendChild(el('label','',WEIGHT_LABELS[k]+' ('+k+')'));
@@ -1724,7 +1744,10 @@ $('#sSave').addEventListener('click',()=>{
   DB.settings.patrolBonus=Number($('#sPatrol').value)||0;
   DB.settings.enable1430OnHoliday=$('#s1430').checked;
   $$('#wGrid input').forEach(inp=>{ DB.settings.weights[inp.dataset.w]=Number(inp.value)||0; });
-  save(); $('#bStatus').innerHTML='<div class="ok">✓ 설정을 저장했습니다.</div>';
+  // 운항병 고정 슬롯 (DAY_SLOTS 순서 유지)
+  const readSlots=boxId=> DAY_SLOTS.filter(sl=> $$('#'+boxId+' input').some(c=>c.value===sl&&c.checked));
+  DB.settings.navFixed={ weekday:readSlots('navWeekdaySlots'), friday:readSlots('navFridaySlots') };
+  save(); refreshAll(); $('#bStatus').innerHTML='<div class="ok">✓ 설정을 저장했습니다.</div>';
 });
 $('#sReset').addEventListener('click',()=>{ DB.settings.weights={...DEFAULT_WEIGHTS}; save(); renderSettings(); });
 
@@ -1791,11 +1814,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=4.3"></script>
+<script src="firebase-config.js?v=4.4"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=4.3"></script>
+<script src="sync.js?v=4.4"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

@@ -281,7 +281,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.4</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.5</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -585,7 +585,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
     </div>
   </section>
 </div>
-<script src="engine.js?v=4.4"></script>
+<script src="engine.js?v=4.5"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -946,7 +946,7 @@ function workerSelect(currentId){
   const sel=el('select','cellsel');
   const o0=el('option'); o0.value=''; o0.textContent='미배정'; sel.appendChild(o0);
   const list=activeWorkers(); const ids=new Set(list.map(w=>w.id));
-  list.forEach(w=>{ const o=el('option'); o.value=w.id; o.textContent=w.name+(isRecruit(w)?' (신병)':''); sel.appendChild(o); });
+  list.forEach(w=>{ const o=el('option'); o.value=w.id; o.textContent=w.name; sel.appendChild(o); });  // 구분은 슬롯 옆 태그로 표시 — 이름 뒤 (신병) 접미사 제거
   if(currentId && !ids.has(currentId)){ const o=el('option'); o.value=currentId; o.textContent=nameOf(currentId)+' (비활성)'; sel.appendChild(o); }
   sel.value=currentId||'';
   return sel;
@@ -1814,11 +1814,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=4.4"></script>
+<script src="firebase-config.js?v=4.5"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=4.4"></script>
+<script src="sync.js?v=4.5"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

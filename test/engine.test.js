@@ -568,6 +568,30 @@ test('prebookConflictsFor: 당직 예약과 표의 당직이 다르면 충돌', 
   assert.deepEqual(E.prebookConflictsFor(pOk, s), []);
 });
 
+/* ---------- 카운트 초기화(countResetAt) ---------- */
+test('countResetAt: 기준일 이전 근무시간·분자·분모가 전부 0으로 잘린다 (밥교대만 유지)', () => {
+  const A = mkWorker('A', { countResetAt: '2026-06-10' });
+  const B = mkWorker('B');
+  const ws = [A, B]; const ids = ws.map(w => w.id);
+  E.setDB(freshDB({ workers: ws }));
+  const seed = (ds, assign, mealId) => {
+    E.getDB().schedules[ds] = { date: ds, workHoliday: false, nextWorkHoliday: false, assign, night: {}, fixed: {},
+      mealId: mealId || null, patrolExtra: null, activeIds: ids, dayEx: [], nightEx: [], bothEx: [] };
+  };
+  // 초기화(6/10) 이전 2회 + 밥교대 1회, 이후 2회
+  seed('2026-06-05', { '06:30': A.id }, A.id);   // 이전: 근무 1 + 밥교대 1
+  seed('2026-06-08', { '06:30': A.id }, null);   // 이전: 근무 1
+  seed('2026-06-12', { '06:30': A.id }, null);   // 이후: 근무 1
+  seed('2026-06-15', { '06:30': A.id }, null);   // 이후: 근무 1
+  E.invalidateStats();
+  const r = E.buildStats(null)[A.id];
+  assert.equal(r.hours, 2, '초기화 이전 근무시간이 남아 있음(2여야 함)');
+  assert.equal(r.slotNum['06:30'], 2, '초기화 이전 슬롯 분자가 남아 있음');
+  assert.equal(r.denom, 2, '초기화 이전 분모가 남아 있음');
+  assert.equal(r.mealNum, 1, '밥교대 카운트는 유지되어야 함(초기화 예외)');
+  assert.equal(r.mealDen >= 4, true, '밥교대 분모는 초기화 무시(전체 유지)');
+});
+
 /* ---------- 통계/보조 ---------- */
 test('buildStats: 생성된 표가 다음날 통계에 누적된다', () => {
   const ws = roster(12);

@@ -255,10 +255,14 @@ function _computeStats(uptoDate, month){
     const ng = nightGroup(ds, s.nextWorkHoliday);
     const mg = mealGroup(ds, s.workHoliday);
     const isWknd = (g==='weekend');
-    const addH = (id, x)=>{ st[id].hours += x; if(isWknd) st[id].wkndHours += x; };  // 시간 누적 + 주말분 별도 집계
+    // 카운트 초기화(countResetAt): 그 날짜 이전 기록은 분모·분자·누적시간을 통째로 0 취급
+    // (밥교대 카운트만 예외로 유지 — 신병→역할 전환 시에도 밥교대 이력은 계속 쌓임).
+    const okReset = {};   // wid -> 이 날짜가 초기화 기준일 이후인가
+    const addH = (id, x)=>{ if(!okReset[id]) return; st[id].hours += x; if(isWknd) st[id].wkndHours += x; };
     DB.workers.forEach(w=>{
       const r=st[w.id];
       const afterReset = !w.countResetAt || ds>=w.countResetAt;
+      okReset[w.id] = afterReset;
       const present = presentOn(w, ds, s);
       // 분모 (일반: 카운트 기준 이후 + 가용)
       if(present && afterReset){
@@ -273,10 +277,10 @@ function _computeStats(uptoDate, month){
       // 밥교대 분모는 reset 무시(유지), 가용이면 카운트
       if(present){ r.mealDen++; r.mealGDen[mg]++; }
     });
-    // 분자
+    // 분자 (초기화 기준일 이후만 집계 — addH도 okReset로 게이트되어 누적시간이 함께 잘림)
     DAY_SLOTS.forEach(slot=>{
       const id = s.assign && s.assign[slot];
-      if(id && st[id]){
+      if(id && st[id] && okReset[id]){
         st[id].slotNum[slot]++; st[id].groupNum[g]++;
         st[id].slotGNum[g][slot]++;
         st[id].slotLast[slot]=ds;   // 날짜 오름차순 순회 → 마지막(최근) 배정일이 남음
@@ -285,26 +289,27 @@ function _computeStats(uptoDate, month){
     });
     NIGHT_BUNCHO.forEach(b=>{
       const id = s.night && s.night[b.id];
-      if(id && st[id]){
+      if(id && st[id] && okReset[id]){
         st[id].nightNum++; st[id].nightGNum[ng]++; st[id].bunchoNum[b.id]++;
         addH(id, 1);
       }
     });
-    // 밥교대 (근무시간 부여 안 함 — 카운트만). 날짜 오름차순 순회라 lastMeal은 가장 최근 날짜가 남음
+    // 밥교대 (근무시간 부여 안 함 — 카운트만, 초기화 예외로 유지). 오름차순 순회라 lastMeal은 최근 날짜가 남음
     if(s.mealId && st[s.mealId]){
       st[s.mealId].mealNum++; st[s.mealId].mealGNum[mg]++; st[s.mealId].lastMeal=ds;
     }
     // 순찰(전용 추가자)
-    if(s.patrolExtra && st[s.patrolExtra]){
+    if(s.patrolExtra && st[s.patrolExtra] && okReset[s.patrolExtra]){
       st[s.patrolExtra].patrolNum++; st[s.patrolExtra].patrolGNum[mg]++; addH(s.patrolExtra, DB.settings.patrolBonus);
     }
     // 고정 역할 슬롯 시간(부하 반영). 14:30(당일상황)·13:30(금요일 당일상황)도 고정 슬롯이므로 여기서 1회만 집계.
+    // addH가 okReset로 게이트되므로 초기화 이전 고정근무 시간은 자동 제외된다.
     const fx = s.fixed||{};
     ['18:30','19:30','20:30','21:30','14:30','13:30'].forEach(k=>{ if(fx[k]&&st[fx[k]]) addH(fx[k], 1); });
     if(fx['17:30']&&st[fx['17:30']]) addH(fx['17:30'], 1 + DB.settings.patrolBonus);
-    // 당직/상황병 카운트(표시용)
-    if(s.dutyId&&st[s.dutyId]) st[s.dutyId].dutyCnt++;
-    if(s.situationId&&st[s.situationId]) st[s.situationId].sitCnt++;
+    // 당직/상황병 카운트(표시용, 초기화 기준일 이후만)
+    if(s.dutyId&&st[s.dutyId]&&okReset[s.dutyId]) st[s.dutyId].dutyCnt++;
+    if(s.situationId&&st[s.situationId]&&okReset[s.situationId]) st[s.situationId].sitCnt++;
   }
   return st;
 }

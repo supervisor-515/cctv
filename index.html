@@ -590,7 +590,8 @@ function load(){
     if(raw){ DB = migrate(JSON.parse(raw)); }
   }catch(e){ console.warn('load fail',e); }
 }
-function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); invalidateStats(); }
+/* 수정시각도 함께 기록 — sync.js가 서버(updatedAt)와 비교해 최신 쪽을 자동 반영 */
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); localStorage.setItem('cctv_local_mtime_v1', String(Date.now())); invalidateStats(); }
 /* ============================================================
    UI
    ============================================================ */

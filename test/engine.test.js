@@ -261,6 +261,54 @@ test('말년: 배정 메커니즘상 신병과 동일(isRecruit) + 정규화 보
   ws.filter(w => w.name[0] === 'V').forEach(w => assert.ok((cnt[w.id] || 0) <= 2, '말년이 하루 3개 이상 배정됨'));
 });
 
+/* ---------- 야간 3일 연속 방지 ---------- */
+function nightSeed(ds, nightMap, ids) {
+  return { date: ds, workHoliday: false, nextWorkHoliday: false, assign: {}, night: nightMap, fixed: {},
+    mealId: null, patrolExtra: null, activeIds: ids, dayEx: [], nightEx: [], bothEx: [] };
+}
+
+test('야간 3일 연속 금지: 이틀 연속 야간자는 인원이 있으면 다음날 야간에서 제외된다', () => {
+  const ws = roster(14);
+  const X = ws[0];
+  const ids = ws.map(w => w.id);
+  E.setDB(freshDB({ workers: ws }));
+  // 6/13·6/14: X가 1번초 2일 연속
+  E.getDB().schedules['2026-06-13'] = nightSeed('2026-06-13', { 1: X.id }, ids);
+  E.getDB().schedules['2026-06-14'] = nightSeed('2026-06-14', { 1: X.id }, ids);
+  E.invalidateStats();
+  // 6/15: 인원 충분 → X는 3연속이 되므로 야간 제외
+  const s = E.generateDay(E.autoInputFor('2026-06-15'));
+  assert.ok(!Object.values(s.night).includes(X.id), '이틀 연속 야간자가 3일째 야간에 배정됨');
+  assert.ok(s.tier < 4, '인원이 충분한데 3연속 완화 tier가 켜짐: tier=' + s.tier);
+});
+
+test('야간 3일 연속은 강제(tier≥4)일 때만 허용 — 장기 실행 불변식', () => {
+  for (let trial = 0; trial < 3; trial++) {
+    const ws = roster(9);   // 빠듯한 인원 → 2연속은 흔하게 발생
+    E.setDB(freshDB({ workers: ws }));
+    let ds = '2026-06-01';
+    const dates = [];
+    const nightOf = {};   // date -> Set(야간자)
+    for (let d = 0; d < 28; d++) {
+      const s = E.generateDay(E.autoInputFor(ds));
+      E.getDB().schedules[ds] = s; E.invalidateStats();
+      dates.push(ds);
+      nightOf[ds] = new Set(Object.values(s.night).filter(Boolean));
+      ds = E.addDays(ds, 1);
+    }
+    dates.forEach((d, i) => {
+      if (i < 2) return;
+      const s = E.getDB().schedules[d];
+      nightOf[d].forEach(id => {
+        if (nightOf[dates[i - 1]].has(id) && nightOf[dates[i - 2]].has(id)) {
+          // 3연속 발생 → 반드시 강제 완화(tier≥4)여야 한다 (tier<4에서 3연속이면 버그)
+          assert.ok(s.tier >= 4, `trial=${trial} ${E.nameOf(id)} 3연속 야간인데 tier=${s.tier} (강제 아님)`);
+        }
+      });
+    });
+  }
+});
+
 /* ---------- 밥교대 균등·로테이션 ---------- */
 /* 통계 시딩용 최소 근무표 (mealId만 의미 있음) */
 function mkMealSched(mealId, ids) {

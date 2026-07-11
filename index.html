@@ -639,10 +639,11 @@ function mealList(){ return DB.workers.filter(w=>w.active&&w.canMeal); }
 const ROLE_OPTS=[['recruit','신병'],['duty','당직'],['situation','상황병'],['navigator','운항병'],['veteran','말년']];
 function roleValue(w){ return isNavigator(w)?'navigator' : isVeteran(w)?'veteran' : isRecruit(w)?'recruit' : w.roleType; }
 function roleLabel(w){ const v=roleValue(w); return (ROLE_OPTS.find(([x])=>x===v)||[,'상황병'])[1]; }
-/* 근무표 셀에 붙일 구분 태그(운항병·말년·신병만 표시, 그 외/삭제됨은 없음) */
+/* 근무표 셀에 붙일 구분 태그(운항병·말년·신병만 표시, 그 외/삭제됨은 없음).
+   전역 el로 직접 만든다 — tagEl은 renderSchedTable 지역 함수라 여기선 안 보임. */
 function roleTag(id){ const w=W(id); if(!w) return null;
-  if(isNavigator(w)) return tagEl('recruit','운항'); if(isVeteran(w)) return tagEl('recruit','말년');
-  if(isRecruit(w)) return tagEl('recruit','신병'); return null; }
+  const t = isNavigator(w)?'운항' : isVeteran(w)?'말년' : isRecruit(w)?'신병' : null;
+  return t ? el('span','tag recruit', t) : null; }
 /* 구분 값을 근무자에 적용. 운항병 지정 시 활성 1명 제한, 신병→역할 전환 시 카운트 초기화(말년은 초기화 안 함). 성공 true. */
 function applyRole(w, v){
   if(v==='navigator'){

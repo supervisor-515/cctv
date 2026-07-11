@@ -33,7 +33,9 @@ const WEIGHT_LABELS = {
   slotRate:'슬롯 배정률(그룹별)', nightRate:'야간 배정률', bunchoRate:'번초 배정률',
   mealRate:'밥교대 배정률', patrolRate:'순찰 배정률', recruitBias:'신병 보정', jitter:'미세 난수'
 };
-const DEFAULT_SETTINGS = {patrolBonus:0.5, enable1430OnHoliday:false, weights:{...DEFAULT_WEIGHTS}};
+// navFixed: 운항병 주간 고정 슬롯(설정에서 수정 가능). weekday=월~목, friday=금.
+const DEFAULT_NAV_FIXED = {weekday:['09:30','13:30'], friday:['09:30','14:30']};
+const DEFAULT_SETTINGS = {patrolBonus:0.5, enable1430OnHoliday:false, navFixed:JSON.parse(JSON.stringify(DEFAULT_NAV_FIXED)), weights:{...DEFAULT_WEIGHTS}};
 
 /* ---------- 상태 ---------- */
 let DB = {version:2, lastBackupAt:null, workers:[], schedules:{}, prebook:[], holidays:{}, settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))};
@@ -51,6 +53,13 @@ function migrate(obj){
   if(obj.settings){
     out.settings = Object.assign({}, DEFAULT_SETTINGS, obj.settings);
     out.settings.weights = Object.assign({}, DEFAULT_WEIGHTS, obj.settings.weights||{});
+    // 운항병 고정 슬롯: 유효한 주간 슬롯만 남기고, 없으면 기본값
+    const nf = obj.settings.navFixed || {};
+    const cleanSlots = (arr, def)=> Array.isArray(arr) ? arr.filter(s=>DAY_SLOTS.includes(s)) : def.slice();
+    out.settings.navFixed = {
+      weekday: cleanSlots(nf.weekday, DEFAULT_NAV_FIXED.weekday),
+      friday:  cleanSlots(nf.friday,  DEFAULT_NAV_FIXED.friday)
+    };
   }
   // workers — 구버전 필드 보정
   const ws = obj.workers || obj.people || [];
@@ -179,7 +188,8 @@ function activeNavigator(){ return DB.workers.find(w=>w.active && w.isNavigator)
 /* 운항병 주간 고정 슬롯: 월~목 09:30·13:30 / 금 09:30·14:30 / 주말·휴무 없음(일반 풀 참여) */
 function navFixedDaySlots(ds, workHoliday){
   if(dayGroup(ds, workHoliday)==='weekend') return [];   // 토·일·휴무: 고정 없음
-  return dow(ds)===5 ? ['09:30','14:30'] : ['09:30','13:30'];
+  const nf = (DB.settings && DB.settings.navFixed) || DEFAULT_NAV_FIXED;
+  return (dow(ds)===5 ? (nf.friday||[]) : (nf.weekday||[])).slice();
 }
 /* 운항병의 과거 금/토 야간 횟수 (균등 배분 판단용) */
 function navNightBalance(navId){

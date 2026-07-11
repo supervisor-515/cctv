@@ -281,7 +281,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -492,11 +492,13 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
   <section class="view" id="people">
     <div class="panel">
       <h2>근무자 관리</h2>
-      <p class="desc">역할가능(당직/상황병)·밥교대 가능 여부·기존 누적시간·활성/비활성 기간을 관리합니다. 신병→역할가능 전환 시 신병 근무 카운트는 초기화하고 밥교대 카운트는 유지합니다.</p>
+      <p class="desc">구분(신병·당직·상황병·운항병·말년)·밥교대 가능 여부·기존 누적시간·활성/비활성 기간을 관리합니다. 신병→당직/상황병 전환 시 신병 근무 카운트는 초기화하고 밥교대 카운트는 유지합니다.<br>
+      · <b>운항병</b>(활성 1명): 월~목 09:30·13:30, 금 09:30·14:30 고정 + 금/토 야간 1회(균등). 상황병 근무도 서며(선택 시 겹치는 고정 자동 제외), 토·일 주간은 일반 근무자처럼 배정됩니다.<br>
+      · <b>말년</b>: 배정은 신병과 동일하게 취급하되(당직/상황병 미투입) 카운트 초기화는 하지 않습니다.</p>
       <div class="row">
         <div class="field"><label>이름</label><input id="pName" placeholder="이름"></div>
         <div class="field"><label>구분</label>
-          <select id="pRole"><option value="recruit">신병(역할 불가)</option><option value="duty">당직 가능</option><option value="situation">상황병 가능</option></select>
+          <select id="pRole"><option value="recruit">신병(역할 불가)</option><option value="duty">당직 가능</option><option value="situation">상황병 가능</option><option value="navigator">운항병</option><option value="veteran">말년</option></select>
         </div>
         <label class="chk"><input type="checkbox" id="pMeal" checked> 밥교대 투입 가능</label>
         <div class="field"><label>기존 누적시간(h)</label><input type="number" id="pBase" value="0" step="0.5"></div>
@@ -571,12 +573,13 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
         하루 = 06:30~익일 05:30, 1시간 24슬롯 · 주간 06:30~16:30(11) · 야간 번초 4개(각 4시간 간격 2슬롯, 1번초=1h).<br>
         1번초 22:30+02:30 · 2번초 23:30+03:30 · 3번초 00:30+04:30 · 4번초 01:30+05:30.<br>
         고정 슬롯 17:30=다음날밥교대(+순찰) · 18:30=다음날상황병 · 19:30=다음날당직 · 20:30=전날상황병 · 21:30=전날당직 · 14:30=평일 당일상황병.<br>
-        06:30은 순번제 — 신병/비신병 구분 없이 누적 06:30 횟수가 적은 사람 → 동률이면 마지막 06:30이 가장 오래된 사람 순으로 돌아갑니다(열외자는 건너뛰고 다음 순번). 같은 날 신병끼리 받는 개수가 갈릴 때는 누적 평균시간이 많은 신병이 적은 개수를 받습니다.
+        06:30은 순번제 — 신병/비신병 구분 없이 누적 06:30 횟수가 적은 사람 → 동률이면 마지막 06:30이 가장 오래된 사람 순으로 돌아갑니다(열외자는 건너뛰고 다음 순번). 같은 날 신병끼리 받는 개수가 갈릴 때는 누적 평균시간이 많은 신병이 적은 개수를 받습니다.<br>
+        운항병(1명): 월~목 09:30·13:30 / 금 09:30·14:30 고정, 금·토 야간 매주 1회(균등 배분). 당일상황 고정칸은 금요일만 13:30(그 외 요일 14:30).
       </p>
     </div>
   </section>
 </div>
-<script src="engine.js?v=4.0"></script>
+<script src="engine.js?v=4.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -622,7 +625,7 @@ function fillSelect(sel, list, {blank='— 없음 —', selected=null, multi=fal
   if(!multi){ const o=el('option');o.value='';o.textContent=blank;sel.appendChild(o); }
   list.forEach(w=>{
     const o=el('option');o.value=w.id;
-    o.textContent=w.name + (isRecruit(w)?' (신병)':'') + (!w.active?' (비활성)':'');
+    o.textContent=w.name + (roleValue(w)!=='duty'&&roleValue(w)!=='situation'?' ('+roleLabel(w)+')':'') + (!w.active?' (비활성)':'');
     if(!multi && selected===w.id) o.selected=true;
     if(multi && Array.isArray(selected) && selected.includes(w.id)) o.selected=true;
     sel.appendChild(o);
@@ -631,6 +634,35 @@ function fillSelect(sel, list, {blank='— 없음 —', selected=null, multi=fal
 function dutyList(){ return DB.workers.filter(w=>w.active&&w.roleReady&&w.roleType==='duty'); }
 function sitList(){ return DB.workers.filter(w=>w.active&&w.roleReady&&w.roleType==='situation'); }
 function mealList(){ return DB.workers.filter(w=>w.active&&w.canMeal); }
+
+/* ---------- 근무자 구분(5종) 헬퍼 ---------- */
+const ROLE_OPTS=[['recruit','신병'],['duty','당직'],['situation','상황병'],['navigator','운항병'],['veteran','말년']];
+function roleValue(w){ return isNavigator(w)?'navigator' : isVeteran(w)?'veteran' : isRecruit(w)?'recruit' : w.roleType; }
+function roleLabel(w){ const v=roleValue(w); return (ROLE_OPTS.find(([x])=>x===v)||[,'상황병'])[1]; }
+/* 근무표 셀에 붙일 구분 태그(운항병·말년·신병만 표시, 그 외/삭제됨은 없음) */
+function roleTag(id){ const w=W(id); if(!w) return null;
+  if(isNavigator(w)) return tagEl('recruit','운항'); if(isVeteran(w)) return tagEl('recruit','말년');
+  if(isRecruit(w)) return tagEl('recruit','신병'); return null; }
+/* 구분 값을 근무자에 적용. 운항병 지정 시 활성 1명 제한, 신병→역할 전환 시 카운트 초기화(말년은 초기화 안 함). 성공 true. */
+function applyRole(w, v){
+  if(v==='navigator'){
+    const other=DB.workers.find(x=>x.id!==w.id && x.isNavigator && x.active);
+    if(other){ alert('운항병은 한 명만 지정할 수 있습니다. 현재 운항병: '+other.name+'\n먼저 기존 운항병을 다른 구분으로 바꿔주세요.'); return false; }
+    w.roleReady=true; w.roleType='situation'; w.isNavigator=true; w.isVeteran=false;
+  }else if(v==='veteran'){
+    w.roleReady=false; w.isNavigator=false; w.isVeteran=true;   // 신병 취급 + 카운트 초기화 없음
+  }else if(v==='recruit'){
+    w.roleReady=false; w.isNavigator=false; w.isVeteran=false;
+  }else{ // duty / situation
+    const wasRealRecruit = isRecruit(w) && !w.isVeteran;         // 실제 신병에서 전환할 때만 초기화
+    w.roleReady=true; w.roleType=v; w.isNavigator=false; w.isVeteran=false;
+    if(wasRealRecruit){
+      w.countResetAt=todayStr();
+      alert(w.name+' 전환: 오늘부로 신병 근무 카운트를 초기화합니다(밥교대 카운트는 유지).');
+    }
+  }
+  return true;
+}
 
 /* ---------- ② 생성 탭 셀렉터 ---------- */
 function refreshGenSelectors(){
@@ -939,9 +971,9 @@ function renderSchedTable(s, compact){
     const row=el('div','slot');
     row.appendChild(timeCell(slot));
     const tags=[];
-    if(slot==='14:30' && fixedHere) tags.push(tagEl('sit','상황'));
+    if((slot==='14:30'||slot==='13:30') && fixedHere) tags.push(tagEl('sit','상황'));  // 당일상황 고정(금요일은 13:30)
     if(s.relaxed&&s.relaxed[slot]) tags.push(tagEl('relax', s.relaxed[slot]));
-    if(id && isRecruit(W(id)||{roleReady:true})) tags.push(tagEl('recruit','신병'));
+    { const rt=id&&roleTag(id); if(rt) tags.push(rt); }
     if(!compact){
       row.appendChild(editCell(id, v=>{
         if(slot==='14:30' && fixedHere){            // 당일상황 고정칸은 fixed로 유지
@@ -967,7 +999,7 @@ function renderSchedTable(s, compact){
   {
     const pr=el('div','slot'); pr.appendChild(timeCell('17:00'));
     const ptags=[ tagEl('patrol','추가 순찰') ];
-    if(s.patrolExtra && isRecruit(W(s.patrolExtra)||{roleReady:true})) ptags.push(tagEl('recruit','신병'));
+    { const rt=s.patrolExtra&&roleTag(s.patrolExtra); if(rt) ptags.push(rt); }
     if(!compact){
       pr.appendChild(editCell(s.patrolExtra||null, v=>{ s.patrolExtra=v||null; save(); renderView(); }, ptags));
     }else{
@@ -984,7 +1016,7 @@ function renderSchedTable(s, compact){
     const tags=[ tagEl(cls,lab) ];
     // 17:30이 다음날 밥교대 지정자와 다르면(외출 등으로 교체됨) 표시
     if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) tags.push(tagEl('relax','밥교대자와 다름'));
-    if(id && isRecruit(W(id)||{roleReady:true})) tags.push(tagEl('recruit','신병'));
+    { const rt=id&&roleTag(id); if(rt) tags.push(rt); }
     if(!compact){
       // 17:30 포함 전부 카운트 전용 직접 편집 (재생성 안 함) — 외출 등으로 그 시간 근무자만 교체
       row.appendChild(editCell(id, v=>{ if(v) s.fixed[slot]=v; else delete s.fixed[slot]; save(); renderView(); }, tags));
@@ -1005,7 +1037,7 @@ function renderSchedTable(s, compact){
     row.appendChild(timeCell(b.id+'번초', b.slots.join('·')));
     const tags=[];
     if(id && s.mealId===id) tags.push(tagEl('meal','밥교대'));
-    if(id && isRecruit(W(id)||{roleReady:true})) tags.push(tagEl('recruit','신병'));
+    { const rt=id&&roleTag(id); if(rt) tags.push(rt); }
     if(!compact){
       row.appendChild(editCell(id, v=>{ if(v) s.night[b.id]=v; else delete s.night[b.id]; save(); renderView(); }, tags));
     }else{
@@ -1376,8 +1408,8 @@ function renderCount(){
   const month=countMonth();
   const st=countStats();
   const ws=countWs(st).slice();
-  // KPI 분포 균등도(총 근무시간): 신병은 원래 많이 투입되므로 공정성 계산에서 제외(활성·비신병 기준)
-  const fairHours=activeWorkers().filter(w=>!isRecruit(w)).map(w=>st[w.id].hours);
+  // KPI 분포 균등도(총 근무시간): 신병·말년·운항병은 부하가 고정/의도적이라 공정성 계산에서 제외
+  const fairHours=activeWorkers().filter(w=>!isRecruit(w)&&!isNavigator(w)).map(w=>st[w.id].hours);
   const kpi=$('#cKpi'); kpi.innerHTML='';
   const totalSched=Object.keys(DB.schedules).filter(d=>!month||d.slice(0,7)===month).length;
   addKpi(kpi,month?'생성된 근무표 ('+month+')':'생성된 근무표', totalSched+'일');
@@ -1397,7 +1429,7 @@ function renderCount(){
   ws.forEach(w=>{
     const r=st[w.id], tr=el('tr');
     if(!w.active) tr.className='inactive-row';
-    const role=isRecruit(w)?'신병':(w.roleType==='duty'?'당직':'상황병');
+    const role=roleLabel(w);
     tr.appendChild(el('td','', esc(w.name)+(w.countResetAt?' <span class="pill">전환</span>':'')));
     tr.appendChild(el('td','', role + (w.canMeal?'':' ·밥X')));
     tr.appendChild(el('td','num', r.denom));
@@ -1462,7 +1494,7 @@ function fairnessRow(label, vals, dec){
   return tr;
 }
 function renderFairness(st){
-  const ws=activeWorkers().filter(w=>!isRecruit(w));   // 신병 제외: 의도적 과투입이라 공정성 분산에서 빼야 의미가 있음
+  const ws=activeWorkers().filter(w=>!isRecruit(w)&&!isNavigator(w));   // 신병·말년·운항병 제외: 부하가 고정/의도적이라 공정성 분산에서 빼야 의미가 있음
   const t=$('#cFair'); t.innerHTML='';
   const head=el('tr'); ['지표','인원','평균','표준편차','CV','최소~최대','지니'].forEach(h=>head.appendChild(el('th',/인원|평균|편차|CV|최소|지니/.test(h)?'num':'',h)));
   t.appendChild(head);
@@ -1551,7 +1583,7 @@ $('#cCsv').addEventListener('click',()=>{
   const st=countStats();
   const rows=[['근무자','구분','분모','누적시간','평균시간','월화목%','수%','금%','토일%','야간%','번초1','번초2','번초3','번초4','밥교대','순찰']];
   countWs(st).forEach(w=>{ const r=st[w.id];
-    rows.push([w.name, isRecruit(w)?'신병':(w.roleType==='duty'?'당직':'상황병'), r.denom, r.hours.toFixed(1), avgHours(r).toFixed(2),
+    rows.push([w.name, roleLabel(w), r.denom, r.hours.toFixed(1), avgHours(r).toFixed(2),
       pct(r.groupNum.mtth,r.groupDen.mtth),pct(r.groupNum.wed,r.groupDen.wed),pct(r.groupNum.fri,r.groupDen.fri),pct(r.groupNum.weekend,r.groupDen.weekend),
       pct(r.nightNum,r.nightDen), r.bunchoNum[1],r.bunchoNum[2],r.bunchoNum[3],r.bunchoNum[4], r.mealNum, r.patrolNum]);
   });
@@ -1606,18 +1638,10 @@ function renderPeople(){
     inN.addEventListener('change',()=>{w.name=inN.value;save();refreshAll();}); tdN.appendChild(inN); tr.appendChild(tdN);
     // 구분
     const tdR=el('td'); const sel=el('select');
-    [['recruit','신병'],['duty','당직'],['situation','상황병']].forEach(([v,l])=>{const o=el('option');o.value=v;o.textContent=l;sel.appendChild(o);});
-    sel.value = isRecruit(w)?'recruit':w.roleType;
+    ROLE_OPTS.forEach(([v,l])=>{const o=el('option');o.value=v;o.textContent=l;sel.appendChild(o);});
+    sel.value = roleValue(w);
     sel.addEventListener('change',()=>{
-      if(sel.value==='recruit'){ w.roleReady=false; }
-      else{
-        const wasRecruit=isRecruit(w);
-        w.roleReady=true; w.roleType=sel.value;
-        if(wasRecruit){ // 신병→역할가능 전환: 근무 카운트 기준 초기화(밥교대 유지)
-          w.countResetAt=todayStr();
-          alert(w.name+' 전환: 오늘부로 신병 근무 카운트를 초기화합니다(밥교대 카운트는 유지).');
-        }
-      }
+      if(!applyRole(w, sel.value)){ sel.value=roleValue(w); return; }  // 운항병 중복 등 실패 시 되돌림
       save(); refreshAll();
     });
     tdR.appendChild(sel); tr.appendChild(tdR);
@@ -1674,11 +1698,12 @@ function renderPeople(){
 $('#pAdd').addEventListener('click',()=>{
   const name=$('#pName').value.trim(); if(!name){alert('이름 입력');return;}
   const role=$('#pRole').value;
-  DB.workers.push(normWorker({
-    name, roleReady: role!=='recruit', roleType: role==='recruit'?'duty':role,
-    canMeal:$('#pMeal').checked, baseHours:Number($('#pBase').value)||0, active:true,
+  const w=normWorker({
+    name, canMeal:$('#pMeal').checked, baseHours:Number($('#pBase').value)||0, active:true,
     createdAt:new Date().toISOString()
-  }, DB.workers.length));
+  }, DB.workers.length);
+  if(!applyRole(w, role)) return;   // 운항병 중복 시 추가 취소
+  DB.workers.push(w);
   $('#pName').value=''; $('#pBase').value='0';
   save(); refreshAll();
 });
@@ -1765,11 +1790,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=4.0"></script>
+<script src="firebase-config.js?v=4.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=4.0"></script>
+<script src="sync.js?v=4.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

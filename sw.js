@@ -2,7 +2,7 @@
    설치(홈 화면 추가)와 오프라인 동작을 위한 앱 셸 캐시.
    전략: 같은 출처 자원은 network-first(온라인이면 항상 최신) + 오프라인 시 캐시 폴백.
    버전을 올리면(아래 APP_VERSION) 이전 캐시는 자동 정리됩니다. */
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 const CACHE = 'cctv-roster-' + APP_VERSION;
 
 /* 앱 셸: 오프라인에서도 첫 화면이 뜨도록 미리 받아둘 핵심 자원.
@@ -10,7 +10,7 @@ const CACHE = 'cctv-roster-' + APP_VERSION;
 const PRECACHE = [
   './',
   './index.html',
-  './engine.js?v=4.0',
+  './engine.js?v=4.1',
   './manifest.webmanifest',
   './icon.svg',
   './icon-192.png',

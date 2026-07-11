@@ -164,6 +164,103 @@ test('넘침 시 추가분은 비신병에게: 신병은 하루 2개 상한, 비
   }
 });
 
+/* ---------- 운항병 사전배정 ---------- */
+function mkNav(name, opts = {}) {
+  return mkWorker(name, Object.assign({ roleReady: true, roleType: 'situation', isNavigator: true }, opts));
+}
+
+test('운항병: 월~목 09:30·13:30, 금 09:30·14:30 고정 + 그 외 주간·야간 없음', () => {
+  const nav = mkNav('NAV');
+  const ws = [nav].concat(roster(15));
+  E.setDB(freshDB({ workers: ws }));
+  // 월(2026-06-15)
+  const mon = E.generateDay(E.autoInputFor('2026-06-15'));
+  assert.equal(mon.assign['09:30'], nav.id);
+  assert.equal(mon.assign['13:30'], nav.id);
+  assert.deepEqual(daySlotsOf(mon, nav.id), ['09:30', '13:30'], '운항병 월요일 고정 슬롯 이상');
+  assert.ok(!Object.values(mon.night).includes(nav.id), '운항병 평일 야간 배정됨');
+  // 금(2026-06-19)
+  const fri = E.generateDay(E.autoInputFor('2026-06-19'));
+  assert.equal(fri.assign['09:30'], nav.id);
+  assert.equal(fri.assign['14:30'], nav.id);
+  assert.deepEqual(daySlotsOf(fri, nav.id), ['09:30', '14:30'], '운항병 금요일 고정 슬롯 이상');
+});
+
+test('운항병이 상황병 근무를 서면 주간 고정(09:30·13:30)이 자동 제외된다', () => {
+  const nav = mkNav('NAV');
+  const ws = [nav].concat(roster(15));
+  E.setDB(freshDB({ workers: ws }));
+  const inp = E.autoInputFor('2026-06-15'); // 월
+  inp.situationId = nav.id;
+  const s = E.generateDay(inp);
+  assert.equal(s.fixed['14:30'], nav.id, '운항병이 당일상황 고정칸(14:30)을 안 섬');
+  assert.notEqual(s.assign['09:30'], nav.id);
+  assert.notEqual(s.assign['13:30'], nav.id);
+  assert.deepEqual(daySlotsOf(s, nav.id), ['14:30'], '운항병 상황병 시 고정이 안 빠짐');
+});
+
+test('운항병 야간: 금/토 중 매주 1회 + 금·토 횟수 균등, 그 외 야간 없음', () => {
+  const nav = mkNav('NAV');
+  const ws = [nav].concat(roster(15));
+  E.setDB(freshDB({ workers: ws }));
+  let ds = '2026-06-01'; // 월 → 56일 = 8주(금·토 8쌍)
+  for (let d = 0; d < 56; d++) {
+    const s = E.generateDay(E.autoInputFor(ds));
+    E.getDB().schedules[ds] = s; E.invalidateStats();
+    ds = E.addDays(ds, 1);
+  }
+  let fri = 0, sat = 0, other = 0;
+  Object.keys(E.getDB().schedules).forEach(k => {
+    const s = E.getDB().schedules[k];
+    if (!Object.values(s.night).includes(nav.id)) return;
+    const d = E.dow(k);
+    if (d === 5) fri++; else if (d === 6) sat++; else other++;
+  });
+  assert.equal(other, 0, `운항병이 금/토 외 야간에 배정됨 (${other})`);
+  assert.equal(fri + sat, 8, `운항병 야간 총 ${fri + sat}회 (기대 8 — 매주 1회)`);
+  assert.ok(Math.abs(fri - sat) <= 1, `금(${fri})·토(${sat}) 야간 불균등`);
+});
+
+test('운항병: 이틀 연속 생성에서 하드 제약 위반 없음(고정+상황병 혼재)', () => {
+  const nav = mkNav('NAV');
+  const ws = [nav].concat(roster(13, 2));
+  E.setDB(freshDB({ workers: ws }));
+  let ds = '2026-06-10';
+  for (let d = 0; d < 14; d++) {
+    const inp = E.autoInputFor(ds);
+    if (d % 3 === 0) inp.situationId = nav.id; // 가끔 운항병을 상황병으로
+    const s = E.generateDay(inp);
+    E.getDB().schedules[ds] = s; E.invalidateStats();
+    assert.deepEqual(E.validateSchedule(s).filter(m => HARD.test(m)), [], `ds=${ds} 하드 위반`);
+    ds = E.addDays(ds, 1);
+  }
+});
+
+test('운항병: 토·일 주간은 일반 근무자처럼 풀에 참여할 수 있다', () => {
+  const nav = mkNav('NAV');
+  const ws = [nav].concat(roster(9)); // 인원을 빠듯하게 → 주말 주간에 운항병도 필요
+  E.setDB(freshDB({ workers: ws }));
+  const sat = '2026-06-20';
+  const cands = E.dayCandidates(sat, { workHoliday: true, dayEx: [], bothEx: [], prevDutyId: null, dutyId: null, prevSituationId: null, situationId: null, mealId: null });
+  assert.ok(cands.some(w => w.id === nav.id), '운항병이 주말 주간 후보에 없음');
+});
+
+/* ---------- 말년 ---------- */
+test('말년: 배정 메커니즘상 신병과 동일(isRecruit) + 정규화 보존', () => {
+  const vet = mkWorker('VET', { roleReady: false, isVeteran: true });
+  assert.equal(E.isRecruit(vet), true, '말년이 신병 취급이 아님');
+  assert.equal(E.isVeteran(vet), true);
+  // 넘침 상황에서 신병처럼 하루 2개 상한이 적용되는지 (말년 2명 + 비신병 8명)
+  const ws = [];
+  for (let i = 0; i < 8; i++) ws.push(mkWorker('W' + i, { roleType: i % 2 ? 'duty' : 'situation' }));
+  for (let i = 0; i < 2; i++) ws.push(mkWorker('V' + i, { roleReady: false, isVeteran: true, canMeal: false }));
+  E.setDB(freshDB({ workers: ws }));
+  const s = E.generateDay(E.autoInputFor('2026-06-15'));
+  const cnt = {};
+  [s.fixed, s.assign, s.night].forEach(m => Object.values(m || {}).forEach(id => { if (id) cnt[id] = (cnt[id] || 0) + 1; }));
+  ws.filter(w => w.name[0] === 'V').forEach(w => assert.ok((cnt[w.id] || 0) <= 2, '말년이 하루 3개 이상 배정됨'));
+});
+
 /* ---------- 밥교대 균등·로테이션 ---------- */
 /* 통계 시딩용 최소 근무표 (mealId만 의미 있음) */
 function mkMealSched(mealId, ids) {

@@ -67,6 +67,10 @@ function normWorker(w,i){
     name: w.name || ('근무자'+(i+1)),
     roleReady: w.roleReady!==undefined ? !!w.roleReady : !!(w.roleType && w.roleType!=='recruit'),
     roleType: (w.roleType==='duty'||w.roleType==='situation') ? w.roleType : 'duty',
+    // 운항병: 상황병 근무 가능(roleReady/roleType='situation') + 고정 스케줄. 활성 1명만.
+    // 말년: 메커니즘상 신병과 동일 취급(roleReady=false)이되 카운트 초기화는 하지 않음.
+    isNavigator: !!w.isNavigator,
+    isVeteran: !!w.isVeteran,
     canMeal: w.canMeal!==undefined ? !!w.canMeal : true,
     baseHours: Number(w.baseHours)||0,
     active: w.active!==undefined ? !!w.active : true,
@@ -166,8 +170,27 @@ function nightGroup(ds, nextWorkHoliday){
 /* ---------- 근무자 헬퍼 ---------- */
 function W(id){ return DB.workers.find(w=>w.id===id); }
 function nameOf(id){ const w=W(id); return w?w.name:(id?'(삭제됨)':'—'); }
-function isRecruit(w){ return !w.roleReady; }
+function isRecruit(w){ return !w.roleReady; }   // 신병·말년 모두 배정 메커니즘상 신병 취급
+function isNavigator(w){ return !!w.isNavigator; }
+function isVeteran(w){ return !!w.isVeteran; }
 function activeWorkers(){ return DB.workers.filter(w=>w.active); }
+/* 활성 운항병 1명(없으면 null) */
+function activeNavigator(){ return DB.workers.find(w=>w.active && w.isNavigator) || null; }
+/* 운항병 주간 고정 슬롯: 월~목 09:30·13:30 / 금 09:30·14:30 / 주말·휴무 없음(일반 풀 참여) */
+function navFixedDaySlots(ds, workHoliday){
+  if(dayGroup(ds, workHoliday)==='weekend') return [];   // 토·일·휴무: 고정 없음
+  return dow(ds)===5 ? ['09:30','14:30'] : ['09:30','13:30'];
+}
+/* 운항병의 과거 금/토 야간 횟수 (균등 배분 판단용) */
+function navNightBalance(navId){
+  let fri=0, sat=0;
+  Object.keys(DB.schedules).forEach(ds=>{
+    const s=DB.schedules[ds];
+    if(!(s && s.night && Object.values(s.night).includes(navId))) return;
+    const d=dow(ds); if(d===5) fri++; else if(d===6) sat++;
+  });
+  return {fri, sat};
+}
 
 function inInactive(w, ds){
   return (w.inactivePeriods||[]).some(p=>{
@@ -213,6 +236,7 @@ function _computeStats(uptoDate, month){
   DB.workers.forEach(w=>{
     st[w.id]={
       hours: month ? 0 : (w.baseHours||0),
+      wkndHours:0, wkndDen:0,   // 토·일·휴무(weekend 그룹)만의 근무시간·근무일수 — 운항병 배정용 평균에 사용
       denom:0, dutyCnt:0, sitCnt:0,
       groupNum:{mtth:0,wed:0,fri:0,weekend:0}, groupDen:{mtth:0,wed:0,fri:0,weekend:0},
       slotNum:{}, slotDen:0, slotLast:{},
@@ -230,6 +254,8 @@ function _computeStats(uptoDate, month){
     const g = dayGroup(ds, s.workHoliday);
     const ng = nightGroup(ds, s.nextWorkHoliday);
     const mg = mealGroup(ds, s.workHoliday);
+    const isWknd = (g==='weekend');
+    const addH = (id, x)=>{ st[id].hours += x; if(isWknd) st[id].wkndHours += x; };  // 시간 누적 + 주말분 별도 집계
     DB.workers.forEach(w=>{
       const r=st[w.id];
       const afterReset = !w.countResetAt || ds>=w.countResetAt;
@@ -237,6 +263,7 @@ function _computeStats(uptoDate, month){
       // 분모 (일반: 카운트 기준 이후 + 가용)
       if(present && afterReset){
         r.denom++; r.slotDen++;
+        if(isWknd) r.wkndDen++;
         r.groupDen[g]++; r.nightDen++; r.nightGDen[ng]++;
         // 순찰 분모: 16:30/17:30 근무자가 아니어야 후보 → 근사적으로 가용일수
         const at1630 = s.assign && s.assign['16:30']===w.id;
@@ -253,14 +280,14 @@ function _computeStats(uptoDate, month){
         st[id].slotNum[slot]++; st[id].groupNum[g]++;
         st[id].slotGNum[g][slot]++;
         st[id].slotLast[slot]=ds;   // 날짜 오름차순 순회 → 마지막(최근) 배정일이 남음
-        st[id].hours += slotHours(slot);
+        addH(id, slotHours(slot));
       }
     });
     NIGHT_BUNCHO.forEach(b=>{
       const id = s.night && s.night[b.id];
       if(id && st[id]){
         st[id].nightNum++; st[id].nightGNum[ng]++; st[id].bunchoNum[b.id]++;
-        st[id].hours += 1;
+        addH(id, 1);
       }
     });
     // 밥교대 (근무시간 부여 안 함 — 카운트만). 날짜 오름차순 순회라 lastMeal은 가장 최근 날짜가 남음
@@ -269,12 +296,12 @@ function _computeStats(uptoDate, month){
     }
     // 순찰(전용 추가자)
     if(s.patrolExtra && st[s.patrolExtra]){
-      st[s.patrolExtra].patrolNum++; st[s.patrolExtra].patrolGNum[mg]++; st[s.patrolExtra].hours += DB.settings.patrolBonus;
+      st[s.patrolExtra].patrolNum++; st[s.patrolExtra].patrolGNum[mg]++; addH(s.patrolExtra, DB.settings.patrolBonus);
     }
-    // 고정 역할 슬롯 시간(부하 반영). 14:30(당일상황)도 고정 슬롯이므로 여기서 1회만 집계.
+    // 고정 역할 슬롯 시간(부하 반영). 14:30(당일상황)·13:30(금요일 당일상황)도 고정 슬롯이므로 여기서 1회만 집계.
     const fx = s.fixed||{};
-    ['18:30','19:30','20:30','21:30','14:30'].forEach(k=>{ if(fx[k]&&st[fx[k]]) st[fx[k]].hours += 1; });
-    if(fx['17:30']&&st[fx['17:30']]) st[fx['17:30']].hours += 1 + DB.settings.patrolBonus;
+    ['18:30','19:30','20:30','21:30','14:30','13:30'].forEach(k=>{ if(fx[k]&&st[fx[k]]) addH(fx[k], 1); });
+    if(fx['17:30']&&st[fx['17:30']]) addH(fx['17:30'], 1 + DB.settings.patrolBonus);
     // 당직/상황병 카운트(표시용)
     if(s.dutyId&&st[s.dutyId]) st[s.dutyId].dutyCnt++;
     if(s.situationId&&st[s.situationId]) st[s.situationId].sitCnt++;
@@ -284,6 +311,9 @@ function _computeStats(uptoDate, month){
 function slotHours(slot){ return slot==='07:30' ? 1+DB.settings.patrolBonus : 1; }
 function rate(num,den){ return den>0 ? num/den : 0; }
 function avgHours(r){ return r.denom>0 ? r.hours/r.denom : r.hours; }
+// 운항병 배정 평균: 토·일·휴무 근무만으로 계산(분모=주말 근무일수, 분자=주말 근무시간).
+// 주중 고정 스케줄의 큰 부하가 주말 배정 우선순위를 왜곡하지 않도록 분리한다.
+function weekendAvgHours(r){ return r.wkndDen>0 ? r.wkndHours/r.wkndDen : 0; }
 // 주간 슬롯 총량. 고정 역할 시간과 별도로 '일반 주간칸이 한 사람에게 몰리는지'를 보기 위한 보조 페널티.
 function daySlotTotal(r){ return Object.values(r.slotNum||{}).reduce((a,b)=>a+(Number(b)||0),0); }
 
@@ -292,7 +322,7 @@ function stdev(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/
 function cv(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; if(m===0)return 0; const v=arr.reduce((a,b)=>a+(b-m)*(b-m),0)/arr.length; return Math.sqrt(v)/m; }
 function gini(arr){ const a=arr.filter(x=>x>=0).slice().sort((x,y)=>x-y); const n=a.length; if(n===0)return 0; const s=a.reduce((x,y)=>x+y,0); if(s===0)return 0; let cum=0; for(let i=0;i<n;i++) cum+=(2*(i+1)-n-1)*a[i]; return cum/(n*s); }
 
-if(typeof window!=='undefined') window._app = {get DB(){return DB;}, buildStats, dayGroup, nightGroup, mealGroup}; // 디버그용
+if(typeof window!=='undefined') window._app = {get DB(){return DB;}, buildStats, dayGroup, nightGroup, mealGroup, activeNavigator}; // 디버그용
 
 /* ============================================================
    배정 엔진
@@ -303,15 +333,17 @@ function baseEligible(ds){
   return activeWorkers().filter(w=> !inInactive(w,ds));
 }
 
-/* 주간 슬롯 후보 (열외 적용) */
+/* 주간 슬롯 후보 (열외 적용)
+   운항병: 주중(월~금)엔 고정 스케줄만 서므로 일반 주간 풀에서 제외. 토·일·휴무엔 일반 근무자처럼 포함. */
 function dayCandidates(ds, ctx){
   const ex = new Set([
     ctx.prevDutyId, ctx.dutyId, ctx.prevSituationId, ctx.situationId,
     ctx.mealId, ...ctx.dayEx, ...ctx.bothEx
   ].filter(Boolean));
-  return baseEligible(ds).filter(w=>!ex.has(w.id));
+  const weekday = dayGroup(ds, ctx.workHoliday)!=='weekend';
+  return baseEligible(ds).filter(w=> !ex.has(w.id) && !(weekday && isNavigator(w)));
 }
-/* 야간 번초 후보 */
+/* 야간 번초 후보 — 운항병은 야간을 사전배정(금/토 1회)으로만 서므로 항상 제외 */
 function nightCandidates(ds, ctx){
   const ex = new Set([
     ctx.prevDutyId, ctx.dutyId, ctx.nextDutyId,
@@ -319,7 +351,7 @@ function nightCandidates(ds, ctx){
     ctx.nextMealId,            // 다음날 밥교대 → 내일 야간 투입 가능성 → 오늘 야간 금지(야간 이틀연속 방지)
     ...ctx.nightEx, ...ctx.bothEx
   ].filter(Boolean));
-  return baseEligible(ds).filter(w=>!ex.has(w.id));
+  return baseEligible(ds).filter(w=> !ex.has(w.id) && !isNavigator(w));
 }
 /* 밥교대 후보: 투입가능 + 전날·당일 당직/상황병·주간열외 제외 (다음날 당직/상황병은 포함)
    + 전날 야간자 회피(야간 후보 부족 시 밥교대가 야간에 투입될 수 있음 → 이틀연속 방지). 후보 고갈 시에만 완화. */
@@ -329,7 +361,8 @@ function mealCandidates(ds, ctx){
     ...ctx.dayEx, ...ctx.bothEx
   ].filter(Boolean));
   const prevN = ctx._prevNight || new Set();
-  const base = baseEligible(ds).filter(w=> w.canMeal && w.roleReady!==false && !ex.has(w.id));
+  // 운항병은 고정 부하가 커 밥교대 후보에서 제외
+  const base = baseEligible(ds).filter(w=> w.canMeal && w.roleReady!==false && !isNavigator(w) && !ex.has(w.id));
   const noPrev = base.filter(w=> !prevN.has(w.id));
   return noPrev.length ? noPrev : base;   // 전날 야간자 외 인원이 없으면 부득이 완화
 }
@@ -338,7 +371,8 @@ function mealCandidates(ds, ctx){
 function score(w, slotKey, opts){
   const W_ = DB.settings.weights, r = opts.stats[w.id];
   let s = 0;
-  s += W_.avgHours * avgHours(r);
+  // 운항병은 토·일 배정 우선순위를 주말 전용 평균으로 판단(주중 고정부하 제외)
+  s += W_.avgHours * (isNavigator(w) ? weekendAvgHours(r) : avgHours(r));
   s += W_.todayHours * (opts.todayHours[w.id]||0);
   if(opts.isNight){
     s += W_.groupRate * rate(r.nightGNum[opts.nightGrp], r.nightGDen[opts.nightGrp]);
@@ -856,18 +890,52 @@ function generateDay(input){
   ctx.nextMealId = _rnm.id; ctx.nextMealAuto = _rnm.auto;
 
   /* 2) 고정 역할 슬롯 */
-  // 14:30 당일 상황병 (평일, 또는 휴무+설정ON)
+  // 당일 상황병 고정칸 (평일, 또는 휴무+설정ON). 금요일은 14:30 대신 13:30에 고정.
   const wd = dow(ds); const isWeekdaySit = (wd===1||wd===2||wd===4||wd===5);
   const allow1430 = ctx.workHoliday ? DB.settings.enable1430OnHoliday : isWeekdaySit;
-  if(allow1430 && ctx.situationId) fixed['14:30']=ctx.situationId;
+  const sitFixSlot = (wd===5 && !ctx.workHoliday) ? '13:30' : '14:30';
+  if(allow1430 && ctx.situationId) fixed[sitFixSlot]=ctx.situationId;
   if(ctx.nextMealId) fixed['17:30']=ctx.nextMealId;       // 다음날 밥교대 + 순찰
   if(ctx.nextSituationId) fixed['18:30']=ctx.nextSituationId;
   if(ctx.nextDutyId) fixed['19:30']=ctx.nextDutyId;
   if(ctx.prevSituationId) fixed['20:30']=ctx.prevSituationId;
   if(ctx.prevDutyId) fixed['21:30']=ctx.prevDutyId;
 
-  /* 3) 변수 집합: 주간 슬롯(14:30 고정 제외) + 야간 번초 */
-  const dayVars = DAY_SLOTS.filter(s=>!(s==='14:30'&&fixed['14:30'])).map(key=>({type:'day',key}));
+  /* 2-1) 운항병 사전배정: 주중 고정 주간슬롯 + 금/토 야간 1회(균등).
+     상황병 등으로 그날 주간/야간 열외 대상이면 해당 고정을 자동으로 뺀다. */
+  const nav = activeNavigator();
+  const navDay = {};      // slot -> nav.id (assign에 병합)
+  let navNight = null;    // {bunchoId} — 야간 번초 사전배정
+  if(nav && !inInactive(nav, ds) && !ctx.bothEx.includes(nav.id)){
+    // 주간 고정: 그날 주간 열외 대상(상황병·당직·전날역할·밥교대·주간열외)이 아니면 적용
+    const dayEx = new Set([ctx.prevDutyId,ctx.dutyId,ctx.prevSituationId,ctx.situationId,ctx.mealId,...ctx.dayEx].filter(Boolean));
+    if(!dayEx.has(nav.id)){
+      navFixedDaySlots(ds, ctx.workHoliday).forEach(sl=>{ if(!fixed[sl]) navDay[sl]=nav.id; });
+    }
+    // 야간: 금(wd5)/토(wd6)에 균등 배분으로 매주 1회. 야간 열외 대상이면 건너뜀(다른 날이 흡수).
+    const nightEx = new Set([ctx.prevDutyId,ctx.dutyId,ctx.nextDutyId,ctx.prevSituationId,ctx.situationId,ctx.nextSituationId,ctx.nextMealId,...ctx.nightEx].filter(Boolean));
+    const nightOk = !nightEx.has(nav.id) && !prevNight.has(nav.id);
+    if(nightOk && (wd===5 || wd===6)){
+      const {fri,sat} = navNightBalance(nav.id);
+      let take=false;
+      if(wd===5) take = (fri<=sat);                          // 금: 균형상 금이 밀리면 오늘 밤
+      else{                                                  // 토: 전날(금) 야간을 안 섰으면 오늘 밤
+        const didFri = prev && prev.night && Object.values(prev.night).includes(nav.id);
+        take = !didFri;
+      }
+      if(take){
+        // 번초 균등: 그동안 가장 적게 선 번초 선택
+        const bn = ctx.stats[nav.id] ? ctx.stats[nav.id].bunchoNum : {1:0,2:0,3:0,4:0};
+        const pick = [1,2,3,4].reduce((a,b)=> (bn[b]||0) < (bn[a]||0) ? b : a, 1);
+        navNight = {bunchoId: pick};
+      }
+    }
+  }
+
+  /* 3) 변수 집합: 주간 슬롯(고정·운항병 선점칸 제외) + 야간 번초(운항병 선점 번초 제외) */
+  const occDay = new Set(Object.keys(navDay));
+  DAY_SLOTS.forEach(s=>{ if(fixed[s]) occDay.add(s); });   // 13:30/14:30 당일상황 고정칸
+  const dayVars = DAY_SLOTS.filter(s=>!occDay.has(s)).map(key=>({type:'day',key}));
   // 주간 변수 처리 순서 무작위화: 후보 동률(특히 '신병 먼저')일 때 늘 같은 이른 슬롯부터
   // 배정되는 쏠림(신병이 매일 06:30 등 특정 시간대만 받는 현상)을 깬다.
   // 시간대별 누적 공정성은 점수의 slotRate·slotCnt 페널티와 2-opt가 계속 맞춘다.
@@ -875,7 +943,7 @@ function generateDay(input){
     const j=Math.floor(Math.random()*(i+1));
     [dayVars[i],dayVars[j]]=[dayVars[j],dayVars[i]];
   }
-  const nightVars = NIGHT_BUNCHO.map(b=>({type:'night',bunchoId:b.id}));
+  const nightVars = NIGHT_BUNCHO.filter(b=> !(navNight && navNight.bunchoId===b.id)).map(b=>({type:'night',bunchoId:b.id}));
 
   /* 3-1) 밥교대 인원은 기본적으로 야간 제외 — 야간 후보가 부족할 때만 폴백으로 자동 투입(5단계).
      단 야간열외(다음날 당직/상황병 등) 대상이면 폴백에서도 제외. */
@@ -885,6 +953,9 @@ function generateDay(input){
   // 인접 금지 기준점: 고정 슬롯을 자동배정 전에 먼저 점유 처리한다.
   // 이로써 16:30 자동 + 17:30 고정 같은 연속근무가 후보 단계에서 차단된다.
   ctx._fixedSlotsByWorker = slotsByWorkerFromFixed(fixed);
+  // 운항병 사전배정 슬롯(주간 고정 + 야간 번초)도 인접 기준에 포함
+  Object.entries(navDay).forEach(([sl,id])=>addSlotsToMap(ctx._fixedSlotsByWorker, id, [sl]));
+  if(navNight) addSlotsToMap(ctx._fixedSlotsByWorker, nav.id, NIGHT_BUNCHO.find(b=>b.id===navNight.bunchoId).slots);
 
   /* 4) 도메인 */
   const dayCand = dayCandidates(ds, ctx).map(w=>w.id);
@@ -901,6 +972,15 @@ function generateDay(input){
     ctx._todayHours[id] = (ctx._todayHours[id]||0) + h;
     ctx._todayCount[id] = (ctx._todayCount[id]||0) + 1;
   });
+  // 운항병 사전배정 부하도 반영(주간 고정 각 1h, 야간 번초 1h)
+  Object.keys(navDay).forEach(sl=>{
+    ctx._todayHours[nav.id] = (ctx._todayHours[nav.id]||0) + slotHours(sl);
+    ctx._todayCount[nav.id] = (ctx._todayCount[nav.id]||0) + 1;
+  });
+  if(navNight){
+    ctx._todayHours[nav.id] = (ctx._todayHours[nav.id]||0) + 1;
+    ctx._todayCount[nav.id] = (ctx._todayCount[nav.id]||0) + 1;
+  }
 
   /* 5) 완화 사다리 1→3 (전날 야간 아침 금지·인접 금지는 절대 완화하지 않음) — prevNight은 위에서 산출
      tier1 깨끗 → tier2 중복 투입 → tier3 야간 연속. 그래도 안 되면 부분 채움(인접·아침 금지는 유지) */
@@ -937,12 +1017,15 @@ function generateDay(input){
 
   /* 8) 결과 조립 */
   const assign={}, night={};
-  // (14:30이 고정이면 s.fixed에만 두고 assign에는 넣지 않음 — buildStats 이중 집계 방지)
+  // (13:30/14:30 당일상황이 고정이면 s.fixed에만 두고 assign에는 넣지 않음 — buildStats 이중 집계 방지)
   vars.forEach(v=>{
     const key=v.type==='day'?'D'+v.key:'N'+v.bunchoId;
     if(v.type==='day') assign[v.key]=result[key]||null;
     else night[v.bunchoId]=result[key]||null;
   });
+  // 운항병 사전배정 병합 (주간 고정슬롯은 일반 근무이므로 assign에, 야간은 night에)
+  Object.entries(navDay).forEach(([sl,id])=>{ assign[sl]=id; });
+  if(navNight) night[navNight.bunchoId]=nav.id;
 
   // 미배정 경고
   DAY_SLOTS.forEach(s=>{ if(!assign[s] && !fixed[s]) warnings.push('주간 '+s+' 미배정'); });
@@ -1143,7 +1226,8 @@ if(typeof module!=='undefined' && module.exports){
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
     holidayName, isHolidayDate, prebookOn,
     // 근무자
-    W, nameOf, isRecruit, activeWorkers, inInactive, presentOn, scheduleRefCount,
+    W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
+    activeWorkers, inInactive, presentOn, scheduleRefCount,
     // 통계
     buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini,
     // 배정

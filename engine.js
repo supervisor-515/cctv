@@ -1136,6 +1136,21 @@ function validateSchedule(s){
   });
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id && nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨'); });
 
+  // 4-1) 역할자(당직·상황병·전날역할·밥교대)가 본인이 열외돼야 할 근무칸에 배정됨.
+  //   생성 엔진은 애초에 이들을 후보에서 빼지만, 수동 편집·역할 변경으로 뒤섞이면 여기서 드러난다.
+  //   당일 상황병의 14:30(금요일 13:30) 고정칸은 정상이므로 예외. 밥교대는 야간 폴백이 허용되므로 주간만 점검.
+  const sitFixSlot = (dow(s.date)===5 && !s.workHoliday) ? '13:30' : '14:30';
+  [['당직',s.dutyId,true],['상황병',s.situationId,true],['전날 당직',s.prevDutyId,true],
+   ['전날 상황병',s.prevSituationId,true],['밥교대',s.mealId,false]].forEach(([lab,id,alsoNight])=>{
+    if(!id) return;
+    DAY_SLOTS.forEach(sl=>{
+      if(assign[sl]!==id) return;
+      if(lab==='상황병' && sl===sitFixSlot) return;     // 당일 상황병 고정칸은 정상
+      push(nameOf(id)+'('+lab+')가 주간 '+sl+'에 배정됨 — 열외 대상');
+    });
+    if(alsoNight) NIGHT_BUNCHO.forEach(b=>{ if(night[b.id]===id) push(nameOf(id)+'('+lab+')가 야간 '+b.id+'번초에 배정됨 — 열외 대상'); });
+  });
+
   // 4-2) 같은 날 야간 번초 2개 이상 (이중 야간 금지 — 하드 규칙)
   const nightCnt={};
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id) nightCnt[id]=(nightCnt[id]||0)+1; });

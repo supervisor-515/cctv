@@ -662,6 +662,24 @@ test('countResetAt: 기준일 이전 근무시간·분자·분모가 전부 0으
   assert.equal(r.mealDen >= 4, true, '밥교대 분모는 초기화 무시(전체 유지)');
 });
 
+/* ---------- 역할자 오배치 검증 ---------- */
+test('validateSchedule: 당직/상황병/밥교대 본인이 근무칸에 있으면 경고 (수동편집 대비)', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const s = E.generateDay(E.autoInputFor(ds));
+  // 정상 생성물엔 역할자 오배치 경고 없음
+  assert.deepEqual(E.validateSchedule(s).filter(m => /열외 대상/.test(m)), []);
+  // 수동으로 당직자를 06:30에 박아넣으면 경고가 떠야
+  const duty = ws[0].id;
+  s.dutyId = duty; s.assign['06:30'] = duty;
+  assert.ok(E.validateSchedule(s).some(m => /당직.*06:30.*열외 대상/.test(m)), '당직자 주간 오배치가 안 잡힘');
+  // 밥교대는 주간만 점검(야간 폴백 허용)
+  const s2 = E.generateDay(E.autoInputFor('2026-06-16'));
+  s2.mealId = ws[1].id; s2.assign['10:30'] = ws[1].id;
+  assert.ok(E.validateSchedule(s2).some(m => /밥교대.*10:30.*열외 대상/.test(m)));
+});
+
 /* ---------- 통계/보조 ---------- */
 test('buildStats: 생성된 표가 다음날 통계에 누적된다', () => {
   const ws = roster(12);

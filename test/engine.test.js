@@ -373,6 +373,49 @@ test('밥교대: 그룹별 카운트 분리 + 전체 횟수 균형 — 주말만
   assert.equal(s2.mealId, m2.id);
 });
 
+/* ---------- 밥교대: 다음날 당직/상황병 제외 ---------- */
+test('밥교대: 다음날 당직/상황병인 사람은 오늘 밥교대 후보에서 빠진다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const inp = E.autoInputFor(ds);
+  const nd = ws.find(w => w.roleType === 'duty').id;
+  const nsit = ws.find(w => w.roleType === 'situation').id;
+  inp.nextDutyId = nd; inp.nextSituationId = nsit;
+  for (let i = 0; i < 10; i++) {
+    const s = E.generateDay(inp);
+    assert.notEqual(s.mealId, nd, '다음날 당직이 오늘 밥교대로 뽑힘');
+    assert.notEqual(s.mealId, nsit, '다음날 상황병이 오늘 밥교대로 뽑힘');
+  }
+});
+
+test('밥교대: 이틀 뒤 당직/상황병은 다음날(D+1) 밥교대 후보에서 빠진다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const inp = E.autoInputFor(ds);
+  const d2 = ws.find(w => w.roleType === 'duty').id;
+  const s2 = ws.find(w => w.roleType === 'situation').id;
+  inp.next2DutyId = d2; inp.next2SituationId = s2;
+  for (let i = 0; i < 10; i++) {
+    const s = E.generateDay(inp);
+    assert.notEqual(s.nextMealId, d2, '이틀 뒤 당직이 다음날 밥교대로 뽑힘');
+    assert.notEqual(s.nextMealId, s2, '이틀 뒤 상황병이 다음날 밥교대로 뽑힘');
+  }
+});
+
+test('밥교대: 후보가 그 사람뿐이면 완화해서라도 배정한다', () => {
+  // 밥교대 가능자가 1명뿐이고 그 사람이 다음날 당직 → 완화 후 배정되어야 (미배정 금지)
+  const only = mkWorker('ONLY', { roleType: 'duty', canMeal: true });
+  const others = [];
+  for (let i = 0; i < 13; i++) others.push(mkWorker('W' + i, { roleType: i % 2 ? 'duty' : 'situation', canMeal: false }));
+  E.setDB(freshDB({ workers: [only].concat(others) }));
+  const inp = E.autoInputFor('2026-06-15');
+  inp.nextDutyId = only.id;
+  const s = E.generateDay(inp);
+  assert.equal(s.mealId, only.id, '유일 후보인데 밥교대가 미배정됨');
+});
+
 /* ---------- 신병 시간대 분산 ---------- */
 test('신병도 시간대가 분산된다: 같은 주간 슬롯·야간 독점 금지', () => {
   const ws = roster(10, 2);

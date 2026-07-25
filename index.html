@@ -281,7 +281,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.5</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.6</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -389,6 +389,8 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
         <div class="field"><label>다음날 당직 (19:30)</label><select id="gNextDuty"></select></div>
         <div class="field"><label>다음날 상황병 (18:30)</label><select id="gNextSit"></select></div>
         <div class="field"><label>다음날 밥교대 (17:30·순찰)</label><select id="gNextMeal"></select></div>
+        <div class="field"><label>이틀 뒤 당직 (밥교대 제외용)</label><select id="gNext2Duty"></select></div>
+        <div class="field"><label>이틀 뒤 상황병 (밥교대 제외용)</label><select id="gNext2Sit"></select></div>
         <div class="field"><label>당일 밥교대</label><select id="gMeal"></select></div>
       </div>
       <div class="row" style="margin-top:6px">
@@ -585,7 +587,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
     </div>
   </section>
 </div>
-<script src="engine.js?v=4.5"></script>
+<script src="engine.js?v=4.6"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -678,12 +680,15 @@ function refreshGenSelectors(){
   const prev=DB.schedules[addDays(ds,-1)];
   const existing=DB.schedules[ds];
   // 사전등록(달력·일정 탭) 반영 — 새로 만드는 날짜에만, 기존 표가 있으면 표의 값 우선
-  const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1));
+  const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1)), pbNext2=prebookOn(addDays(ds,2));
   const pbPick=(arr,kind)=>{ const e=arr.find(p=>p.kind===kind); return e?e.wid:null; };
   fillSelect($('#gDuty'), dutyList(), {selected: existing?existing.dutyId:(pbPick(pb,'duty')||(prev?prev.nextDutyId:null))});
   fillSelect($('#gSit'),  sitList(),  {selected: existing?existing.situationId:(pbPick(pb,'situation')||(prev?prev.nextSituationId:null))});
   fillSelect($('#gNextDuty'), dutyList(), {selected: existing?existing.nextDutyId:pbPick(pbNext,'duty')});
   fillSelect($('#gNextSit'),  sitList(),  {selected: existing?existing.nextSituationId:pbPick(pbNext,'situation')});
+  // 이틀 뒤 당직/상황병: 고정 슬롯은 없고, 다음날 밥교대 후보에서 빼기 위한 정보
+  fillSelect($('#gNext2Duty'), dutyList(), {selected: existing?existing.next2DutyId:pbPick(pbNext2,'duty')});
+  fillSelect($('#gNext2Sit'),  sitList(),  {selected: existing?existing.next2SituationId:pbPick(pbNext2,'situation')});
   fillSelect($('#gNextMeal'), mealList(), {blank:'⚙ 자동 배정', selected: existing?existing.nextMealId:null});
   { const nm=$('#gNextMeal');
     const noneOpt=el('option'); noneOpt.value='__none__'; noneOpt.textContent='— 다음날 없음 —';
@@ -756,6 +761,7 @@ function buildPreviewCtx(){
     dutyId:$('#gDuty').value|| (prev?prev.nextDutyId:null)||null,
     situationId:$('#gSit').value|| (prev?prev.nextSituationId:null)||null,
     nextDutyId:$('#gNextDuty').value||null, nextSituationId:$('#gNextSit').value||null,
+    next2DutyId:$('#gNext2Duty').value||null, next2SituationId:$('#gNext2Sit').value||null,
     nextMealId:$('#gNextMeal').value||null,
     mealId:$('#gMeal').value|| (prev?prev.nextMealId:null)||null,
     prevDutyId: prev?prev.dutyId : ($('#gPrevDuty').value||null),
@@ -833,7 +839,7 @@ function previewGen(){
   need.appendChild(el('span', nightN>=4?'pill':'miss', '야간 후보 '+nightN+'명'+(nightN<4?' (4번초 부족 — 밥교대 인원 자동 투입 예상)':'')));
   box.appendChild(need);
 }
-['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
+['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
   .forEach(id=> $(id).addEventListener('change', previewGen));
 
 $('#gReload').addEventListener('click', refreshGenSelectors);
@@ -846,6 +852,7 @@ $('#gRun').addEventListener('click',()=>{
     date:ds, workHoliday:$('#gHoliday').checked, nextWorkHoliday:$('#gNextHoliday').checked,
     dutyId:$('#gDuty').value||null, situationId:$('#gSit').value||null,
     nextDutyId:$('#gNextDuty').value||null, nextSituationId:$('#gNextSit').value||null,
+    next2DutyId:$('#gNext2Duty').value||null, next2SituationId:$('#gNext2Sit').value||null,
     nextMealId:$('#gNextMeal').value||null, mealId:$('#gMeal').value||null,
     prevDutyId:$('#gPrevDuty').value||null, prevSituationId:$('#gPrevSit').value||null,
     dayEx:[...genEx.day], nightEx:[], bothEx:[...genEx.both],
@@ -1814,11 +1821,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=4.5"></script>
+<script src="firebase-config.js?v=4.6"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=4.5"></script>
+<script src="sync.js?v=4.6"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

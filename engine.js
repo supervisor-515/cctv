@@ -136,6 +136,8 @@ function normSched(s){
     nextMealAuto: !!s.nextMealAuto,
     dutyId:s.dutyId||null, situationId:s.situationId||null,
     nextDutyId:s.nextDutyId||null, nextSituationId:s.nextSituationId||null, nextMealId:s.nextMealId||null,
+    // 이틀 뒤 당직/상황병 — 다음날 밥교대 후보에서 미리 빼기 위한 정보(고정 슬롯은 생기지 않음)
+    next2DutyId:s.next2DutyId||null, next2SituationId:s.next2SituationId||null,
     prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null,
     mealId:s.mealId||null,
     dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[],
@@ -368,8 +370,9 @@ function nightCandidates(ds, ctx){
   ].filter(Boolean));
   return baseEligible(ds).filter(w=> !ex.has(w.id) && !isNavigator(w));
 }
-/* 밥교대 후보: 투입가능 + 전날·당일 당직/상황병·주간열외 제외 (다음날 당직/상황병은 포함)
-   + 전날 야간자 회피(야간 후보 부족 시 밥교대가 야간에 투입될 수 있음 → 이틀연속 방지). 후보 고갈 시에만 완화. */
+/* 밥교대 후보: 투입가능 + 전날·당일 당직/상황병·주간열외 제외
+   + 전날 야간자 회피(야간 후보 부족 시 밥교대가 야간에 투입될 수 있음 → 이틀연속 방지)
+   + 다음날 당직/상황병 회피(밥교대 다음날 바로 역할 근무 → 연속 부담). 각 단계는 후보 고갈 시에만 완화. */
 function mealCandidates(ds, ctx){
   const ex = new Set([
     ctx.prevDutyId, ctx.dutyId, ctx.prevSituationId, ctx.situationId,
@@ -379,7 +382,12 @@ function mealCandidates(ds, ctx){
   // 운항병은 고정 부하가 커 밥교대 후보에서 제외
   const base = baseEligible(ds).filter(w=> w.canMeal && w.roleReady!==false && !isNavigator(w) && !ex.has(w.id));
   const noPrev = base.filter(w=> !prevN.has(w.id));
-  return noPrev.length ? noPrev : base;   // 전날 야간자 외 인원이 없으면 부득이 완화
+  const pool = noPrev.length ? noPrev : base;   // 전날 야간자 외 인원이 없으면 부득이 완화
+  // 다음날 당직/상황병인 사람은 오늘 밥교대에서 제외 — 진짜 후보가 없을 때만 완화
+  const nextRole = new Set([ctx.nextDutyId, ctx.nextSituationId].filter(Boolean));
+  if(!nextRole.size) return pool;
+  const noNextRole = pool.filter(w=> !nextRole.has(w.id));
+  return noNextRole.length ? noNextRole : pool;
 }
 
 /* 공정성 점수 (낮을수록 우선) */
@@ -835,6 +843,8 @@ function autoNextMeal(ds, ctx){
     workHoliday: !!ctx.nextWorkHoliday,
     dutyId: ctx.nextDutyId||null, situationId: ctx.nextSituationId||null,   // 다음날 당직/상황병
     prevDutyId: ctx.dutyId||null, prevSituationId: ctx.situationId||null,    // 다음날의 '전날' = 오늘
+    // 다음날 기준의 '다음날' = 이틀 뒤 → 이틀 뒤 당직/상황병은 내일 밥교대 후보에서 제외
+    nextDutyId: ctx.next2DutyId||null, nextSituationId: ctx.next2SituationId||null,
     // 오늘 밥교대자는 야간 후보 부족 시 오늘 야간에 투입될 수 있음 → 다음날 밥교대로 또 뽑히면 이틀 연속 우려.
     // 그러므로 다음날 밥교대 후보에서 오늘 밥교대자를 제외한다.
     dayEx: [...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx: ctx.bothEx||[],
@@ -885,6 +895,9 @@ function generateDay(input){
     situationId: input.situationId|| (prev?prev.nextSituationId:null) || null,
     nextDutyId: input.nextDutyId||null,
     nextSituationId: input.nextSituationId||null,
+    // 이틀 뒤 당직/상황병(고정 슬롯 없음) — 다음날 밥교대 후보 제외에만 사용
+    next2DutyId: input.next2DutyId||null,
+    next2SituationId: input.next2SituationId||null,
     nextMealId: input.nextMealId,   // raw: ''/미지정=자동, '__none__'=없음, id=지정
     mealId: input.mealId|| (prev?prev.nextMealId:null) || null,
     prevDutyId: prev ? prev.dutyId : (input.prevDutyId||null),
@@ -1074,6 +1087,7 @@ function generateDay(input){
     date:ds, workHoliday:ctx.workHoliday,
     dutyId:ctx.dutyId, situationId:ctx.situationId,
     nextDutyId:ctx.nextDutyId, nextSituationId:ctx.nextSituationId, nextMealId:ctx.nextMealId,
+    next2DutyId:ctx.next2DutyId, next2SituationId:ctx.next2SituationId,
     nextMealAuto:ctx.nextMealAuto,
     prevDutyId:ctx.prevDutyId, prevSituationId:ctx.prevSituationId,
     mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx,
@@ -1222,7 +1236,7 @@ function validateScheduleCached(s){
    [근무표 생성] 탭이 화면에서 채우는 값(사전등록·휴무일·전날 이전)을 헤드리스로 동일하게 구성 */
 function autoInputFor(ds){
   const prev=DB.schedules[addDays(ds,-1)];
-  const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1));
+  const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1)), pbNext2=prebookOn(addDays(ds,2));
   const pbPick=(arr,kind)=>{ const e=arr.find(p=>p.kind===kind); return e?e.wid:null; };
   return {
     date:ds,
@@ -1232,6 +1246,8 @@ function autoInputFor(ds){
     situationId: pbPick(pb,'situation') || (prev?prev.nextSituationId:null) || null,
     nextDutyId: pbPick(pbNext,'duty')||null,
     nextSituationId: pbPick(pbNext,'situation')||null,
+    next2DutyId: pbPick(pbNext2,'duty')||null,
+    next2SituationId: pbPick(pbNext2,'situation')||null,
     nextMealId: '',                                   // 자동 배정
     mealId: (prev?prev.nextMealId:null) || null,
     prevDutyId: prev?prev.dutyId:null, prevSituationId: prev?prev.situationId:null,

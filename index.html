@@ -231,6 +231,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .cal-dots i.d-ex{background:transparent;border:1px dashed var(--amber)}
 .cal-dots i.d-resv-duty{background:transparent;border:1px solid var(--blue)}
 .cal-dots i.d-resv-sit{background:transparent;border:1px solid var(--amber)}
+.cal-dots i.d-fuel{background:var(--acc)}
 .cal-legend{display:none;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:10.5px;color:var(--ink-dim)}
 .cal-legend span{display:flex;align-items:center;gap:4px}
 .cal-legend i{width:7px;height:7px;border-radius:2px;display:block}
@@ -241,6 +242,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .cal-legend i.d-ex{background:transparent;border:1px dashed var(--amber)}
 .cal-legend i.d-resv-duty{background:transparent;border:1px solid var(--blue)}
 .cal-legend i.d-resv-sit{background:transparent;border:1px solid var(--amber)}
+.cal-legend i.d-fuel{background:var(--acc)}
 @media(max-width:640px){
   .cal-grid{gap:3px}
   .cal-cell{min-height:48px;padding:4px 4px;border-radius:7px}
@@ -281,7 +283,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.6</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.7</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -325,7 +327,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-legend">
         <span><i class="d-duty"></i>당직</span><span><i class="d-sit"></i>상황병</span><span><i class="d-meal"></i>밥교대</span>
-        <span><i class="d-vac"></i>휴가</span><span><i class="d-ex"></i>열외</span><span><i class="d-resv-duty"></i>당직예약</span><span><i class="d-resv-sit"></i>상황예약</span>
+        <span><i class="d-vac"></i>휴가</span><span><i class="d-ex"></i>열외</span><span><i class="d-resv-duty"></i>당직예약</span><span><i class="d-resv-sit"></i>상황예약</span><span><i class="d-fuel"></i>유조차</span>
       </div>
       <p class="hint">● = 근무표 생성됨 · ⚠ = 점검 필요(제약 위반·미배정) · 빨간 날짜 = 휴무일. 날짜를 누르면 그날 근무표 전체와 일정이 아래에 표시됩니다.</p>
       <div id="calDetail" style="margin-top:10px"></div>
@@ -356,6 +358,8 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
             <option value="exboth">모두 열외 (분모 제외)</option>
             <option value="duty">당직 예약</option>
             <option value="situation">상황병 예약</option>
+            <option value="fueltruck">유조차 운전병 (그 주 월~일)</option>
+            <option value="fuelsub">유조차 대체 (부 운전병)</option>
           </select>
         </div>
         <div class="field"><label>근무자</label><select id="pbWho"></select></div>
@@ -398,6 +402,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
         <div class="field"><label>전날 상황병 (20:30·당일 전부 열외)</label><select id="gPrevSit"></select></div>
         <div class="field" style="flex:1;min-width:160px"><label>전날 정보</label><div class="flexgap" id="gPrevView"><span class="muted">—</span></div></div>
       </div>
+      <div id="gFuelNotice"></div>
       <div id="gPreview" class="prevbox"></div>
       <details class="adv" open>
         <summary>열외자 지정</summary>
@@ -587,7 +592,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
     </div>
   </section>
 </div>
-<script src="engine.js?v=4.6"></script>
+<script src="engine.js?v=4.7"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -674,6 +679,16 @@ function applyRole(w, v){
 }
 
 /* ---------- ② 생성 탭 셀렉터 ---------- */
+/* 그 주 유조차 운전병 등록 상태 안내 (미등록이면 등록 요청) */
+function renderFuelNotice(ds){
+  const box=$('#gFuelNotice'); if(!box) return;
+  const f=fuelTruckOn(ds);
+  if(f){
+    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 그 주 CCTV 근무에서 열외됩니다.</div>';
+  }else{
+    box.innerHTML='<div class="warn">⚠ 이번 주 유조차 운전병이 등록되지 않았습니다. [달력 · 일정] 탭에서 이번 주 유조차를 등록해주세요.</div>';
+  }
+}
 function refreshGenSelectors(){
   const ds=$('#gDate').value||todayStr();
   $('#gDate').value=ds;
@@ -699,7 +714,14 @@ function refreshGenSelectors(){
   // 휴가 마지막날(복귀일)은 주간만 열외 — 복귀날 야간부터 투입 가능
   genEx.day  = new Set(existing? (existing.dayEx||[])  : pb.filter(p=> p.kind==='exday' || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid));
   genEx.both = new Set(existing? (existing.bothEx||[]) : pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid));
+  // 유조차 운전병(그 주 월~일)은 전체 열외로 자동 반영. 단 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
+  if(!existing){
+    const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
+                           $('#gPrevDuty').value,$('#gPrevSit').value].filter(Boolean));
+    pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub').forEach(p=>{ if(!roleIds.has(p.wid)) genEx.both.add(p.wid); });
+  }
   renderExChips();
+  renderFuelNotice(ds);
   $('#gHoliday').checked = existing?existing.workHoliday: (prev&&prev.nextWorkHoliday) || dayGroup(ds,false)==='weekend' || isHolidayDate(ds);
   $('#gNextHoliday').checked = existing? !!existing.nextWorkHoliday : dayGroup(addDays(ds,1),false)==='weekend' || isHolidayDate(addDays(ds,1));
   // 전날 당직/상황병: 전날 표가 있으면 자동·비활성, 없으면 직접 입력 활성화
@@ -1124,8 +1146,10 @@ let calSelDate=null;   // 선택된 날짜
 function calInitYM(){ if(!calYM) calYM=(latestSchedDate()||todayStr()).slice(0,7); }
 function ymTitle(ym){ const [y,m]=ym.split('-'); return y+'년 '+Number(m)+'월'; }
 function ymShift(ym,n){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-1+n,1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }
-const PREBOOK_TAGCLS={vacation:'recruit', exday:'relax', exboth:'relax', duty:'duty', situation:'sit'};
-const PREBOOK_SHORT={vacation:'휴가', exday:'주열', exboth:'열외', duty:'당직예', situation:'상황예'};
+const PREBOOK_TAGCLS={vacation:'recruit', exday:'relax', exboth:'relax', duty:'duty', situation:'sit',
+                      fueltruck:'patrol', fuelsub:'patrol'};
+const PREBOOK_SHORT={vacation:'휴가', exday:'주열', exboth:'열외', duty:'당직예', situation:'상황예',
+                     fueltruck:'유조차', fuelsub:'유조차대체'};
 
 /* 해당 표에서 근무자의 역할·슬롯 추출 (하이라이트용) */
 function workerDayMarks(s,wid){
@@ -1200,7 +1224,8 @@ function renderCal(){
       const short = returning ? '복귀' : PREBOOK_SHORT[p.kind];
       const cls = returning ? 'relax' : PREBOOK_TAGCLS[p.kind];
       cell.appendChild(el('div','cal-ln','<span class="tag '+cls+'">'+short+'</span>'+esc(nameOf(p.wid))));
-      dots.push(p.kind==='duty'?'d-resv-duty': p.kind==='situation'?'d-resv-sit': (p.kind==='vacation'&&!returning)?'d-vac':'d-ex');
+      dots.push(p.kind==='duty'?'d-resv-duty': p.kind==='situation'?'d-resv-sit':
+                (p.kind==='fueltruck'||p.kind==='fuelsub')?'d-fuel': (p.kind==='vacation'&&!returning)?'d-vac':'d-ex');
     });
     if(dots.length){
       const dd=el('div','cal-dots');
@@ -1352,8 +1377,13 @@ function renderPrebookForm(){
   const list = kind==='duty'? dutyList() : kind==='situation'? sitList() : activeWorkers();
   const keep=$('#pbWho').value;
   fillSelect($('#pbWho'), list, {blank:'— 선택 —', selected:keep||null});
-  $('#pbEndField').style.display = (kind==='duty'||kind==='situation') ? 'none' : '';
+  // 당직/상황 예약은 하루, 유조차 운전병은 주 단위(자동 월~일)라 종료일 입력 숨김
+  $('#pbEndField').style.display = (kind==='duty'||kind==='situation'||kind==='fueltruck') ? 'none' : '';
   if(!$('#pbStart').value) $('#pbStart').value=todayStr();
+  const st=$('#pbStatus');
+  if(kind==='fueltruck') st.innerHTML='<div class="hint">유조차 운전병: 어느 날짜를 찍든 그 주 월~일 전체로 등록되고, 그 주 CCTV 근무에서 모두 열외됩니다(분모 제외). 단 당직/상황병이 걸린 날은 부 운전병이 유조차를 맡으므로 본인이 그 역할 근무를 그대로 섭니다.</div>';
+  else if(kind==='fuelsub') st.innerHTML='<div class="hint">유조차 대체(부 운전병): 정이 당직 등으로 유조차를 못 모는 날에 지정하세요. 지정한 기간 동안 그 사람도 CCTV 근무에서 모두 열외됩니다.</div>';
+  else st.innerHTML='';
 }
 function renderPrebookTable(){
   const t=$('#pbTable');
@@ -1388,6 +1418,11 @@ $('#pbAdd').addEventListener('click',()=>{
     end=start;
     // 당직/상황병 예약은 날짜당 1명 — 같은 날짜 기존 예약은 교체
     DB.prebook=DB.prebook.filter(p=>!(p.kind===kind && p.start<=start && start<=p.end));
+  }
+  if(kind==='fueltruck'){
+    // 유조차 운전병은 주당 1명 — 같은 주 기존 등록은 교체 (normPrebook이 월~일로 맞춤)
+    const mon=weekMonday(start);
+    DB.prebook=DB.prebook.filter(p=>!(p.kind==='fueltruck' && p.start===mon));
   }
   if(!end || end<start) end=start;
   const p=normPrebook({kind,wid,start,end});
@@ -1821,11 +1856,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=4.6"></script>
+<script src="firebase-config.js?v=4.7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=4.6"></script>
+<script src="sync.js?v=4.7"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

@@ -88,18 +88,32 @@ function normWorker(w,i){
     inactivePeriods: Array.isArray(w.inactivePeriods)? w.inactivePeriods.filter(p=>p&&p.start) : []
   };
 }
-const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation'];
-const PREBOOK_KR={vacation:'휴가', exday:'주간 열외', exboth:'모두 열외', duty:'당직 예약', situation:'상황병 예약'};
+const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation','fueltruck','fuelsub'];
+const PREBOOK_KR={vacation:'휴가', exday:'주간 열외', exboth:'모두 열외', duty:'당직 예약', situation:'상황병 예약',
+                  fueltruck:'유조차 운전병', fuelsub:'유조차 대체'};
+/* 그 날짜가 속한 주의 월요일 (월~일 주 단위) */
+function weekMonday(ds){ const d=dow(ds); return addDays(ds, d===0 ? -6 : 1-d); }
 function normPrebook(p){
   if(!p || !p.wid || !p.start) return null;
+  const kind = PREBOOK_KINDS.includes(p.kind)? p.kind : 'vacation';
+  // 유조차 운전병은 주 단위(월~일) — 어느 날짜를 찍든 그 주 전체로 맞춘다
+  if(kind==='fueltruck'){
+    const mon = weekMonday(p.start);
+    return {
+      id: p.id || ('pb'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+      kind, wid: p.wid, start: mon, end: addDays(mon,6)
+    };
+  }
   return {
     id: p.id || ('pb'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
-    kind: PREBOOK_KINDS.includes(p.kind)? p.kind : 'vacation',
+    kind,
     wid: p.wid,
     start: p.start,
     end: (p.end && p.end>=p.start)? p.end : p.start
   };
 }
+/* 그 주에 등록된 유조차 운전병 항목 (없으면 null) */
+function fuelTruckOn(ds){ return (DB.prebook||[]).find(p=> p.kind==='fueltruck' && ds>=p.start && ds<=p.end) || null; }
 /* 해당 날짜에 걸리는 사전등록 목록 */
 function prebookOn(ds){ return (DB.prebook||[]).filter(p=> ds>=p.start && ds<=p.end); }
 
@@ -1202,6 +1216,11 @@ function prebookConflictsFor(p, s){
     if(s.situationId!==p.wid) out.push('사전등록 충돌: 상황병 예약('+who+')과 표의 상황병('+nameOf(s.situationId)+')이 다릅니다');
     return out;
   }
+  // 유조차 운전병(정)·대체자(부): 그날 당직/상황병 역할이면 정상 근무이므로 충돌 아님
+  if(p.kind==='fueltruck' || p.kind==='fuelsub'){
+    const roleIds=new Set([s.dutyId,s.situationId,s.prevDutyId,s.prevSituationId,s.nextDutyId,s.nextSituationId].filter(Boolean));
+    if(roleIds.has(p.wid)) return out;   // 부가 유조차를 맡는 날 → 역할 근무 정상
+  }
   // 휴가·열외: 복귀일/주간열외는 주간만, 휴가 중·모두열외는 전 슬롯 점검
   const returning = p.kind==='vacation' && s.date===p.end;
   const dayOnly = p.kind==='exday' || returning;
@@ -1238,7 +1257,7 @@ function autoInputFor(ds){
   const prev=DB.schedules[addDays(ds,-1)];
   const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1)), pbNext2=prebookOn(addDays(ds,2));
   const pbPick=(arr,kind)=>{ const e=arr.find(p=>p.kind===kind); return e?e.wid:null; };
-  return {
+  const out = {
     date:ds,
     workHoliday: dayGroup(ds,false)==='weekend' || isHolidayDate(ds),
     nextWorkHoliday: dayGroup(addDays(ds,1),false)==='weekend' || isHolidayDate(addDays(ds,1)),
@@ -1256,6 +1275,19 @@ function autoInputFor(ds){
     nightEx: [],
     bothEx: pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid),
   };
+  return applyFuelTruckEx(ds, out, pb);
+}
+/* 유조차 운전병(정)·대체자(부)를 그날 전체 열외에 추가한다.
+   단 그날 당직/상황병 역할이 걸려 있으면(전날·다음날 역할 포함) 부 운전병이 유조차를 맡으므로
+   본인은 그 역할 근무(전날 19:30·당일 당직·다음날 21:30 등)를 그대로 서야 한다 → 열외에서 뺀다. */
+function applyFuelTruckEx(ds, out, pb){
+  const fuelIds = (pb||prebookOn(ds)).filter(p=> p.kind==='fueltruck' || p.kind==='fuelsub').map(p=>p.wid);
+  if(!fuelIds.length) return out;
+  const roleIds = new Set([out.dutyId, out.situationId, out.prevDutyId, out.prevSituationId,
+                           out.nextDutyId, out.nextSituationId].filter(Boolean));
+  const add = fuelIds.filter(id=> !roleIds.has(id));
+  out.bothEx = [...new Set((out.bothEx||[]).concat(add))];
+  return out;
 }
 
 /* 근무자가 등장하는 생성된 표 날짜 수 — 삭제 전 '보관 권장' 안내용 */
@@ -1281,7 +1313,7 @@ if(typeof module!=='undefined' && module.exports){
     migrate, normWorker, normPrebook, normSched,
     // 날짜/그룹
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
-    holidayName, isHolidayDate, prebookOn,
+    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn,
     // 근무자
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,

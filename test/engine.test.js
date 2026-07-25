@@ -639,6 +639,93 @@ test('그룹 안에서도 시간대가 분산된다: 같은 그룹 같은 슬롯
   assert.ok(sumMax / n <= 2.2, `그룹 내 슬롯 집중 평균 ${(sumMax / n).toFixed(2)} (허용 2.2)`);
 });
 
+/* ---------- 유조차 운전병 ---------- */
+test('weekMonday: 어느 요일을 찍어도 그 주 월요일', () => {
+  assert.equal(E.weekMonday('2026-06-15'), '2026-06-15'); // 월
+  assert.equal(E.weekMonday('2026-06-17'), '2026-06-15'); // 수
+  assert.equal(E.weekMonday('2026-06-20'), '2026-06-15'); // 토
+  assert.equal(E.weekMonday('2026-06-21'), '2026-06-15'); // 일 → 그 주 월요일
+});
+
+test('normPrebook: 유조차 운전병은 그 주 월~일로 자동 확장', () => {
+  const p = E.normPrebook({ kind: 'fueltruck', wid: 'x', start: '2026-06-18' }); // 목
+  assert.equal(p.start, '2026-06-15');
+  assert.equal(p.end, '2026-06-21');
+});
+
+test('유조차 운전병: 그 주 월~일 모든 CCTV 근무에서 열외 + 분모 제외', () => {
+  const ws = roster(14);
+  const fuel = ws[0];
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' }));
+  E.invalidateStats();
+  for (let d = 0; d < 7; d++) {
+    const ds = E.addDays('2026-06-15', d);
+    const inp = E.autoInputFor(ds);
+    // 역할이 안 걸린 날은 전체 열외에 포함돼야
+    if (![inp.dutyId, inp.situationId, inp.prevDutyId, inp.prevSituationId, inp.nextDutyId, inp.nextSituationId].includes(fuel.id)) {
+      assert.ok(inp.bothEx.includes(fuel.id), ds + ' 유조차 운전병이 전체 열외에 없음');
+    }
+    const s = E.generateDay(inp);
+    E.getDB().schedules[ds] = s; E.invalidateStats();
+    assert.deepEqual(daySlotsOf(s, fuel.id), [], ds + ' 유조차 운전병이 주간 배정됨');
+    assert.ok(!Object.values(s.night).includes(fuel.id), ds + ' 유조차 운전병이 야간 배정됨');
+    assert.notEqual(s.mealId, fuel.id, ds + ' 유조차 운전병이 밥교대 배정됨');
+    assert.notEqual(s.patrolExtra, fuel.id, ds + ' 유조차 운전병이 순찰 배정됨');
+  }
+  // 분모 제외 확인
+  const st = E.buildStats(null);
+  assert.equal(st[fuel.id].denom, 0, '유조차 주간이 분모에 잡힘');
+});
+
+test('유조차 운전병이 당직이면 당직 관련 근무는 그대로 선다 (전날 19:30·당일 당직·다음날 21:30)', () => {
+  const ws = roster(14);
+  const fuel = ws.find(w => w.roleType === 'duty');
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' }));
+  // 수요일(6/17) 당직 예약
+  E.getDB().prebook.push(E.normPrebook({ kind: 'duty', wid: fuel.id, start: '2026-06-17', end: '2026-06-17' }));
+  E.invalidateStats();
+  const inpTue = E.autoInputFor('2026-06-16');  // 전날 → 19:30(다음날당직)
+  assert.equal(inpTue.nextDutyId, fuel.id);
+  assert.ok(!inpTue.bothEx.includes(fuel.id), '당직 관련일인데 전체 열외됨');
+  const tue = E.generateDay(inpTue);
+  E.getDB().schedules['2026-06-16'] = tue; E.invalidateStats();
+  assert.equal(tue.fixed['19:30'], fuel.id, '전날 19:30(다음날당직)을 안 섬');
+
+  const wed = E.generateDay(E.autoInputFor('2026-06-17'));
+  E.getDB().schedules['2026-06-17'] = wed; E.invalidateStats();
+  assert.equal(wed.dutyId, fuel.id, '당일 당직이 아님');
+
+  const thu = E.generateDay(E.autoInputFor('2026-06-18'));
+  assert.equal(thu.prevDutyId, fuel.id);
+  assert.equal(thu.fixed['21:30'], fuel.id, '다음날 21:30(전날당직)을 안 섬');
+});
+
+test('유조차 대체자(부)도 지정한 날 CCTV 전체 열외', () => {
+  const ws = roster(14);
+  const sub = ws[3];
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'fuelsub', wid: sub.id, start: '2026-06-17', end: '2026-06-18' }));
+  E.invalidateStats();
+  ['2026-06-17', '2026-06-18'].forEach(ds => {
+    const s = E.generateDay(E.autoInputFor(ds));
+    assert.deepEqual(daySlotsOf(s, sub.id), [], ds + ' 대체자가 주간 배정됨');
+    assert.ok(!Object.values(s.night).includes(sub.id), ds + ' 대체자가 야간 배정됨');
+  });
+});
+
+test('prebookConflictsFor: 유조차 운전병이 당직 역할이면 충돌로 보지 않는다', () => {
+  const ws = roster(14);
+  const fuel = ws.find(w => w.roleType === 'duty');
+  E.setDB(freshDB({ workers: ws }));
+  const inp = E.autoInputFor('2026-06-17');
+  inp.dutyId = fuel.id;
+  const s = E.generateDay(inp);
+  const p = E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' });
+  assert.deepEqual(E.prebookConflictsFor(p, s), [], '당직 역할인데 충돌로 보고됨');
+});
+
 /* ---------- 사전등록 충돌 검사 ---------- */
 test('prebookConflictsFor: 휴가 기간에 배정된 기존 표를 충돌로 보고', () => {
   const ws = roster(12);

@@ -373,6 +373,49 @@ test('밥교대: 그룹별 카운트 분리 + 전체 횟수 균형 — 주말만
   assert.equal(s2.mealId, m2.id);
 });
 
+/* ---------- 밥교대: 다음날 당직/상황병 제외 ---------- */
+test('밥교대: 다음날 당직/상황병인 사람은 오늘 밥교대 후보에서 빠진다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const inp = E.autoInputFor(ds);
+  const nd = ws.find(w => w.roleType === 'duty').id;
+  const nsit = ws.find(w => w.roleType === 'situation').id;
+  inp.nextDutyId = nd; inp.nextSituationId = nsit;
+  for (let i = 0; i < 10; i++) {
+    const s = E.generateDay(inp);
+    assert.notEqual(s.mealId, nd, '다음날 당직이 오늘 밥교대로 뽑힘');
+    assert.notEqual(s.mealId, nsit, '다음날 상황병이 오늘 밥교대로 뽑힘');
+  }
+});
+
+test('밥교대: 이틀 뒤 당직/상황병은 다음날(D+1) 밥교대 후보에서 빠진다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-15';
+  const inp = E.autoInputFor(ds);
+  const d2 = ws.find(w => w.roleType === 'duty').id;
+  const s2 = ws.find(w => w.roleType === 'situation').id;
+  inp.next2DutyId = d2; inp.next2SituationId = s2;
+  for (let i = 0; i < 10; i++) {
+    const s = E.generateDay(inp);
+    assert.notEqual(s.nextMealId, d2, '이틀 뒤 당직이 다음날 밥교대로 뽑힘');
+    assert.notEqual(s.nextMealId, s2, '이틀 뒤 상황병이 다음날 밥교대로 뽑힘');
+  }
+});
+
+test('밥교대: 후보가 그 사람뿐이면 완화해서라도 배정한다', () => {
+  // 밥교대 가능자가 1명뿐이고 그 사람이 다음날 당직 → 완화 후 배정되어야 (미배정 금지)
+  const only = mkWorker('ONLY', { roleType: 'duty', canMeal: true });
+  const others = [];
+  for (let i = 0; i < 13; i++) others.push(mkWorker('W' + i, { roleType: i % 2 ? 'duty' : 'situation', canMeal: false }));
+  E.setDB(freshDB({ workers: [only].concat(others) }));
+  const inp = E.autoInputFor('2026-06-15');
+  inp.nextDutyId = only.id;
+  const s = E.generateDay(inp);
+  assert.equal(s.mealId, only.id, '유일 후보인데 밥교대가 미배정됨');
+});
+
 /* ---------- 신병 시간대 분산 ---------- */
 test('신병도 시간대가 분산된다: 같은 주간 슬롯·야간 독점 금지', () => {
   const ws = roster(10, 2);
@@ -594,6 +637,93 @@ test('그룹 안에서도 시간대가 분산된다: 같은 그룹 같은 슬롯
   }
   assert.ok(worst <= 4, `같은 그룹 같은 슬롯이 최대 ${worst}회 반복됨 (허용 4)`);
   assert.ok(sumMax / n <= 2.2, `그룹 내 슬롯 집중 평균 ${(sumMax / n).toFixed(2)} (허용 2.2)`);
+});
+
+/* ---------- 유조차 운전병 ---------- */
+test('weekMonday: 어느 요일을 찍어도 그 주 월요일', () => {
+  assert.equal(E.weekMonday('2026-06-15'), '2026-06-15'); // 월
+  assert.equal(E.weekMonday('2026-06-17'), '2026-06-15'); // 수
+  assert.equal(E.weekMonday('2026-06-20'), '2026-06-15'); // 토
+  assert.equal(E.weekMonday('2026-06-21'), '2026-06-15'); // 일 → 그 주 월요일
+});
+
+test('normPrebook: 유조차 운전병은 그 주 월~일로 자동 확장', () => {
+  const p = E.normPrebook({ kind: 'fueltruck', wid: 'x', start: '2026-06-18' }); // 목
+  assert.equal(p.start, '2026-06-15');
+  assert.equal(p.end, '2026-06-21');
+});
+
+test('유조차 운전병: 그 주 월~일 모든 CCTV 근무에서 열외 + 분모 제외', () => {
+  const ws = roster(14);
+  const fuel = ws[0];
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' }));
+  E.invalidateStats();
+  for (let d = 0; d < 7; d++) {
+    const ds = E.addDays('2026-06-15', d);
+    const inp = E.autoInputFor(ds);
+    // 역할이 안 걸린 날은 전체 열외에 포함돼야
+    if (![inp.dutyId, inp.situationId, inp.prevDutyId, inp.prevSituationId, inp.nextDutyId, inp.nextSituationId].includes(fuel.id)) {
+      assert.ok(inp.bothEx.includes(fuel.id), ds + ' 유조차 운전병이 전체 열외에 없음');
+    }
+    const s = E.generateDay(inp);
+    E.getDB().schedules[ds] = s; E.invalidateStats();
+    assert.deepEqual(daySlotsOf(s, fuel.id), [], ds + ' 유조차 운전병이 주간 배정됨');
+    assert.ok(!Object.values(s.night).includes(fuel.id), ds + ' 유조차 운전병이 야간 배정됨');
+    assert.notEqual(s.mealId, fuel.id, ds + ' 유조차 운전병이 밥교대 배정됨');
+    assert.notEqual(s.patrolExtra, fuel.id, ds + ' 유조차 운전병이 순찰 배정됨');
+  }
+  // 분모 제외 확인
+  const st = E.buildStats(null);
+  assert.equal(st[fuel.id].denom, 0, '유조차 주간이 분모에 잡힘');
+});
+
+test('유조차 운전병이 당직이면 당직 관련 근무는 그대로 선다 (전날 19:30·당일 당직·다음날 21:30)', () => {
+  const ws = roster(14);
+  const fuel = ws.find(w => w.roleType === 'duty');
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' }));
+  // 수요일(6/17) 당직 예약
+  E.getDB().prebook.push(E.normPrebook({ kind: 'duty', wid: fuel.id, start: '2026-06-17', end: '2026-06-17' }));
+  E.invalidateStats();
+  const inpTue = E.autoInputFor('2026-06-16');  // 전날 → 19:30(다음날당직)
+  assert.equal(inpTue.nextDutyId, fuel.id);
+  assert.ok(!inpTue.bothEx.includes(fuel.id), '당직 관련일인데 전체 열외됨');
+  const tue = E.generateDay(inpTue);
+  E.getDB().schedules['2026-06-16'] = tue; E.invalidateStats();
+  assert.equal(tue.fixed['19:30'], fuel.id, '전날 19:30(다음날당직)을 안 섬');
+
+  const wed = E.generateDay(E.autoInputFor('2026-06-17'));
+  E.getDB().schedules['2026-06-17'] = wed; E.invalidateStats();
+  assert.equal(wed.dutyId, fuel.id, '당일 당직이 아님');
+
+  const thu = E.generateDay(E.autoInputFor('2026-06-18'));
+  assert.equal(thu.prevDutyId, fuel.id);
+  assert.equal(thu.fixed['21:30'], fuel.id, '다음날 21:30(전날당직)을 안 섬');
+});
+
+test('유조차 대체자(부)도 지정한 날 CCTV 전체 열외', () => {
+  const ws = roster(14);
+  const sub = ws[3];
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'fuelsub', wid: sub.id, start: '2026-06-17', end: '2026-06-18' }));
+  E.invalidateStats();
+  ['2026-06-17', '2026-06-18'].forEach(ds => {
+    const s = E.generateDay(E.autoInputFor(ds));
+    assert.deepEqual(daySlotsOf(s, sub.id), [], ds + ' 대체자가 주간 배정됨');
+    assert.ok(!Object.values(s.night).includes(sub.id), ds + ' 대체자가 야간 배정됨');
+  });
+});
+
+test('prebookConflictsFor: 유조차 운전병이 당직 역할이면 충돌로 보지 않는다', () => {
+  const ws = roster(14);
+  const fuel = ws.find(w => w.roleType === 'duty');
+  E.setDB(freshDB({ workers: ws }));
+  const inp = E.autoInputFor('2026-06-17');
+  inp.dutyId = fuel.id;
+  const s = E.generateDay(inp);
+  const p = E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' });
+  assert.deepEqual(E.prebookConflictsFor(p, s), [], '당직 역할인데 충돌로 보고됨');
 });
 
 /* ---------- 사전등록 충돌 검사 ---------- */

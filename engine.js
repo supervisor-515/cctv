@@ -88,18 +88,32 @@ function normWorker(w,i){
     inactivePeriods: Array.isArray(w.inactivePeriods)? w.inactivePeriods.filter(p=>p&&p.start) : []
   };
 }
-const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation'];
-const PREBOOK_KR={vacation:'휴가', exday:'주간 열외', exboth:'모두 열외', duty:'당직 예약', situation:'상황병 예약'};
+const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation','fueltruck','fuelsub'];
+const PREBOOK_KR={vacation:'휴가', exday:'주간 열외', exboth:'모두 열외', duty:'당직 예약', situation:'상황병 예약',
+                  fueltruck:'유조차 운전병', fuelsub:'유조차 대체'};
+/* 그 날짜가 속한 주의 월요일 (월~일 주 단위) */
+function weekMonday(ds){ const d=dow(ds); return addDays(ds, d===0 ? -6 : 1-d); }
 function normPrebook(p){
   if(!p || !p.wid || !p.start) return null;
+  const kind = PREBOOK_KINDS.includes(p.kind)? p.kind : 'vacation';
+  // 유조차 운전병은 주 단위(월~일) — 어느 날짜를 찍든 그 주 전체로 맞춘다
+  if(kind==='fueltruck'){
+    const mon = weekMonday(p.start);
+    return {
+      id: p.id || ('pb'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+      kind, wid: p.wid, start: mon, end: addDays(mon,6)
+    };
+  }
   return {
     id: p.id || ('pb'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
-    kind: PREBOOK_KINDS.includes(p.kind)? p.kind : 'vacation',
+    kind,
     wid: p.wid,
     start: p.start,
     end: (p.end && p.end>=p.start)? p.end : p.start
   };
 }
+/* 그 주에 등록된 유조차 운전병 항목 (없으면 null) */
+function fuelTruckOn(ds){ return (DB.prebook||[]).find(p=> p.kind==='fueltruck' && ds>=p.start && ds<=p.end) || null; }
 /* 해당 날짜에 걸리는 사전등록 목록 */
 function prebookOn(ds){ return (DB.prebook||[]).filter(p=> ds>=p.start && ds<=p.end); }
 
@@ -136,6 +150,8 @@ function normSched(s){
     nextMealAuto: !!s.nextMealAuto,
     dutyId:s.dutyId||null, situationId:s.situationId||null,
     nextDutyId:s.nextDutyId||null, nextSituationId:s.nextSituationId||null, nextMealId:s.nextMealId||null,
+    // 이틀 뒤 당직/상황병 — 다음날 밥교대 후보에서 미리 빼기 위한 정보(고정 슬롯은 생기지 않음)
+    next2DutyId:s.next2DutyId||null, next2SituationId:s.next2SituationId||null,
     prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null,
     mealId:s.mealId||null,
     dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[],
@@ -368,8 +384,9 @@ function nightCandidates(ds, ctx){
   ].filter(Boolean));
   return baseEligible(ds).filter(w=> !ex.has(w.id) && !isNavigator(w));
 }
-/* 밥교대 후보: 투입가능 + 전날·당일 당직/상황병·주간열외 제외 (다음날 당직/상황병은 포함)
-   + 전날 야간자 회피(야간 후보 부족 시 밥교대가 야간에 투입될 수 있음 → 이틀연속 방지). 후보 고갈 시에만 완화. */
+/* 밥교대 후보: 투입가능 + 전날·당일 당직/상황병·주간열외 제외
+   + 전날 야간자 회피(야간 후보 부족 시 밥교대가 야간에 투입될 수 있음 → 이틀연속 방지)
+   + 다음날 당직/상황병 회피(밥교대 다음날 바로 역할 근무 → 연속 부담). 각 단계는 후보 고갈 시에만 완화. */
 function mealCandidates(ds, ctx){
   const ex = new Set([
     ctx.prevDutyId, ctx.dutyId, ctx.prevSituationId, ctx.situationId,
@@ -379,7 +396,12 @@ function mealCandidates(ds, ctx){
   // 운항병은 고정 부하가 커 밥교대 후보에서 제외
   const base = baseEligible(ds).filter(w=> w.canMeal && w.roleReady!==false && !isNavigator(w) && !ex.has(w.id));
   const noPrev = base.filter(w=> !prevN.has(w.id));
-  return noPrev.length ? noPrev : base;   // 전날 야간자 외 인원이 없으면 부득이 완화
+  const pool = noPrev.length ? noPrev : base;   // 전날 야간자 외 인원이 없으면 부득이 완화
+  // 다음날 당직/상황병인 사람은 오늘 밥교대에서 제외 — 진짜 후보가 없을 때만 완화
+  const nextRole = new Set([ctx.nextDutyId, ctx.nextSituationId].filter(Boolean));
+  if(!nextRole.size) return pool;
+  const noNextRole = pool.filter(w=> !nextRole.has(w.id));
+  return noNextRole.length ? noNextRole : pool;
 }
 
 /* 공정성 점수 (낮을수록 우선) */
@@ -835,6 +857,8 @@ function autoNextMeal(ds, ctx){
     workHoliday: !!ctx.nextWorkHoliday,
     dutyId: ctx.nextDutyId||null, situationId: ctx.nextSituationId||null,   // 다음날 당직/상황병
     prevDutyId: ctx.dutyId||null, prevSituationId: ctx.situationId||null,    // 다음날의 '전날' = 오늘
+    // 다음날 기준의 '다음날' = 이틀 뒤 → 이틀 뒤 당직/상황병은 내일 밥교대 후보에서 제외
+    nextDutyId: ctx.next2DutyId||null, nextSituationId: ctx.next2SituationId||null,
     // 오늘 밥교대자는 야간 후보 부족 시 오늘 야간에 투입될 수 있음 → 다음날 밥교대로 또 뽑히면 이틀 연속 우려.
     // 그러므로 다음날 밥교대 후보에서 오늘 밥교대자를 제외한다.
     dayEx: [...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx: ctx.bothEx||[],
@@ -885,6 +909,9 @@ function generateDay(input){
     situationId: input.situationId|| (prev?prev.nextSituationId:null) || null,
     nextDutyId: input.nextDutyId||null,
     nextSituationId: input.nextSituationId||null,
+    // 이틀 뒤 당직/상황병(고정 슬롯 없음) — 다음날 밥교대 후보 제외에만 사용
+    next2DutyId: input.next2DutyId||null,
+    next2SituationId: input.next2SituationId||null,
     nextMealId: input.nextMealId,   // raw: ''/미지정=자동, '__none__'=없음, id=지정
     mealId: input.mealId|| (prev?prev.nextMealId:null) || null,
     prevDutyId: prev ? prev.dutyId : (input.prevDutyId||null),
@@ -1074,6 +1101,7 @@ function generateDay(input){
     date:ds, workHoliday:ctx.workHoliday,
     dutyId:ctx.dutyId, situationId:ctx.situationId,
     nextDutyId:ctx.nextDutyId, nextSituationId:ctx.nextSituationId, nextMealId:ctx.nextMealId,
+    next2DutyId:ctx.next2DutyId, next2SituationId:ctx.next2SituationId,
     nextMealAuto:ctx.nextMealAuto,
     prevDutyId:ctx.prevDutyId, prevSituationId:ctx.prevSituationId,
     mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx,
@@ -1188,6 +1216,11 @@ function prebookConflictsFor(p, s){
     if(s.situationId!==p.wid) out.push('사전등록 충돌: 상황병 예약('+who+')과 표의 상황병('+nameOf(s.situationId)+')이 다릅니다');
     return out;
   }
+  // 유조차 운전병(정)·대체자(부): 그날 당직/상황병 역할이면 정상 근무이므로 충돌 아님
+  if(p.kind==='fueltruck' || p.kind==='fuelsub'){
+    const roleIds=new Set([s.dutyId,s.situationId,s.prevDutyId,s.prevSituationId,s.nextDutyId,s.nextSituationId].filter(Boolean));
+    if(roleIds.has(p.wid)) return out;   // 부가 유조차를 맡는 날 → 역할 근무 정상
+  }
   // 휴가·열외: 복귀일/주간열외는 주간만, 휴가 중·모두열외는 전 슬롯 점검
   const returning = p.kind==='vacation' && s.date===p.end;
   const dayOnly = p.kind==='exday' || returning;
@@ -1222,9 +1255,9 @@ function validateScheduleCached(s){
    [근무표 생성] 탭이 화면에서 채우는 값(사전등록·휴무일·전날 이전)을 헤드리스로 동일하게 구성 */
 function autoInputFor(ds){
   const prev=DB.schedules[addDays(ds,-1)];
-  const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1));
+  const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1)), pbNext2=prebookOn(addDays(ds,2));
   const pbPick=(arr,kind)=>{ const e=arr.find(p=>p.kind===kind); return e?e.wid:null; };
-  return {
+  const out = {
     date:ds,
     workHoliday: dayGroup(ds,false)==='weekend' || isHolidayDate(ds),
     nextWorkHoliday: dayGroup(addDays(ds,1),false)==='weekend' || isHolidayDate(addDays(ds,1)),
@@ -1232,6 +1265,8 @@ function autoInputFor(ds){
     situationId: pbPick(pb,'situation') || (prev?prev.nextSituationId:null) || null,
     nextDutyId: pbPick(pbNext,'duty')||null,
     nextSituationId: pbPick(pbNext,'situation')||null,
+    next2DutyId: pbPick(pbNext2,'duty')||null,
+    next2SituationId: pbPick(pbNext2,'situation')||null,
     nextMealId: '',                                   // 자동 배정
     mealId: (prev?prev.nextMealId:null) || null,
     prevDutyId: prev?prev.dutyId:null, prevSituationId: prev?prev.situationId:null,
@@ -1240,6 +1275,19 @@ function autoInputFor(ds){
     nightEx: [],
     bothEx: pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid),
   };
+  return applyFuelTruckEx(ds, out, pb);
+}
+/* 유조차 운전병(정)·대체자(부)를 그날 전체 열외에 추가한다.
+   단 그날 당직/상황병 역할이 걸려 있으면(전날·다음날 역할 포함) 부 운전병이 유조차를 맡으므로
+   본인은 그 역할 근무(전날 19:30·당일 당직·다음날 21:30 등)를 그대로 서야 한다 → 열외에서 뺀다. */
+function applyFuelTruckEx(ds, out, pb){
+  const fuelIds = (pb||prebookOn(ds)).filter(p=> p.kind==='fueltruck' || p.kind==='fuelsub').map(p=>p.wid);
+  if(!fuelIds.length) return out;
+  const roleIds = new Set([out.dutyId, out.situationId, out.prevDutyId, out.prevSituationId,
+                           out.nextDutyId, out.nextSituationId].filter(Boolean));
+  const add = fuelIds.filter(id=> !roleIds.has(id));
+  out.bothEx = [...new Set((out.bothEx||[]).concat(add))];
+  return out;
 }
 
 /* 근무자가 등장하는 생성된 표 날짜 수 — 삭제 전 '보관 권장' 안내용 */
@@ -1265,7 +1313,7 @@ if(typeof module!=='undefined' && module.exports){
     migrate, normWorker, normPrebook, normSched,
     // 날짜/그룹
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
-    holidayName, isHolidayDate, prebookOn,
+    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn,
     // 근무자
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,

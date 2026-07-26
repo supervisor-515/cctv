@@ -395,13 +395,17 @@ function mealCandidates(ds, ctx){
   const prevN = ctx._prevNight || new Set();
   // 운항병은 고정 부하가 커 밥교대 후보에서 제외
   const base = baseEligible(ds).filter(w=> w.canMeal && w.roleReady!==false && !isNavigator(w) && !ex.has(w.id));
-  const noPrev = base.filter(w=> !prevN.has(w.id));
-  const pool = noPrev.length ? noPrev : base;   // 전날 야간자 외 인원이 없으면 부득이 완화
-  // 다음날 당직/상황병인 사람은 오늘 밥교대에서 제외 — 진짜 후보가 없을 때만 완화
-  const nextRole = new Set([ctx.nextDutyId, ctx.nextSituationId].filter(Boolean));
-  if(!nextRole.size) return pool;
-  const noNextRole = pool.filter(w=> !nextRole.has(w.id));
-  return noNextRole.length ? noNextRole : pool;
+  const nextRole  = new Set([ctx.nextDutyId, ctx.nextSituationId].filter(Boolean));
+  const prev2Role = new Set([ctx.prev2DutyId, ctx.prev2SituationId].filter(Boolean));
+  // 소프트 제약을 순서대로 적용 — 어떤 단계가 후보를 0명으로 만들면 그 단계만 건너뛴다(미배정 방지)
+  const soft = [
+    w=> !prevN.has(w.id),        // 전날 야간자 (야간 폴백 시 이틀 연속 우려)
+    w=> !nextRole.has(w.id),     // 다음날 당직/상황병 → 밥교대 다음날 바로 역할 근무
+    w=> !prev2Role.has(w.id)     // 이틀 전 당직/상황병 → 19:30·당직·21:30에 이어 4일째 연속 부담
+  ];
+  let pool = base;
+  soft.forEach(f=>{ const nx = pool.filter(f); if(nx.length) pool = nx; });
+  return pool;
 }
 
 /* 공정성 점수 (낮을수록 우선) */
@@ -643,9 +647,14 @@ function solve(vars, domains, ctx, tier, prevNight){
     if(isRotationVar(v)){
       // 06:30 순번제: 횟수 적은 순 → 오래된 순. 동률만 기존 공정성 순서로.
       bestList.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+    }else if(v.type==='night'){
+      // 야간: '전날 야간 안 선 사람'을 당일 개수보다 먼저 본다.
+      // (개수를 먼저 보면 연속 허용 단계에서 전날 야간자가 개수가 적다는 이유로 먼저 뽑혀
+      //  비연속 후보가 남아 있는데도 이틀 연속이 생긴다)
+      bestList.sort((a,b)=> (a.recentNight-b.recentNight) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
     }else{
-      bestList.sort((a,b)=> (a.cnt-b.cnt) || (a.recentNight-b.recentNight) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
-      if(v.type==='day') rebalanceRecruits(bestList);
+      bestList.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      rebalanceRecruits(bestList);
     }
     bestList = bestList.map(x=>x.wid);
 
@@ -720,14 +729,59 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
     });
     if(isRotationVar(v)){
       pool.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+    }else if(isNight){
+      pool.sort((a,b)=> (a.recentNight-b.recentNight) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
     }else{
-      pool.sort((a,b)=> (a.cnt-b.cnt) || (a.recentNight-b.recentNight) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
-      if(v.type==='day') rebalanceRecruits(pool);
+      pool.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      rebalanceRecruits(pool);
     }
     const wid=pool[0].wid;
     assign[key]=wid; used.add(wid);
     todayCount[wid]=(todayCount[wid]||0)+1;
     usedSlots[wid]=(usedSlots[wid]||[]).concat(sl);   // 인접 판정 위해 점유 슬롯 누적
+  });
+  return assign;
+}
+
+/* 불필요한 야간 연속 되돌리기.
+   완화 사다리는 tier 단위로 한꺼번에 켜지기 때문에(tier3=야간 연속 허용), 정작 그 칸은
+   비연속 후보로 채울 수 있는데도 전날 야간자가 들어가는 경우가 생긴다.
+   해를 찾은 뒤 야간 칸을 훑어, 전날 야간을 서지 않은 투입 가능자가 남아 있으면 교체한다.
+   (하드 제약인 인접 금지·이중 야간 금지는 그대로 지킨다) */
+function dropNeedlessConsecNights(vars, domains, ctx, assign, prevNight){
+  if(!prevNight || !prevNight.size) return assign;
+  const keyOf = v => v.type==='day' ? 'D'+v.key : 'N'+v.bunchoId;
+  const todayCount = {...(ctx._todayCount||{})};
+  Object.values(assign).forEach(id=>{ if(id) todayCount[id]=(todayCount[id]||0)+1; });
+  function occupiedExcept(exceptKey){
+    const m = baseOccupiedSlots(ctx);
+    Object.entries(assign).forEach(([k,wid])=>{
+      if(k===exceptKey || !wid) return;
+      const vv = vars.find(v=> keyOf(v)===k);
+      if(vv) addSlotsToMap(m, wid, slotsOf(vv));
+    });
+    return m;
+  }
+  vars.forEach((v,i)=>{
+    if(v.type!=='night') return;
+    const key = keyOf(v), cur = assign[key];
+    if(!cur || !prevNight.has(cur)) return;               // 연속이 아닌 칸은 건드리지 않음
+    const occ = occupiedExcept(key), sl = slotsOf(v);
+    const hasOtherNight = wid => Object.entries(assign).some(([k,w])=> k!==key && k[0]==='N' && w===wid);
+    const cands = (domains[i]||[]).filter(wid=>
+      wid!==cur && !prevNight.has(wid) &&
+      !hasOtherNight(wid) &&                              // 이중 야간 금지
+      !(occ[wid] && adjacent(occ[wid], sl))               // 인접 금지(고정 슬롯 포함)
+    );
+    if(!cands.length) return;                             // 대체 불가 → 연속 유지(불가피)
+    const o = {stats:ctx.stats, todayHours:ctx._todayHours, isNight:true,
+               dayGrp:ctx._dayGrp, nightGrp:ctx._nightGrp, bunchoId:v.bunchoId};
+    // 오늘 덜 받은 사람 우선(미투입자가 맨 앞) → 공정성 점수
+    cands.sort((a,b)=> ((todayCount[a]||0)-(todayCount[b]||0)) || (score(W(a),null,o)-score(W(b),null,o)));
+    const pick = cands[0];
+    assign[key]=pick;
+    todayCount[pick]=(todayCount[pick]||0)+1;
+    todayCount[cur]=(todayCount[cur]||0)-1;
   });
   return assign;
 }
@@ -859,6 +913,9 @@ function autoNextMeal(ds, ctx){
     prevDutyId: ctx.dutyId||null, prevSituationId: ctx.situationId||null,    // 다음날의 '전날' = 오늘
     // 다음날 기준의 '다음날' = 이틀 뒤 → 이틀 뒤 당직/상황병은 내일 밥교대 후보에서 제외
     nextDutyId: ctx.next2DutyId||null, nextSituationId: ctx.next2SituationId||null,
+    // 다음날 기준의 '이틀 전' = 어제 → 어제 당직/상황병도 내일 밥교대 후보에서 제외
+    prev2DutyId: (DB.schedules[addDays(ds,-1)]||{}).dutyId||null,
+    prev2SituationId: (DB.schedules[addDays(ds,-1)]||{}).situationId||null,
     // 오늘 밥교대자는 야간 후보 부족 시 오늘 야간에 투입될 수 있음 → 다음날 밥교대로 또 뽑히면 이틀 연속 우려.
     // 그러므로 다음날 밥교대 후보에서 오늘 밥교대자를 제외한다.
     dayEx: [...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx: ctx.bothEx||[],
@@ -938,6 +995,10 @@ function generateDay(input){
     prevNight.forEach(id=>{ if(p2.has(id)) twoConsec.add(id); });
   }
   ctx._twoConsec = twoConsec;
+  // 이틀 전 당직/상황병 — 그 사람은 19:30(전날)·당직·21:30(다음날)을 이미 섰으므로
+  // 오늘(이틀 뒤) 밥교대까지 겹치지 않도록 후보에서 뺀다(소프트)
+  ctx.prev2DutyId = prev2 ? (prev2.dutyId||null) : null;
+  ctx.prev2SituationId = prev2 ? (prev2.situationId||null) : null;
 
   const warnings = [];
   const relaxed = {};
@@ -1068,13 +1129,22 @@ function generateDay(input){
   }
   let result = run.assign;
   const usedTier = run.tier;
-  // tier2(중복 투입)은 인원 적은 부대에서 상시 발생하므로 경고하지 않음
-  if(usedTier===3) warnings.push('완화: 인원 부족으로 야간 연속(전날 야간자 재투입)을 허용했습니다.');
-  if(usedTier===4) warnings.push('완화: 인원 부족으로 야간 3일 연속을 허용했습니다(불가피).');
   if(usedTier===5) warnings.push('인원 부족으로 일부 슬롯을 채우지 못했습니다(미배정). 인접·아침 금지를 지키느라 비워둔 칸일 수 있습니다.');
+
+  /* 6-1) 불필요한 야간 연속 되돌리기 — 비연속 후보가 남아 있으면 교체 */
+  result = dropNeedlessConsecNights(vars, usedDomains, ctx, result, prevNight);
 
   /* 7) 국소 개선 */
   result = localImprove(vars, usedDomains, ctx, result, prevNight);
+
+  // 야간 연속 경고는 tier가 아니라 '실제 결과' 기준으로 — 되돌리기로 해소되면 경고하지 않는다
+  // (tier2 중복 투입은 인원 적은 부대에서 상시 발생하므로 경고하지 않음)
+  {
+    const consec = nightVars.map(v=>result['N'+v.bunchoId]).filter(id=> id && prevNight.has(id));
+    const triple = consec.filter(id=> twoConsec.has(id));
+    if(triple.length) warnings.push('완화: 인원 부족으로 야간 3일 연속을 허용했습니다(불가피) — '+[...new Set(triple)].map(nameOf).join(', '));
+    else if(consec.length) warnings.push('완화: 인원 부족으로 야간 연속(전날 야간자 재투입)을 허용했습니다 — '+[...new Set(consec)].map(nameOf).join(', '));
+  }
   if(ctx.mealId && nightVars.some(v=> result['N'+v.bunchoId]===ctx.mealId))
     warnings.push('야간 후보 부족으로 밥교대 인원을 야간 번초에 투입했습니다.');
 

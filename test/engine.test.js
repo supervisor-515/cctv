@@ -304,6 +304,47 @@ test('야간 3일 연속 금지: 이틀 연속 야간자는 인원이 있으면 
   assert.ok(s.tier < 4, '인원이 충분한데 3연속 완화 tier가 켜짐: tier=' + s.tier);
 });
 
+test('야간 연속은 피할 수 있으면 피한다: 비연속 후보가 남아 있으면 연속 배정하지 않음', () => {
+  // 하드 제약(인접·이중야간·밥교대 야간제외)까지 따져 '진짜 대체 가능한' 칸이 남지 않아야 한다.
+  const adj = (a, b) => a.some(x => b.some(y => Math.abs(E.SLOT_ORDER.indexOf(x) - E.SLOT_ORDER.indexOf(y)) === 1));
+  let avoidable = 0, consecTotal = 0;
+  for (let trial = 0; trial < 4; trial++) {
+    const ws = roster(11);   // 빠듯한 인원 → 연속 완화가 실제로 발동
+    E.setDB(freshDB({ workers: ws }));
+    const db = E.getDB();
+    let ds = '2026-08-01';
+    for (let d = 0; d < 30; d++) {
+      const prev = db.schedules[E.addDays(ds, -1)];
+      const prevNight = new Set(prev ? Object.values(prev.night || {}).filter(Boolean) : []);
+      const inp = E.autoInputFor(ds);
+      if (d % 3 === 0) inp.bothEx = [ws[d % ws.length].id];
+      const s = E.generateDay(inp);
+      db.schedules[ds] = s; E.invalidateStats();
+      E.NIGHT_BUNCHO.forEach(b => {
+        const cur = s.night[b.id];
+        if (!cur || !prevNight.has(cur)) return;
+        consecTotal++;
+        // 그 칸을 대신 채울 수 있었던 비연속 후보가 있었나 (하드 제약 전부 반영)
+        const occ = {};
+        const mark = (id, sls) => { if (id) (occ[id] = occ[id] || []).push(...sls); };
+        E.DAY_SLOTS.forEach(sl => { mark(s.assign[sl], [sl]); mark(s.fixed[sl], [sl]); });
+        E.EVENING.forEach(sl => mark(s.fixed[sl], [sl]));
+        E.NIGHT_BUNCHO.forEach(x => { if (x.id !== b.id) mark(s.night[x.id], x.slots); });
+        const otherNight = new Set(E.NIGHT_BUNCHO.filter(x => x.id !== b.id).map(x => s.night[x.id]).filter(Boolean));
+        const pool = E.nightCandidates(ds, {
+          prevDutyId: s.prevDutyId, dutyId: s.dutyId, nextDutyId: s.nextDutyId,
+          prevSituationId: s.prevSituationId, situationId: s.situationId, nextSituationId: s.nextSituationId,
+          nextMealId: s.nextMealId, nightEx: s.nightEx || [], bothEx: s.bothEx || []
+        }).map(w => w.id).filter(id => id !== s.mealId);
+        if (pool.some(id => id !== cur && !prevNight.has(id) && !otherNight.has(id)
+          && !(occ[id] && adj(occ[id], b.slots)))) avoidable++;
+      });
+      ds = E.addDays(ds, 1);
+    }
+  }
+  assert.equal(avoidable, 0, `피할 수 있었는데 야간 연속을 쓴 칸이 ${avoidable}개 (전체 연속 ${consecTotal}개)`);
+});
+
 test('야간 3일 연속은 강제(tier≥4)일 때만 허용 — 장기 실행 불변식', () => {
   for (let trial = 0; trial < 3; trial++) {
     const ws = roster(9);   // 빠듯한 인원 → 2연속은 흔하게 발생
@@ -401,6 +442,26 @@ test('밥교대: 이틀 뒤 당직/상황병은 다음날(D+1) 밥교대 후보�
     const s = E.generateDay(inp);
     assert.notEqual(s.nextMealId, d2, '이틀 뒤 당직이 다음날 밥교대로 뽑힘');
     assert.notEqual(s.nextMealId, s2, '이틀 뒤 상황병이 다음날 밥교대로 뽑힘');
+  }
+});
+
+test('밥교대: 이틀 전 당직/상황병이었던 사람은 오늘 밥교대에서 빠진다', () => {
+  const ws = roster(14);
+  const ids = ws.map(w => w.id);
+  const dutyW = ws.find(w => w.roleType === 'duty');
+  const sitW = ws.find(w => w.roleType === 'situation');
+  E.setDB(freshDB({ workers: ws }));
+  // 6/13에 당직/상황병 → 6/15(이틀 뒤) 밥교대 후보에서 제외되어야
+  E.getDB().schedules['2026-06-13'] = {
+    date: '2026-06-13', workHoliday: false, nextWorkHoliday: false, assign: {}, night: {}, fixed: {},
+    dutyId: dutyW.id, situationId: sitW.id, mealId: null, patrolExtra: null,
+    activeIds: ids, dayEx: [], nightEx: [], bothEx: []
+  };
+  E.invalidateStats();
+  for (let i = 0; i < 10; i++) {
+    const s = E.generateDay(E.autoInputFor('2026-06-15'));
+    assert.notEqual(s.mealId, dutyW.id, '이틀 전 당직이 오늘 밥교대로 뽑힘');
+    assert.notEqual(s.mealId, sitW.id, '이틀 전 상황병이 오늘 밥교대로 뽑힘');
   }
 });
 

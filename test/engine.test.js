@@ -673,6 +673,59 @@ test('score: 같은 그룹에서 그 시간대를 많이 선 사람일수록 뒤
     '월화목 06:30: 그룹 내 비율이 높은 B가 우선순위에서 밀리지 않음');
 });
 
+test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정되지 않는다', () => {
+  // 회귀: 배정 순서를 누적 '횟수'로 매기면 초기화로 카운터가 0이 된 사람이 남들 누적을
+  // 따라잡을 때까지 계속 먼저 뽑혀, 전환 후 몇 달간 하루 근무량이 남들보다 많아졌다.
+  // (초기화로 없애준 기록만큼을 도로 갚는 셈) → 같은 기간 환산으로 비교해야 한다.
+  const gaps = [];
+  for (let trial = 0; trial < 3; trial++) {
+    const ws = roster(13);
+    E.setDB(freshDB({ workers: ws }));
+    let ds = '2026-06-01';
+    const gen = n => { for (let d = 0; d < n; d++) {
+      E.getDB().schedules[ds] = E.generateDay(E.autoInputFor(ds)); E.invalidateStats(); ds = E.addDays(ds, 1);
+    } };
+    gen(42);                       // 6주간 공통 이력을 쌓고
+    const reset = ds;              // 이 날짜로 한 명만 카운트 초기화
+    const target = ws[0];
+    target.countResetAt = reset;
+    E.invalidateStats();
+    gen(42);                       // 다시 6주
+
+    // 초기화 이후 구간에서 '하루당 주간칸'을 비교 (초기화 무시하고 직접 집계)
+    const after = Object.keys(E.getDB().schedules).filter(d => d >= reset).sort();
+    const rate = w => {
+      let cnt = 0, den = 0;
+      after.forEach(d => {
+        const sc = E.getDB().schedules[d];
+        if (!E.presentOn(w, d, sc)) return;
+        den++;
+        E.DAY_SLOTS.forEach(sl => { if (sc.assign[sl] === w.id) cnt++; });
+      });
+      return den ? cnt / den : 0;
+    };
+    const mine = rate(target);
+    const others = ws.filter(w => w !== target && !E.isRecruit(w)).map(rate);
+    gaps.push(mine - others.reduce((a, b) => a + b, 0) / others.length);
+  }
+  const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+  // 수정 전에는 +0.15칸/일 안팎으로 벌어졌다. 환산 비교 후에는 대조군과 붙어야 한다.
+  assert.ok(Math.abs(avgGap) <= 0.08,
+    `초기화된 사람의 하루 주간칸이 대조군과 ${avgGap.toFixed(3)}칸 차이 (허용 ±0.08)`);
+});
+
+test('scaledCnt: 분모가 짧아도 같은 기간 환산으로 비교된다', () => {
+  // 같은 비율(0.5)이면 분모 길이와 무관하게 환산값이 비슷해야 한다
+  const long = E.scaledCnt(45, 90, 0.5, 90);
+  const short = E.scaledCnt(25, 50, 0.5, 90);
+  assert.ok(Math.abs(long - short) < 1, `같은 비율인데 환산값이 다름: ${long} vs ${short}`);
+  // 분모가 짧고 비율이 높으면 환산값이 커져야(= 후순위로) 한다
+  const busy = E.scaledCnt(35, 50, 0.5, 90);   // 0.70/일
+  assert.ok(busy > long, `분모 짧고 많이 선 사람이 후순위가 아님: ${busy} vs ${long}`);
+  // 이력이 전혀 없으면 부대 평균(prior)으로 취급 — 0이 아니어야 몰아주지 않는다
+  assert.ok(E.scaledCnt(0, 0, 0.5, 90) > 40, '이력 없는 사람이 0으로 취급됨(과배정 위험)');
+});
+
 test('그룹 안에서도 시간대가 분산된다: 같은 그룹 같은 슬롯 반복 제한 (8주 실행)', () => {
   // 그룹별 슬롯 비율을 배정에 안 쓰면(전체 비율만 쓰면) '수요일마다 같은 시간대' 같은
   // 그룹 내 반복이 최대 5회/평균 2.6회 수준까지 올라간다. 반영 후 기대치: 최대 3·평균 ~1.7.

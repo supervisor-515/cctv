@@ -360,6 +360,42 @@ function weekendAvgHours(r){ return r.wkndDen>0 ? r.wkndHours/r.wkndDen : 0; }
 // 주간 슬롯 총량. 고정 역할 시간과 별도로 '일반 주간칸이 한 사람에게 몰리는지'를 보기 위한 보조 페널티.
 function daySlotTotal(r){ return Object.values(r.slotNum||{}).reduce((a,b)=>a+(Number(b)||0),0); }
 
+/* ---------- 분모 보정 (같은 기간 환산) ----------
+   누적 '횟수'를 그대로 비교하면 분모가 짧은 사람(신병→역할 전환 카운트 초기화·중도 합류·
+   장기 휴가 복귀)이 남들의 누적을 따라잡을 때까지 계속 먼저 뽑힌다. 초기화로 없애준 기록만큼을
+   도로 갚게 되는 셈이라 전환자는 몇 달간 평균이 높게 유지된다.
+   → 각자 분모로 나눈 뒤 공통 기준일수(부대에서 가장 긴 분모)로 환산해서 비교한다.
+   분모가 아주 짧으면 표본이 모자라 환산값이 요동치므로 부대 평균 비율(prior)로 당겨준다. */
+const FAIR_SHRINK = 10;   // 사전분포 가중(일). 분모가 이만큼 쌓이면 실제 비율이 절반 반영된다.
+function shrunkRate(num, den, prior){ return (num + FAIR_SHRINK*prior) / (den + FAIR_SHRINK); }
+/* 누적 횟수를 '모두가 같은 기간이었다면 몇 번'으로 환산 */
+function scaledCnt(num, den, prior, ref){ return shrunkRate(num, den, prior) * ref; }
+
+// stats 객체를 키로 메모이즈 — buildStats가 새 객체를 내면 자동으로 폐기된다(_statsCache와 같은 수명).
+const _fairCache = new WeakMap();
+function fairRef(stats, g){
+  let m=_fairCache.get(stats); if(!m){ m={}; _fairCache.set(stats,m); }
+  return m[g] || (m[g] = _buildFairRef(stats, g));
+}
+function _buildFairRef(stats, g){
+  let refG=0, refS=0, refN=0, gDen=0, sDen=0, nDen=0, totNum=0;
+  const gNum={}, sNum={}, bNum={1:0,2:0,3:0,4:0};
+  DAY_SLOTS.forEach(sl=>{ gNum[sl]=0; sNum[sl]=0; });
+  activeWorkers().forEach(w=>{
+    const r=stats[w.id]; if(!r) return;
+    const gd=r.groupDen[g]||0, sd=r.slotDen||0, nd=r.nightDen||0;
+    gDen+=gd; sDen+=sd; nDen+=nd;
+    refG=Math.max(refG,gd); refS=Math.max(refS,sd); refN=Math.max(refN,nd);
+    DAY_SLOTS.forEach(sl=>{ gNum[sl]+=(r.slotGNum[g]||{})[sl]||0; sNum[sl]+=r.slotNum[sl]||0; });
+    [1,2,3,4].forEach(b=>{ bNum[b]+=r.bunchoNum[b]||0; });
+    totNum += daySlotTotal(r);
+  });
+  const gP={}, sP={}, bP={};
+  DAY_SLOTS.forEach(sl=>{ gP[sl]= gDen>0? gNum[sl]/gDen : 0; sP[sl]= sDen>0? sNum[sl]/sDen : 0; });
+  [1,2,3,4].forEach(b=>{ bP[b]= nDen>0? bNum[b]/nDen : 0; });
+  return {refG, refS, refN, gP, sP, bP, totP: sDen>0? totNum/sDen : 0};
+}
+
 /* ---------- 분포 통계 (공정성 지표) ---------- */
 function stdev(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((a,b)=>a+(b-m)*(b-m),0)/arr.length); }
 function cv(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; if(m===0)return 0; const v=arr.reduce((a,b)=>a+(b-m)*(b-m),0)/arr.length; return Math.sqrt(v)/m; }
@@ -431,8 +467,9 @@ function score(w, slotKey, opts){
     s += W_.groupRate * rate(r.nightGNum[opts.nightGrp], r.nightGDen[opts.nightGrp]);
     s += W_.nightRate * rate(r.nightNum, r.nightDen);
     s += W_.bunchoRate * rate(r.bunchoNum[opts.bunchoId], r.nightDen);
-    // 번초 반복은 비율만 보면 약하게 먹기 때문에 원횟수도 같이 페널티.
-    s += 0.45 * (r.bunchoNum[opts.bunchoId]||0);
+    // 번초 반복은 비율만 보면 약하게 먹기 때문에 원횟수도 같이 페널티(주간과 같게 분모 보정).
+    const fn = fairRef(opts.stats, opts.dayGrp);
+    s += 0.45 * scaledCnt(r.bunchoNum[opts.bunchoId]||0, r.nightDen||0, fn.bP[opts.bunchoId]||0, fn.refN);
   }else{
     const g = opts.dayGrp;
     const slotCnt = r.slotNum[slotKey]||0;                       // 전체(그룹 무관) 해당 슬롯 횟수
@@ -444,10 +481,12 @@ function score(w, slotKey, opts){
     s += W_.slotRate * rate(gSlotCnt, r.groupDen[g]);
     // 원횟수 페널티: 같은 그룹 같은 시간대 반복은 강하게, 그룹 무관 전체 반복은 보조로 민다.
     // (시간대 공정성을 더 강하게: 같은 사람이 같은 시간대를 반복해 받는 쏠림을 키운 계수로 민다)
-    s += 1.3 * gSlotCnt;
-    s += 0.4 * slotCnt;
+    // 분모가 다른 사람끼리 비교되므로 '같은 기간이었다면 몇 번'으로 환산해서 쓴다.
+    const f = fairRef(opts.stats, g);
+    s += 1.3 * scaledCnt(gSlotCnt, r.groupDen[g]||0, f.gP[slotKey]||0, f.refG);
+    s += 0.4 * scaledCnt(slotCnt, r.slotDen||0, f.sP[slotKey]||0, f.refS);
     // 보조 보정: 고정 역할이 적다는 이유로 일반 주간칸 전체가 한 명에게 몰리는 현상 방지.
-    s += 0.08 * daySlotTotal(r);
+    s += 0.08 * scaledCnt(daySlotTotal(r), r.slotDen||0, f.totP, f.refS);
   }
   if(isRecruit(w)) s += W_.recruitBias;            // 음수면 약간 우선
   s += (Math.random()-0.5) * W_.jitter;
@@ -487,8 +526,11 @@ function slotFairKey(wid, v, ctx){
   if(!v || v.type!=='day') return 0;
   const r = ctx.stats[wid]; if(!r) return 0;
   const g = ctx._dayGrp;
-  const gSlotCnt = (r.slotGNum[g]||{})[v.key]||0;   // 같은 그룹·같은 시간대 누적 횟수
-  const slotCnt  = r.slotNum[v.key]||0;             // 그룹 무관 전체 해당 시간대 횟수
+  const f = fairRef(ctx.stats, g);
+  // 누적 횟수를 그대로 쓰면 분모가 짧은 사람이 남들 누적을 따라잡을 때까지 계속 먼저 뽑힌다
+  // → 같은 기간 환산값으로 비교한다(분모가 짧을 땐 부대 평균 쪽으로 당겨짐).
+  const gSlotCnt = scaledCnt((r.slotGNum[g]||{})[v.key]||0, r.groupDen[g]||0, f.gP[v.key]||0, f.refG);
+  const slotCnt  = scaledCnt(r.slotNum[v.key]||0, r.slotDen||0, f.sP[v.key]||0, f.refS);
   // 정수 버킷: 미세 차이로 신병 우선이 흔들리지 않게 하되, 1회 이상 차이는 분명히 반영
   return Math.round(gSlotCnt*2 + slotCnt*0.5);
 }
@@ -1446,7 +1488,7 @@ if(typeof module!=='undefined' && module.exports){
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,
     // 통계
-    buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini,
+    buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, score,
     // 검증

@@ -449,6 +449,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
         </div>
         <div class="field" id="cMonthField" style="display:none"><label>월 선택</label><select id="cMonth"></select></div>
         <label class="chk"><input type="checkbox" id="cNoRecruit"> 신병 제외</label>
+        <label class="chk"><input type="checkbox" id="cShowArchived"> 보관 인원 표시</label>
       </div>
       <div class="kpi" id="cKpi"></div>
       <div class="row" style="margin-bottom:10px">
@@ -1521,6 +1522,7 @@ function refreshCountMonths(){
 $('#cView').addEventListener('change',renderCount);
 $('#cMonth').addEventListener('change',renderCount);
 $('#cNoRecruit').addEventListener('change',renderCount);
+$('#cShowArchived').addEventListener('change',renderCount);
 function fillGroupFilter(sel){
   sel.innerHTML='';
   const o0=el('option'); o0.value='all'; o0.textContent='전체 합산'; sel.appendChild(o0);
@@ -1555,7 +1557,9 @@ function renderFairness(st){
   t.appendChild(fairnessRow('추가순찰 주말/휴일', ws.map(w=>st[w.id].patrolGNum.weekend), 1));
 }
 function countWs(st){
-  let ws=DB.workers.filter(w=>w.active||st[w.id].denom>0);
+  // 보관(비활성) 인원은 기록이 남아 분모가 0이 되지 않으므로, 체크했을 때만 표시한다.
+  const arch=$('#cShowArchived').checked;
+  let ws=DB.workers.filter(w=>w.active||(arch&&st[w.id].denom>0));
   if($('#cNoRecruit').checked) ws=ws.filter(w=>!isRecruit(w));
   return ws;
 }

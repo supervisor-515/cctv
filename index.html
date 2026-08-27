@@ -685,7 +685,11 @@ function renderFuelNotice(ds){
   const box=$('#gFuelNotice'); if(!box) return;
   const f=fuelTruckOn(ds);
   if(f){
-    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 그 주 CCTV 근무에서 열외됩니다.</div>';
+    const al=fuelAllowedOn(ds);
+    const today = al.night ? '오늘(금)은 야간 번초 1개가 자동 배정됩니다.'
+                : al.day.length ? '오늘은 '+al.day[0]+'~'+al.day[al.day.length-1]+' 중 1칸이 자동 배정됩니다.'
+                : '오늘은 열외입니다.';
+    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 월~목 열외, 금 야간 1번초 · 토/일 12:30 이후 1칸만 섭니다(이 근무는 분모에 안 들어갑니다). '+today+'</div>';
   }else{
     box.innerHTML='<div class="warn">⚠ 이번 주 유조차 운전병이 등록되지 않았습니다. [달력 · 일정] 탭에서 이번 주 유조차를 등록해주세요.</div>';
   }
@@ -715,7 +719,8 @@ function refreshGenSelectors(){
   // 휴가 마지막날(복귀일)은 주간만 열외 — 복귀날 야간부터 투입 가능
   genEx.day  = new Set(existing? (existing.dayEx||[])  : pb.filter(p=> p.kind==='exday' || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid));
   genEx.both = new Set(existing? (existing.bothEx||[]) : pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid));
-  // 유조차 운전병(그 주 월~일)은 전체 열외로 자동 반영. 단 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
+  // 유조차 운전병(그 주 월~일)은 전체 열외로 자동 반영 — 금/토/일 부분근무는 generateDay가
+  // 이 열외 목록을 그대로 둔 채 해당 칸에만 따로 꽂는다(분모 제외 유지). 단 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
   if(!existing){
     const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
                            $('#gPrevDuty').value,$('#gPrevSit').value].filter(Boolean));

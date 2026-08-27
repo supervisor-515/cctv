@@ -18,6 +18,8 @@ const NIGHT_BUNCHO = [
 const SLOT_ORDER = ['06:30','07:30','08:30','09:30','10:30','11:30','12:30','13:30','14:30','15:30','16:30',
   '17:30','18:30','19:30','20:30','21:30','22:30','23:30','00:30','01:30','02:30','03:30','04:30','05:30'];
 const MORNING_AFTER_NIGHT = ['06:30','07:30','08:30']; // 전날 야간자 다음날 열외
+// 유조차 운전병(정)이 부분근무로 설 수 있는 주간 칸 (토·일 한정, 이 중 1칸)
+const FUEL_DAY_SLOTS = ['12:30','13:30','14:30','15:30','16:30'];
 const STORE_KEY = 'cctv_roster_v2';
 
 /* ---------- 기본 설정/가중치 ---------- */
@@ -114,6 +116,15 @@ function normPrebook(p){
 }
 /* 그 주에 등록된 유조차 운전병 항목 (없으면 null) */
 function fuelTruckOn(ds){ return (DB.prebook||[]).find(p=> p.kind==='fueltruck' && ds>=p.start && ds<=p.end) || null; }
+/* 유조차 운전병(정)이 그날 설 수 있는 자리 — 금: 야간 번초 1개, 토·일: 12:30 이후 주간 1칸.
+   그 외 요일은 종전대로 완전 열외. 어느 날이든 bothEx에는 계속 남으므로 분모(presentOn)에서는
+   빠지고, 실제 배정된 시간·횟수만 분자에 쌓인다 → 평균·배정률만 올라간다. */
+function fuelAllowedOn(ds){
+  const d = dow(ds);
+  if(d===5) return {day:[], night:true};
+  if(d===6 || d===0) return {day:FUEL_DAY_SLOTS.slice(), night:false};
+  return {day:[], night:false};
+}
 /* 해당 날짜에 걸리는 사전등록 목록 */
 function prebookOn(ds){ return (DB.prebook||[]).filter(p=> ds>=p.start && ds<=p.end); }
 
@@ -157,6 +168,7 @@ function normSched(s){
     dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[],
     assign:s.assign||{}, night:s.night||{},
     fixed:s.fixed||{}, patrolExtra:s.patrolExtra||null,
+    fuelId:s.fuelId||null,   // 그날 유조차 부분근무를 선 정(正) 운전병 — 검증에서 허용 칸 판정에 사용
     relaxed:s.relaxed||{}, warnings:s.warnings||[], tier:s.tier||1,
     activeIds: Array.isArray(s.activeIds) ? s.activeIds : null,
     generatedAt:s.generatedAt||null
@@ -1055,8 +1067,37 @@ function generateDay(input){
     }
   }
 
-  /* 3) 변수 집합: 주간 슬롯(고정·운항병 선점칸 제외) + 야간 번초(운항병 선점 번초 제외) */
-  const occDay = new Set(Object.keys(navDay));
+  /* 2-2) 유조차 운전병(정) 부분근무 사전배정 — 금: 야간 1번초 / 토·일: 12:30 이후 1칸.
+     bothEx에 그대로 남겨두므로 후보 풀(dayCandidates·nightCandidates·mealCandidates·순찰)과
+     분모에서는 계속 빠진다. 여기서 명시적으로 꽂는 자리만 근무로 잡힌다.
+     그날 당직/상황병 역할이 걸려 정상 근무하는 경우는 applyFuelTruckEx가 애초에 bothEx에
+     넣지 않으므로, bothEx 포함 여부로 '완전 열외 중인 유조차 인원'만 골라낸다. */
+  const fuelPb = fuelTruckOn(ds);
+  const fuelW = fuelPb && ctx.bothEx.includes(fuelPb.wid)
+    ? activeWorkers().find(w=> w.id===fuelPb.wid && !inInactive(w, ds)) : null;
+  const fuelDay = {};     // slot -> 유조차 인원 id
+  let fuelNight = null;   // {bunchoId}
+  if(fuelW){
+    const allow = fuelAllowedOn(ds);
+    const fr = ctx.stats[fuelW.id];
+    if(allow.night && !prevNight.has(fuelW.id)){
+      // 번초 균등: 그동안 가장 적게 선 번초 (운항병과 같은 기준). 운항병 선점 번초는 피한다.
+      const bn = fr ? fr.bunchoNum : {1:0,2:0,3:0,4:0};
+      const free = [1,2,3,4].filter(b=> !(navNight && navNight.bunchoId===b));
+      if(free.length) fuelNight = {bunchoId: free.reduce((a,b)=> (bn[b]||0) < (bn[a]||0) ? b : a, free[0])};
+    }
+    // 토·일 주간: 그 사람의 해당 시간대 수행 횟수가 가장 적은 칸 (slotFairKey와 같은 기준)
+    const open = allow.day.filter(sl=> !fixed[sl] && !navDay[sl]);
+    if(open.length){
+      const g = ctx._dayGrp;
+      const k = sl => fr ? ((fr.slotGNum[g]||{})[sl]||0)*2 + (fr.slotNum[sl]||0)*0.5 : 0;
+      fuelDay[open.reduce((a,b)=> k(b) < k(a) ? b : a, open[0])] = fuelW.id;
+    }
+  }
+  ctx.fuelId = (fuelNight || Object.keys(fuelDay).length) ? fuelW.id : null;
+
+  /* 3) 변수 집합: 주간 슬롯(고정·운항병/유조차 선점칸 제외) + 야간 번초(선점 번초 제외) */
+  const occDay = new Set([...Object.keys(navDay), ...Object.keys(fuelDay)]);
   DAY_SLOTS.forEach(s=>{ if(fixed[s]) occDay.add(s); });   // 13:30/14:30 당일상황 고정칸
   const dayVars = DAY_SLOTS.filter(s=>!occDay.has(s)).map(key=>({type:'day',key}));
   // 주간 변수 처리 순서 무작위화: 후보 동률(특히 '신병 먼저')일 때 늘 같은 이른 슬롯부터
@@ -1066,7 +1107,7 @@ function generateDay(input){
     const j=Math.floor(Math.random()*(i+1));
     [dayVars[i],dayVars[j]]=[dayVars[j],dayVars[i]];
   }
-  const nightVars = NIGHT_BUNCHO.filter(b=> !(navNight && navNight.bunchoId===b.id)).map(b=>({type:'night',bunchoId:b.id}));
+  const nightVars = NIGHT_BUNCHO.filter(b=> !(navNight && navNight.bunchoId===b.id) && !(fuelNight && fuelNight.bunchoId===b.id)).map(b=>({type:'night',bunchoId:b.id}));
 
   /* 3-1) 밥교대 인원은 기본적으로 야간 제외 — 야간 후보가 부족할 때만 폴백으로 자동 투입(5단계).
      단 야간열외(다음날 당직/상황병 등) 대상이면 폴백에서도 제외. */
@@ -1159,6 +1200,9 @@ function generateDay(input){
   // 운항병 사전배정 병합 (주간 고정슬롯은 일반 근무이므로 assign에, 야간은 night에)
   Object.entries(navDay).forEach(([sl,id])=>{ assign[sl]=id; });
   if(navNight) night[navNight.bunchoId]=nav.id;
+  // 유조차 부분근무 병합 (분모는 bothEx로 계속 제외되고, 이 근무시간만 분자에 쌓인다)
+  Object.entries(fuelDay).forEach(([sl,id])=>{ assign[sl]=id; });
+  if(fuelNight) night[fuelNight.bunchoId]=fuelW.id;
 
   // 미배정 경고
   DAY_SLOTS.forEach(s=>{ if(!assign[s] && !fixed[s]) warnings.push('주간 '+s+' 미배정'); });
@@ -1174,7 +1218,7 @@ function generateDay(input){
     next2DutyId:ctx.next2DutyId, next2SituationId:ctx.next2SituationId,
     nextMealAuto:ctx.nextMealAuto,
     prevDutyId:ctx.prevDutyId, prevSituationId:ctx.prevSituationId,
-    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx,
+    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx, fuelId:ctx.fuelId,
     nextWorkHoliday:ctx.nextWorkHoliday,
     assign, night, fixed, patrolExtra, relaxed, warnings, tier:usedTier,
     activeIds: activeWorkers().map(w=>w.id),   // 생성 시점 활성자 스냅샷 → 비활성자는 이 날 분모에서 제외
@@ -1227,12 +1271,17 @@ function validateSchedule(s){
   // 4) 열외 대상이 해당 영역에 배정 (14:30 당일상황병 고정 예외)
   const dEx=new Set([...(s.dayEx||[]),...(s.bothEx||[])]);
   const nEx=new Set([...(s.nightEx||[]),...(s.bothEx||[])]);
+  // 유조차 운전병(정)의 부분근무는 열외 중에도 허용된 자리 — 그 칸만 예외로 둔다
+  const fuelAllow = s.fuelId ? fuelAllowedOn(s.date) : null;
   DAY_SLOTS.forEach(sl=>{
     const id=assign[sl]; if(!id) return;
     if(sl==='14:30' && fixed['14:30']===id) return; // 당일 상황병 고정 예외
+    if(fuelAllow && id===s.fuelId && fuelAllow.day.includes(sl)) return; // 유조차 부분근무 예외
     if(dEx.has(id)) push(nameOf(id)+' 주간열외인데 '+sl+' 배정됨');
   });
-  NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id && nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨'); });
+  NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(!id) return;
+    if(fuelAllow && id===s.fuelId && fuelAllow.night) return;            // 유조차 부분근무 예외
+    if(nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨'); });
 
   // 4-2) 같은 날 야간 번초 2개 이상 (이중 야간 금지 — 하드 규칙)
   const nightCnt={};
@@ -1290,6 +1339,15 @@ function prebookConflictsFor(p, s){
   if(p.kind==='fueltruck' || p.kind==='fuelsub'){
     const roleIds=new Set([s.dutyId,s.situationId,s.prevDutyId,s.prevSituationId,s.nextDutyId,s.nextSituationId].filter(Boolean));
     if(roleIds.has(p.wid)) return out;   // 부가 유조차를 맡는 날 → 역할 근무 정상
+    // 정(正) 운전병의 허용된 부분근무(금 야간 1번초 / 토·일 12:30 이후 1칸)는 충돌이 아니다.
+    // 그 자리만 비운 사본으로 아래 일반 점검을 돌려, 허용 외 배정은 그대로 걸리게 한다.
+    if(p.kind==='fueltruck' && s.fuelId===p.wid){
+      const al=fuelAllowedOn(s.date);
+      const assign2={...(s.assign||{})}, night2={...(s.night||{})};
+      al.day.forEach(sl=>{ if(assign2[sl]===p.wid) delete assign2[sl]; });
+      if(al.night) NIGHT_BUNCHO.forEach(b=>{ if(night2[b.id]===p.wid) delete night2[b.id]; });
+      s={...s, assign:assign2, night:night2};
+    }
   }
   // 휴가·열외: 복귀일/주간열외는 주간만, 휴가 중·모두열외는 전 슬롯 점검
   const returning = p.kind==='vacation' && s.date===p.end;
@@ -1377,13 +1435,13 @@ if(typeof module!=='undefined' && module.exports){
     setDB(db){ DB = db; invalidateStats(); },
     getDB(){ return DB; },
     // 상수
-    DAY_SLOTS, EVENING, NIGHT_BUNCHO, SLOT_ORDER, MORNING_AFTER_NIGHT, STORE_KEY,
+    DAY_SLOTS, EVENING, NIGHT_BUNCHO, SLOT_ORDER, MORNING_AFTER_NIGHT, FUEL_DAY_SLOTS, STORE_KEY,
     DEFAULT_WEIGHTS, DEFAULT_SETTINGS, PREBOOK_KINDS, PREBOOK_KR, KR_HOLIDAYS,
     // 정규화/마이그레이션
     migrate, normWorker, normPrebook, normSched,
     // 날짜/그룹
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
-    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn,
+    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn, fuelAllowedOn,
     // 근무자
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,

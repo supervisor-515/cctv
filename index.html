@@ -283,7 +283,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v4.9</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v5.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -449,6 +449,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
         </div>
         <div class="field" id="cMonthField" style="display:none"><label>월 선택</label><select id="cMonth"></select></div>
         <label class="chk"><input type="checkbox" id="cNoRecruit"> 신병 제외</label>
+        <label class="chk"><input type="checkbox" id="cShowArchived"> 보관 인원 표시</label>
       </div>
       <div class="kpi" id="cKpi"></div>
       <div class="row" style="margin-bottom:10px">
@@ -592,7 +593,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
     </div>
   </section>
 </div>
-<script src="engine.js?v=4.9"></script>
+<script src="engine.js?v=5.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -684,7 +685,11 @@ function renderFuelNotice(ds){
   const box=$('#gFuelNotice'); if(!box) return;
   const f=fuelTruckOn(ds);
   if(f){
-    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 그 주 CCTV 근무에서 열외됩니다.</div>';
+    const al=fuelAllowedOn(ds);
+    const today = al.night ? '오늘(금)은 야간 번초 1개가 자동 배정됩니다.'
+                : al.day.length ? '오늘은 '+al.day[0]+'~'+al.day[al.day.length-1]+' 중 1칸이 자동 배정됩니다.'
+                : '오늘은 열외입니다.';
+    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 월~목 열외, 금 야간 1번초 · 토/일 12:30 이후 1칸만 섭니다(이 근무는 분모에 안 들어갑니다). '+today+'</div>';
   }else{
     box.innerHTML='<div class="warn">⚠ 이번 주 유조차 운전병이 등록되지 않았습니다. [달력 · 일정] 탭에서 이번 주 유조차를 등록해주세요.</div>';
   }
@@ -714,7 +719,8 @@ function refreshGenSelectors(){
   // 휴가 마지막날(복귀일)은 주간만 열외 — 복귀날 야간부터 투입 가능
   genEx.day  = new Set(existing? (existing.dayEx||[])  : pb.filter(p=> p.kind==='exday' || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid));
   genEx.both = new Set(existing? (existing.bothEx||[]) : pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid));
-  // 유조차 운전병(그 주 월~일)은 전체 열외로 자동 반영. 단 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
+  // 유조차 운전병(그 주 월~일)은 전체 열외로 자동 반영 — 금/토/일 부분근무는 generateDay가
+  // 이 열외 목록을 그대로 둔 채 해당 칸에만 따로 꽂는다(분모 제외 유지). 단 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
   if(!existing){
     const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
                            $('#gPrevDuty').value,$('#gPrevSit').value].filter(Boolean));
@@ -1521,6 +1527,7 @@ function refreshCountMonths(){
 $('#cView').addEventListener('change',renderCount);
 $('#cMonth').addEventListener('change',renderCount);
 $('#cNoRecruit').addEventListener('change',renderCount);
+$('#cShowArchived').addEventListener('change',renderCount);
 function fillGroupFilter(sel){
   sel.innerHTML='';
   const o0=el('option'); o0.value='all'; o0.textContent='전체 합산'; sel.appendChild(o0);
@@ -1555,7 +1562,9 @@ function renderFairness(st){
   t.appendChild(fairnessRow('추가순찰 주말/휴일', ws.map(w=>st[w.id].patrolGNum.weekend), 1));
 }
 function countWs(st){
-  let ws=DB.workers.filter(w=>w.active||st[w.id].denom>0);
+  // 보관(비활성) 인원은 기록이 남아 분모가 0이 되지 않으므로, 체크했을 때만 표시한다.
+  const arch=$('#cShowArchived').checked;
+  let ws=DB.workers.filter(w=>w.active||(arch&&st[w.id].denom>0));
   if($('#cNoRecruit').checked) ws=ws.filter(w=>!isRecruit(w));
   return ws;
 }
@@ -1856,11 +1865,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=4.9"></script>
+<script src="firebase-config.js?v=5.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=4.9"></script>
+<script src="sync.js?v=5.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

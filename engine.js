@@ -18,6 +18,8 @@ const NIGHT_BUNCHO = [
 const SLOT_ORDER = ['06:30','07:30','08:30','09:30','10:30','11:30','12:30','13:30','14:30','15:30','16:30',
   '17:30','18:30','19:30','20:30','21:30','22:30','23:30','00:30','01:30','02:30','03:30','04:30','05:30'];
 const MORNING_AFTER_NIGHT = ['06:30','07:30','08:30']; // 전날 야간자 다음날 열외
+// 유조차 운전병(정)이 부분근무로 설 수 있는 주간 칸 (토·일 한정, 이 중 1칸)
+const FUEL_DAY_SLOTS = ['12:30','13:30','14:30','15:30','16:30'];
 const STORE_KEY = 'cctv_roster_v2';
 
 /* ---------- 기본 설정/가중치 ---------- */
@@ -114,6 +116,15 @@ function normPrebook(p){
 }
 /* 그 주에 등록된 유조차 운전병 항목 (없으면 null) */
 function fuelTruckOn(ds){ return (DB.prebook||[]).find(p=> p.kind==='fueltruck' && ds>=p.start && ds<=p.end) || null; }
+/* 유조차 운전병(정)이 그날 설 수 있는 자리 — 금: 야간 번초 1개, 토·일: 12:30 이후 주간 1칸.
+   그 외 요일은 종전대로 완전 열외. 어느 날이든 bothEx에는 계속 남으므로 분모(presentOn)에서는
+   빠지고, 실제 배정된 시간·횟수만 분자에 쌓인다 → 평균·배정률만 올라간다. */
+function fuelAllowedOn(ds){
+  const d = dow(ds);
+  if(d===5) return {day:[], night:true};
+  if(d===6 || d===0) return {day:FUEL_DAY_SLOTS.slice(), night:false};
+  return {day:[], night:false};
+}
 /* 해당 날짜에 걸리는 사전등록 목록 */
 function prebookOn(ds){ return (DB.prebook||[]).filter(p=> ds>=p.start && ds<=p.end); }
 
@@ -157,6 +168,7 @@ function normSched(s){
     dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[],
     assign:s.assign||{}, night:s.night||{},
     fixed:s.fixed||{}, patrolExtra:s.patrolExtra||null,
+    fuelId:s.fuelId||null,   // 그날 유조차 부분근무를 선 정(正) 운전병 — 검증에서 허용 칸 판정에 사용
     relaxed:s.relaxed||{}, warnings:s.warnings||[], tier:s.tier||1,
     activeIds: Array.isArray(s.activeIds) ? s.activeIds : null,
     generatedAt:s.generatedAt||null
@@ -348,6 +360,42 @@ function weekendAvgHours(r){ return r.wkndDen>0 ? r.wkndHours/r.wkndDen : 0; }
 // 주간 슬롯 총량. 고정 역할 시간과 별도로 '일반 주간칸이 한 사람에게 몰리는지'를 보기 위한 보조 페널티.
 function daySlotTotal(r){ return Object.values(r.slotNum||{}).reduce((a,b)=>a+(Number(b)||0),0); }
 
+/* ---------- 분모 보정 (같은 기간 환산) ----------
+   누적 '횟수'를 그대로 비교하면 분모가 짧은 사람(신병→역할 전환 카운트 초기화·중도 합류·
+   장기 휴가 복귀)이 남들의 누적을 따라잡을 때까지 계속 먼저 뽑힌다. 초기화로 없애준 기록만큼을
+   도로 갚게 되는 셈이라 전환자는 몇 달간 평균이 높게 유지된다.
+   → 각자 분모로 나눈 뒤 공통 기준일수(부대에서 가장 긴 분모)로 환산해서 비교한다.
+   분모가 아주 짧으면 표본이 모자라 환산값이 요동치므로 부대 평균 비율(prior)로 당겨준다. */
+const FAIR_SHRINK = 10;   // 사전분포 가중(일). 분모가 이만큼 쌓이면 실제 비율이 절반 반영된다.
+function shrunkRate(num, den, prior){ return (num + FAIR_SHRINK*prior) / (den + FAIR_SHRINK); }
+/* 누적 횟수를 '모두가 같은 기간이었다면 몇 번'으로 환산 */
+function scaledCnt(num, den, prior, ref){ return shrunkRate(num, den, prior) * ref; }
+
+// stats 객체를 키로 메모이즈 — buildStats가 새 객체를 내면 자동으로 폐기된다(_statsCache와 같은 수명).
+const _fairCache = new WeakMap();
+function fairRef(stats, g){
+  let m=_fairCache.get(stats); if(!m){ m={}; _fairCache.set(stats,m); }
+  return m[g] || (m[g] = _buildFairRef(stats, g));
+}
+function _buildFairRef(stats, g){
+  let refG=0, refS=0, refN=0, gDen=0, sDen=0, nDen=0, totNum=0;
+  const gNum={}, sNum={}, bNum={1:0,2:0,3:0,4:0};
+  DAY_SLOTS.forEach(sl=>{ gNum[sl]=0; sNum[sl]=0; });
+  activeWorkers().forEach(w=>{
+    const r=stats[w.id]; if(!r) return;
+    const gd=r.groupDen[g]||0, sd=r.slotDen||0, nd=r.nightDen||0;
+    gDen+=gd; sDen+=sd; nDen+=nd;
+    refG=Math.max(refG,gd); refS=Math.max(refS,sd); refN=Math.max(refN,nd);
+    DAY_SLOTS.forEach(sl=>{ gNum[sl]+=(r.slotGNum[g]||{})[sl]||0; sNum[sl]+=r.slotNum[sl]||0; });
+    [1,2,3,4].forEach(b=>{ bNum[b]+=r.bunchoNum[b]||0; });
+    totNum += daySlotTotal(r);
+  });
+  const gP={}, sP={}, bP={};
+  DAY_SLOTS.forEach(sl=>{ gP[sl]= gDen>0? gNum[sl]/gDen : 0; sP[sl]= sDen>0? sNum[sl]/sDen : 0; });
+  [1,2,3,4].forEach(b=>{ bP[b]= nDen>0? bNum[b]/nDen : 0; });
+  return {refG, refS, refN, gP, sP, bP, totP: sDen>0? totNum/sDen : 0};
+}
+
 /* ---------- 분포 통계 (공정성 지표) ---------- */
 function stdev(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((a,b)=>a+(b-m)*(b-m),0)/arr.length); }
 function cv(arr){ if(!arr.length) return 0; const m=arr.reduce((a,b)=>a+b,0)/arr.length; if(m===0)return 0; const v=arr.reduce((a,b)=>a+(b-m)*(b-m),0)/arr.length; return Math.sqrt(v)/m; }
@@ -419,8 +467,9 @@ function score(w, slotKey, opts){
     s += W_.groupRate * rate(r.nightGNum[opts.nightGrp], r.nightGDen[opts.nightGrp]);
     s += W_.nightRate * rate(r.nightNum, r.nightDen);
     s += W_.bunchoRate * rate(r.bunchoNum[opts.bunchoId], r.nightDen);
-    // 번초 반복은 비율만 보면 약하게 먹기 때문에 원횟수도 같이 페널티.
-    s += 0.45 * (r.bunchoNum[opts.bunchoId]||0);
+    // 번초 반복은 비율만 보면 약하게 먹기 때문에 원횟수도 같이 페널티(주간과 같게 분모 보정).
+    const fn = fairRef(opts.stats, opts.dayGrp);
+    s += 0.45 * scaledCnt(r.bunchoNum[opts.bunchoId]||0, r.nightDen||0, fn.bP[opts.bunchoId]||0, fn.refN);
   }else{
     const g = opts.dayGrp;
     const slotCnt = r.slotNum[slotKey]||0;                       // 전체(그룹 무관) 해당 슬롯 횟수
@@ -432,10 +481,12 @@ function score(w, slotKey, opts){
     s += W_.slotRate * rate(gSlotCnt, r.groupDen[g]);
     // 원횟수 페널티: 같은 그룹 같은 시간대 반복은 강하게, 그룹 무관 전체 반복은 보조로 민다.
     // (시간대 공정성을 더 강하게: 같은 사람이 같은 시간대를 반복해 받는 쏠림을 키운 계수로 민다)
-    s += 1.3 * gSlotCnt;
-    s += 0.4 * slotCnt;
+    // 분모가 다른 사람끼리 비교되므로 '같은 기간이었다면 몇 번'으로 환산해서 쓴다.
+    const f = fairRef(opts.stats, g);
+    s += 1.3 * scaledCnt(gSlotCnt, r.groupDen[g]||0, f.gP[slotKey]||0, f.refG);
+    s += 0.4 * scaledCnt(slotCnt, r.slotDen||0, f.sP[slotKey]||0, f.refS);
     // 보조 보정: 고정 역할이 적다는 이유로 일반 주간칸 전체가 한 명에게 몰리는 현상 방지.
-    s += 0.08 * daySlotTotal(r);
+    s += 0.08 * scaledCnt(daySlotTotal(r), r.slotDen||0, f.totP, f.refS);
   }
   if(isRecruit(w)) s += W_.recruitBias;            // 음수면 약간 우선
   s += (Math.random()-0.5) * W_.jitter;
@@ -475,8 +526,11 @@ function slotFairKey(wid, v, ctx){
   if(!v || v.type!=='day') return 0;
   const r = ctx.stats[wid]; if(!r) return 0;
   const g = ctx._dayGrp;
-  const gSlotCnt = (r.slotGNum[g]||{})[v.key]||0;   // 같은 그룹·같은 시간대 누적 횟수
-  const slotCnt  = r.slotNum[v.key]||0;             // 그룹 무관 전체 해당 시간대 횟수
+  const f = fairRef(ctx.stats, g);
+  // 누적 횟수를 그대로 쓰면 분모가 짧은 사람이 남들 누적을 따라잡을 때까지 계속 먼저 뽑힌다
+  // → 같은 기간 환산값으로 비교한다(분모가 짧을 땐 부대 평균 쪽으로 당겨짐).
+  const gSlotCnt = scaledCnt((r.slotGNum[g]||{})[v.key]||0, r.groupDen[g]||0, f.gP[v.key]||0, f.refG);
+  const slotCnt  = scaledCnt(r.slotNum[v.key]||0, r.slotDen||0, f.sP[v.key]||0, f.refS);
   // 정수 버킷: 미세 차이로 신병 우선이 흔들리지 않게 하되, 1회 이상 차이는 분명히 반영
   return Math.round(gSlotCnt*2 + slotCnt*0.5);
 }
@@ -1055,8 +1109,37 @@ function generateDay(input){
     }
   }
 
-  /* 3) 변수 집합: 주간 슬롯(고정·운항병 선점칸 제외) + 야간 번초(운항병 선점 번초 제외) */
-  const occDay = new Set(Object.keys(navDay));
+  /* 2-2) 유조차 운전병(정) 부분근무 사전배정 — 금: 야간 1번초 / 토·일: 12:30 이후 1칸.
+     bothEx에 그대로 남겨두므로 후보 풀(dayCandidates·nightCandidates·mealCandidates·순찰)과
+     분모에서는 계속 빠진다. 여기서 명시적으로 꽂는 자리만 근무로 잡힌다.
+     그날 당직/상황병 역할이 걸려 정상 근무하는 경우는 applyFuelTruckEx가 애초에 bothEx에
+     넣지 않으므로, bothEx 포함 여부로 '완전 열외 중인 유조차 인원'만 골라낸다. */
+  const fuelPb = fuelTruckOn(ds);
+  const fuelW = fuelPb && ctx.bothEx.includes(fuelPb.wid)
+    ? activeWorkers().find(w=> w.id===fuelPb.wid && !inInactive(w, ds)) : null;
+  const fuelDay = {};     // slot -> 유조차 인원 id
+  let fuelNight = null;   // {bunchoId}
+  if(fuelW){
+    const allow = fuelAllowedOn(ds);
+    const fr = ctx.stats[fuelW.id];
+    if(allow.night && !prevNight.has(fuelW.id)){
+      // 번초 균등: 그동안 가장 적게 선 번초 (운항병과 같은 기준). 운항병 선점 번초는 피한다.
+      const bn = fr ? fr.bunchoNum : {1:0,2:0,3:0,4:0};
+      const free = [1,2,3,4].filter(b=> !(navNight && navNight.bunchoId===b));
+      if(free.length) fuelNight = {bunchoId: free.reduce((a,b)=> (bn[b]||0) < (bn[a]||0) ? b : a, free[0])};
+    }
+    // 토·일 주간: 그 사람의 해당 시간대 수행 횟수가 가장 적은 칸 (slotFairKey와 같은 기준)
+    const open = allow.day.filter(sl=> !fixed[sl] && !navDay[sl]);
+    if(open.length){
+      const g = ctx._dayGrp;
+      const k = sl => fr ? ((fr.slotGNum[g]||{})[sl]||0)*2 + (fr.slotNum[sl]||0)*0.5 : 0;
+      fuelDay[open.reduce((a,b)=> k(b) < k(a) ? b : a, open[0])] = fuelW.id;
+    }
+  }
+  ctx.fuelId = (fuelNight || Object.keys(fuelDay).length) ? fuelW.id : null;
+
+  /* 3) 변수 집합: 주간 슬롯(고정·운항병/유조차 선점칸 제외) + 야간 번초(선점 번초 제외) */
+  const occDay = new Set([...Object.keys(navDay), ...Object.keys(fuelDay)]);
   DAY_SLOTS.forEach(s=>{ if(fixed[s]) occDay.add(s); });   // 13:30/14:30 당일상황 고정칸
   const dayVars = DAY_SLOTS.filter(s=>!occDay.has(s)).map(key=>({type:'day',key}));
   // 주간 변수 처리 순서 무작위화: 후보 동률(특히 '신병 먼저')일 때 늘 같은 이른 슬롯부터
@@ -1066,7 +1149,7 @@ function generateDay(input){
     const j=Math.floor(Math.random()*(i+1));
     [dayVars[i],dayVars[j]]=[dayVars[j],dayVars[i]];
   }
-  const nightVars = NIGHT_BUNCHO.filter(b=> !(navNight && navNight.bunchoId===b.id)).map(b=>({type:'night',bunchoId:b.id}));
+  const nightVars = NIGHT_BUNCHO.filter(b=> !(navNight && navNight.bunchoId===b.id) && !(fuelNight && fuelNight.bunchoId===b.id)).map(b=>({type:'night',bunchoId:b.id}));
 
   /* 3-1) 밥교대 인원은 기본적으로 야간 제외 — 야간 후보가 부족할 때만 폴백으로 자동 투입(5단계).
      단 야간열외(다음날 당직/상황병 등) 대상이면 폴백에서도 제외. */
@@ -1159,6 +1242,9 @@ function generateDay(input){
   // 운항병 사전배정 병합 (주간 고정슬롯은 일반 근무이므로 assign에, 야간은 night에)
   Object.entries(navDay).forEach(([sl,id])=>{ assign[sl]=id; });
   if(navNight) night[navNight.bunchoId]=nav.id;
+  // 유조차 부분근무 병합 (분모는 bothEx로 계속 제외되고, 이 근무시간만 분자에 쌓인다)
+  Object.entries(fuelDay).forEach(([sl,id])=>{ assign[sl]=id; });
+  if(fuelNight) night[fuelNight.bunchoId]=fuelW.id;
 
   // 미배정 경고
   DAY_SLOTS.forEach(s=>{ if(!assign[s] && !fixed[s]) warnings.push('주간 '+s+' 미배정'); });
@@ -1174,7 +1260,7 @@ function generateDay(input){
     next2DutyId:ctx.next2DutyId, next2SituationId:ctx.next2SituationId,
     nextMealAuto:ctx.nextMealAuto,
     prevDutyId:ctx.prevDutyId, prevSituationId:ctx.prevSituationId,
-    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx,
+    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx, fuelId:ctx.fuelId,
     nextWorkHoliday:ctx.nextWorkHoliday,
     assign, night, fixed, patrolExtra, relaxed, warnings, tier:usedTier,
     activeIds: activeWorkers().map(w=>w.id),   // 생성 시점 활성자 스냅샷 → 비활성자는 이 날 분모에서 제외
@@ -1227,12 +1313,17 @@ function validateSchedule(s){
   // 4) 열외 대상이 해당 영역에 배정 (14:30 당일상황병 고정 예외)
   const dEx=new Set([...(s.dayEx||[]),...(s.bothEx||[])]);
   const nEx=new Set([...(s.nightEx||[]),...(s.bothEx||[])]);
+  // 유조차 운전병(정)의 부분근무는 열외 중에도 허용된 자리 — 그 칸만 예외로 둔다
+  const fuelAllow = s.fuelId ? fuelAllowedOn(s.date) : null;
   DAY_SLOTS.forEach(sl=>{
     const id=assign[sl]; if(!id) return;
     if(sl==='14:30' && fixed['14:30']===id) return; // 당일 상황병 고정 예외
+    if(fuelAllow && id===s.fuelId && fuelAllow.day.includes(sl)) return; // 유조차 부분근무 예외
     if(dEx.has(id)) push(nameOf(id)+' 주간열외인데 '+sl+' 배정됨');
   });
-  NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id && nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨'); });
+  NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(!id) return;
+    if(fuelAllow && id===s.fuelId && fuelAllow.night) return;            // 유조차 부분근무 예외
+    if(nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨'); });
 
   // 4-2) 같은 날 야간 번초 2개 이상 (이중 야간 금지 — 하드 규칙)
   const nightCnt={};
@@ -1290,6 +1381,15 @@ function prebookConflictsFor(p, s){
   if(p.kind==='fueltruck' || p.kind==='fuelsub'){
     const roleIds=new Set([s.dutyId,s.situationId,s.prevDutyId,s.prevSituationId,s.nextDutyId,s.nextSituationId].filter(Boolean));
     if(roleIds.has(p.wid)) return out;   // 부가 유조차를 맡는 날 → 역할 근무 정상
+    // 정(正) 운전병의 허용된 부분근무(금 야간 1번초 / 토·일 12:30 이후 1칸)는 충돌이 아니다.
+    // 그 자리만 비운 사본으로 아래 일반 점검을 돌려, 허용 외 배정은 그대로 걸리게 한다.
+    if(p.kind==='fueltruck' && s.fuelId===p.wid){
+      const al=fuelAllowedOn(s.date);
+      const assign2={...(s.assign||{})}, night2={...(s.night||{})};
+      al.day.forEach(sl=>{ if(assign2[sl]===p.wid) delete assign2[sl]; });
+      if(al.night) NIGHT_BUNCHO.forEach(b=>{ if(night2[b.id]===p.wid) delete night2[b.id]; });
+      s={...s, assign:assign2, night:night2};
+    }
   }
   // 휴가·열외: 복귀일/주간열외는 주간만, 휴가 중·모두열외는 전 슬롯 점검
   const returning = p.kind==='vacation' && s.date===p.end;
@@ -1377,18 +1477,18 @@ if(typeof module!=='undefined' && module.exports){
     setDB(db){ DB = db; invalidateStats(); },
     getDB(){ return DB; },
     // 상수
-    DAY_SLOTS, EVENING, NIGHT_BUNCHO, SLOT_ORDER, MORNING_AFTER_NIGHT, STORE_KEY,
+    DAY_SLOTS, EVENING, NIGHT_BUNCHO, SLOT_ORDER, MORNING_AFTER_NIGHT, FUEL_DAY_SLOTS, STORE_KEY,
     DEFAULT_WEIGHTS, DEFAULT_SETTINGS, PREBOOK_KINDS, PREBOOK_KR, KR_HOLIDAYS,
     // 정규화/마이그레이션
     migrate, normWorker, normPrebook, normSched,
     // 날짜/그룹
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
-    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn,
+    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn, fuelAllowedOn,
     // 근무자
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,
     // 통계
-    buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini,
+    buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, score,
     // 검증

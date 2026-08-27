@@ -673,6 +673,59 @@ test('score: 같은 그룹에서 그 시간대를 많이 선 사람일수록 뒤
     '월화목 06:30: 그룹 내 비율이 높은 B가 우선순위에서 밀리지 않음');
 });
 
+test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정되지 않는다', () => {
+  // 회귀: 배정 순서를 누적 '횟수'로 매기면 초기화로 카운터가 0이 된 사람이 남들 누적을
+  // 따라잡을 때까지 계속 먼저 뽑혀, 전환 후 몇 달간 하루 근무량이 남들보다 많아졌다.
+  // (초기화로 없애준 기록만큼을 도로 갚는 셈) → 같은 기간 환산으로 비교해야 한다.
+  const gaps = [];
+  for (let trial = 0; trial < 3; trial++) {
+    const ws = roster(13);
+    E.setDB(freshDB({ workers: ws }));
+    let ds = '2026-06-01';
+    const gen = n => { for (let d = 0; d < n; d++) {
+      E.getDB().schedules[ds] = E.generateDay(E.autoInputFor(ds)); E.invalidateStats(); ds = E.addDays(ds, 1);
+    } };
+    gen(42);                       // 6주간 공통 이력을 쌓고
+    const reset = ds;              // 이 날짜로 한 명만 카운트 초기화
+    const target = ws[0];
+    target.countResetAt = reset;
+    E.invalidateStats();
+    gen(42);                       // 다시 6주
+
+    // 초기화 이후 구간에서 '하루당 주간칸'을 비교 (초기화 무시하고 직접 집계)
+    const after = Object.keys(E.getDB().schedules).filter(d => d >= reset).sort();
+    const rate = w => {
+      let cnt = 0, den = 0;
+      after.forEach(d => {
+        const sc = E.getDB().schedules[d];
+        if (!E.presentOn(w, d, sc)) return;
+        den++;
+        E.DAY_SLOTS.forEach(sl => { if (sc.assign[sl] === w.id) cnt++; });
+      });
+      return den ? cnt / den : 0;
+    };
+    const mine = rate(target);
+    const others = ws.filter(w => w !== target && !E.isRecruit(w)).map(rate);
+    gaps.push(mine - others.reduce((a, b) => a + b, 0) / others.length);
+  }
+  const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+  // 수정 전에는 +0.15칸/일 안팎으로 벌어졌다. 환산 비교 후에는 대조군과 붙어야 한다.
+  assert.ok(Math.abs(avgGap) <= 0.08,
+    `초기화된 사람의 하루 주간칸이 대조군과 ${avgGap.toFixed(3)}칸 차이 (허용 ±0.08)`);
+});
+
+test('scaledCnt: 분모가 짧아도 같은 기간 환산으로 비교된다', () => {
+  // 같은 비율(0.5)이면 분모 길이와 무관하게 환산값이 비슷해야 한다
+  const long = E.scaledCnt(45, 90, 0.5, 90);
+  const short = E.scaledCnt(25, 50, 0.5, 90);
+  assert.ok(Math.abs(long - short) < 1, `같은 비율인데 환산값이 다름: ${long} vs ${short}`);
+  // 분모가 짧고 비율이 높으면 환산값이 커져야(= 후순위로) 한다
+  const busy = E.scaledCnt(35, 50, 0.5, 90);   // 0.70/일
+  assert.ok(busy > long, `분모 짧고 많이 선 사람이 후순위가 아님: ${busy} vs ${long}`);
+  // 이력이 전혀 없으면 부대 평균(prior)으로 취급 — 0이 아니어야 몰아주지 않는다
+  assert.ok(E.scaledCnt(0, 0, 0.5, 90) > 40, '이력 없는 사람이 0으로 취급됨(과배정 위험)');
+});
+
 test('그룹 안에서도 시간대가 분산된다: 같은 그룹 같은 슬롯 반복 제한 (8주 실행)', () => {
   // 그룹별 슬롯 비율을 배정에 안 쓰면(전체 비율만 쓰면) '수요일마다 같은 시간대' 같은
   // 그룹 내 반복이 최대 5회/평균 2.6회 수준까지 올라간다. 반영 후 기대치: 최대 3·평균 ~1.7.
@@ -714,29 +767,69 @@ test('normPrebook: 유조차 운전병은 그 주 월~일로 자동 확장', () 
   assert.equal(p.end, '2026-06-21');
 });
 
-test('유조차 운전병: 그 주 월~일 모든 CCTV 근무에서 열외 + 분모 제외', () => {
+test('유조차 운전병: 월~목 완전 열외, 금 야간 1번초·토/일 12:30 이후 1칸만', () => {
   const ws = roster(14);
   const fuel = ws[0];
   E.setDB(freshDB({ workers: ws }));
   E.getDB().prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' }));
   E.invalidateStats();
+  const seen = {};   // 요일별 실제 배정 결과
   for (let d = 0; d < 7; d++) {
     const ds = E.addDays('2026-06-15', d);
     const inp = E.autoInputFor(ds);
-    // 역할이 안 걸린 날은 전체 열외에 포함돼야
-    if (![inp.dutyId, inp.situationId, inp.prevDutyId, inp.prevSituationId, inp.nextDutyId, inp.nextSituationId].includes(fuel.id)) {
-      assert.ok(inp.bothEx.includes(fuel.id), ds + ' 유조차 운전병이 전체 열외에 없음');
-    }
-    const s = E.generateDay(inp);
-    E.getDB().schedules[ds] = s; E.invalidateStats();
-    assert.deepEqual(daySlotsOf(s, fuel.id), [], ds + ' 유조차 운전병이 주간 배정됨');
-    assert.ok(!Object.values(s.night).includes(fuel.id), ds + ' 유조차 운전병이 야간 배정됨');
-    assert.notEqual(s.mealId, fuel.id, ds + ' 유조차 운전병이 밥교대 배정됨');
-    assert.notEqual(s.patrolExtra, fuel.id, ds + ' 유조차 운전병이 순찰 배정됨');
+    const hasRole = [inp.dutyId, inp.situationId, inp.prevDutyId, inp.prevSituationId, inp.nextDutyId, inp.nextSituationId].includes(fuel.id);
+    if (!hasRole) assert.ok(inp.bothEx.includes(fuel.id), ds + ' 유조차 운전병이 전체 열외에 없음');
+    const s2 = E.generateDay(inp);
+    E.getDB().schedules[ds] = s2; E.invalidateStats();
+    if (hasRole) continue;   // 역할이 걸린 날은 별도 테스트에서 다룸
+
+    const day = daySlotsOf(s2, fuel.id);
+    const night = E.NIGHT_BUNCHO.filter(b => s2.night[b.id] === fuel.id).map(b => b.id);
+    seen[E.dow(ds)] = { day, night };
+
+    // 밥교대·순찰은 어느 날이든 계속 제외
+    assert.notEqual(s2.mealId, fuel.id, ds + ' 유조차 운전병이 밥교대 배정됨');
+    assert.notEqual(s2.patrolExtra, fuel.id, ds + ' 유조차 운전병이 순찰 배정됨');
+    // 허용된 부분근무는 경고를 만들지 않아야
+    const warn = E.validateSchedule(s2).filter(m => /열외인데/.test(m));
+    assert.deepEqual(warn, [], ds + ' 유조차 부분근무가 열외 위반으로 잡힘: ' + warn.join(' / '));
   }
-  // 분모 제외 확인
+
+  // 월~목: 아무 근무도 없음
+  [1, 2, 3, 4].forEach(wd => {
+    if (!seen[wd]) return;
+    assert.deepEqual(seen[wd].day, [], 'wd' + wd + ' 유조차 운전병이 주간 배정됨');
+    assert.deepEqual(seen[wd].night, [], 'wd' + wd + ' 유조차 운전병이 야간 배정됨');
+  });
+  // 금: 야간 번초 정확히 1개, 주간 0
+  if (seen[5]) {
+    assert.deepEqual(seen[5].day, [], '금요일 유조차 운전병이 주간 배정됨');
+    assert.equal(seen[5].night.length, 1, '금요일 야간 번초가 정확히 1개가 아님');
+  }
+  // 토·일: 12:30 이후 주간 정확히 1칸, 야간 0
+  [6, 0].forEach(wd => {
+    if (!seen[wd]) return;
+    assert.equal(seen[wd].day.length, 1, 'wd' + wd + ' 주간이 정확히 1칸이 아님');
+    assert.ok(E.FUEL_DAY_SLOTS.includes(seen[wd].day[0]), 'wd' + wd + ' 12:30 이전 칸(' + seen[wd].day[0] + ')에 배정됨');
+    assert.deepEqual(seen[wd].night, [], 'wd' + wd + ' 유조차 운전병이 야간 배정됨');
+  });
+
+  // 분모는 7일 전부 제외 — 근무를 서도 늘지 않는다
   const st = E.buildStats(null);
   assert.equal(st[fuel.id].denom, 0, '유조차 주간이 분모에 잡힘');
+  // 분자(누적시간)는 실제 근무한 만큼 쌓여야 → 평균만 오르는 구조
+  const worked = Object.keys(seen).reduce((a, wd) => a + seen[wd].day.length + seen[wd].night.length, 0);
+  assert.equal(st[fuel.id].hours, worked, '근무한 시간이 분자에 안 쌓임');
+  assert.ok(worked > 0, '유조차 부분근무가 한 번도 안 잡힘');
+});
+
+test('fuelAllowedOn: 금=야간만, 토·일=12:30 이후 주간만, 월~목=없음', () => {
+  assert.deepEqual(E.fuelAllowedOn('2026-06-19'), { day: [], night: true });            // 금
+  assert.deepEqual(E.fuelAllowedOn('2026-06-20'), { day: E.FUEL_DAY_SLOTS, night: false }); // 토
+  assert.deepEqual(E.fuelAllowedOn('2026-06-21'), { day: E.FUEL_DAY_SLOTS, night: false }); // 일
+  [15, 16, 17, 18].forEach(d => {
+    assert.deepEqual(E.fuelAllowedOn('2026-06-' + d), { day: [], night: false }, '2026-06-' + d);
+  });
 });
 
 test('유조차 운전병이 당직이면 당직 관련 근무는 그대로 선다 (전날 19:30·당일 당직·다음날 21:30)', () => {

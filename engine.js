@@ -154,7 +154,7 @@ function isHolidayDate(ds){ return !!holidayName(ds); }
 
 function normSched(s){
   s = s||{};
-  return {
+  const out = {
     date: s.date,
     workHoliday: !!s.workHoliday,
     nextWorkHoliday: !!s.nextWorkHoliday,
@@ -166,13 +166,22 @@ function normSched(s){
     prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null,
     mealId:s.mealId||null,
     dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[],
-    assign:s.assign||{}, night:s.night||{},
-    fixed:s.fixed||{}, patrolExtra:s.patrolExtra||null,
+    assign:{...(s.assign||{})}, night:s.night||{},
+    fixed:{...(s.fixed||{})}, patrolExtra:s.patrolExtra||null,
     fuelId:s.fuelId||null,   // 그날 유조차 부분근무를 선 정(正) 운전병 — 검증에서 허용 칸 판정에 사용
     relaxed:s.relaxed||{}, warnings:s.warnings||[], tier:s.tier||1,
     activeIds: Array.isArray(s.activeIds) ? s.activeIds : null,
     generatedAt:s.generatedAt||null
   };
+  // 구버전 수동 수정으로 같은 고정칸이 양쪽에 남은 경우 복구한다.
+  // 화면은 assign을 우선 표시했으므로 그 사람을 유지하고 fixed 하나로 합친다.
+  ['13:30','14:30'].forEach(slot=>{
+    if(out.assign[slot] && out.fixed[slot]){
+      out.fixed[slot]=out.assign[slot];
+      delete out.assign[slot];
+    }
+  });
+  return out;
 }
 
 /* ---------- 날짜/그룹 유틸 ---------- */

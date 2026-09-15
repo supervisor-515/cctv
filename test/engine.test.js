@@ -10,7 +10,7 @@ const E = require('../engine.js');
 
 /* 절대 허용되지 않는 위반 메시지 (완화 사다리로도 허용 안 됨)
    — '야간 연속(전날 야간 → …)'은 tier3 완화로 허용되므로 제외 */
-const HARD = /인접 슬롯 연속근무|이중 야간 금지|에 배정됨\(금지\)|주간열외인데|야간\/전체열외인데|날짜경계 연속근무/;
+const HARD = /인접 슬롯 연속근무|이중 야간 금지|에 배정됨\(금지\)|주간열외인데|야간\/전체열외인데|시간대 열외인데|날짜경계 연속근무/;
 
 function freshDB(over = {}) {
   return Object.assign({
@@ -103,6 +103,103 @@ test('generateDay: 주간 열외(dayEx)·전체 열외(bothEx) 준수', () => {
   assert.deepEqual(daySlotsOf(s, ws[0].id), [], '주간 열외자가 주간에 배정됨');
   assert.deepEqual(daySlotsOf(s, ws[1].id), [], '전체 열외자가 주간에 배정됨');
   assert.ok(!Object.values(s.night).includes(ws[1].id), '전체 열외자가 야간에 배정됨');
+});
+
+/* ---------- 시간대 열외 (slotEx) ---------- */
+test('normSlotEx: 모르는 단위·빈 목록·중복을 걸러낸다', () => {
+  const s = E.normSched({ slotEx: { a: ['06:30', '06:30', 'N2', '17:30', 'zzz'], b: [], c: 'nope' } });
+  assert.deepEqual(s.slotEx, { a: ['06:30', 'N2'] });
+});
+
+test('EX_BANDS: 아침·오전·오후가 주간 11칸을 겹침 없이 덮는다', () => {
+  const day = E.EX_BANDS.filter(b => b.id !== 'night').reduce((a, b) => a.concat(b.units), []);
+  assert.deepEqual(day, E.DAY_SLOTS);
+  assert.equal(new Set(E.EX_UNITS).size, E.DAY_SLOTS.length + 4);
+});
+
+test('시간대 열외: 지정한 주간 칸에는 안 들어가고 나머지 칸에는 그대로 들어간다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-16';
+  const morning = E.EX_BANDS.find(b => b.id === 'morning').units;   // 06:30~08:30
+  const inp = E.autoInputFor(ds);
+  inp.slotEx = { [ws[0].id]: morning.slice() };
+  const s = E.generateDay(inp);
+  morning.forEach(sl => {
+    assert.notEqual(s.assign[sl], ws[0].id, '아침 열외자가 ' + sl + '에 배정됨');
+  });
+  assert.deepEqual(E.validateSchedule(s).filter(m => HARD.test(m)), []);
+  // 부분 열외는 완전 열외가 아니다 — 주간 후보 풀에는 계속 남아야 한다
+  assert.ok(E.dayCandidates(ds, { dayEx: [], bothEx: [], slotEx: inp.slotEx, workHoliday: false })
+    .some(w => w.id === ws[0].id), '부분 열외자가 주간 후보에서 통째로 빠짐');
+});
+
+test('시간대 열외: 지정한 번초에는 안 들어간다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const inp = E.autoInputFor('2026-06-16');
+  inp.slotEx = { [ws[0].id]: ['N1', 'N3'] };
+  const s = E.generateDay(inp);
+  assert.notEqual(s.night[1], ws[0].id, '1번초 열외자가 1번초에 배정됨');
+  assert.notEqual(s.night[3], ws[0].id, '3번초 열외자가 3번초에 배정됨');
+  assert.deepEqual(E.validateSchedule(s).filter(m => HARD.test(m)), []);
+});
+
+test('밥교대 후보: 아침·오후 열외는 빠지고 오전만 열외는 남는다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-16';
+  const band = id => E.EX_BANDS.find(b => b.id === id).units.slice();
+  const ctx = { dayEx: [], bothEx: [], slotEx: {
+    [ws[0].id]: band('morning'),     // 07:00~08:30 밥교대와 겹침
+    [ws[1].id]: band('forenoon'),    // 09:30~11:30 — 밥교대 근무시간과 안 겹침
+    [ws[2].id]: band('afternoon'),   // 13:00~15:00 밥교대와 겹침
+    [ws[3].id]: band('night'),       // 야간만 — 밥교대와 무관
+  } };
+  const ids = E.mealCandidates(ds, ctx).map(w => w.id);
+  assert.ok(!ids.includes(ws[0].id), '아침 열외자가 밥교대 후보에 남음');
+  assert.ok(!ids.includes(ws[2].id), '오후 열외자가 밥교대 후보에 남음');
+  assert.ok(ids.includes(ws[1].id), '오전만 열외인데 밥교대 후보에서 빠짐');
+  assert.ok(ids.includes(ws[3].id), '야간만 열외인데 밥교대 후보에서 빠짐');
+});
+
+test('순찰 후보: 16:30 열외자만 빠진다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const ds = '2026-06-16';
+  const ctx = { dayEx: [], bothEx: [], workHoliday: false, slotEx: {
+    [ws[0].id]: ['16:30'],           // 17:00 순찰과 겹침
+    [ws[1].id]: ['06:30', 'N2'],     // 순찰과 무관
+  } };
+  const ids = E.patrolCandidates(ds, ctx, {}, {}).map(w => w.id);
+  assert.ok(!ids.includes(ws[0].id), '16:30 열외자가 순찰 후보에 남음');
+  assert.ok(ids.includes(ws[1].id), '순찰과 무관한 열외자가 순찰 후보에서 빠짐');
+});
+
+test('validateSchedule: 시간대 열외 위반을 잡아낸다', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const s = E.normSched({
+    date: '2026-06-16',
+    slotEx: { [ws[0].id]: ['09:30', 'N2'] },
+    assign: { '09:30': ws[0].id }, night: { 2: ws[0].id }
+  });
+  const msgs = E.validateSchedule(s);
+  assert.ok(msgs.some(m => /09:30 시간대 열외인데 배정됨/.test(m)), msgs.join(' / '));
+  assert.ok(msgs.some(m => /2번초 시간대 열외인데 배정됨/.test(m)), msgs.join(' / '));
+});
+
+test('validateSchedule: 시간대 열외가 밥교대·순찰 근무시간과 겹치면 경고', () => {
+  const ws = roster(14);
+  E.setDB(freshDB({ workers: ws }));
+  const s = E.normSched({
+    date: '2026-06-16',
+    slotEx: { [ws[0].id]: ['13:30'], [ws[1].id]: ['16:30'] },
+    mealId: ws[0].id, patrolExtra: ws[1].id
+  });
+  const msgs = E.validateSchedule(s);
+  assert.ok(msgs.some(m => /밥교대.*시간대 열외/.test(m)), msgs.join(' / '));
+  assert.ok(msgs.some(m => /순찰.*16:30 시간대 열외/.test(m)), msgs.join(' / '));
 });
 
 test('generateDay: 전날 야간자는 다음날 아침(06:30~08:30) 금지', () => {

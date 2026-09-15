@@ -20,6 +20,21 @@ const SLOT_ORDER = ['06:30','07:30','08:30','09:30','10:30','11:30','12:30','13:
 const MORNING_AFTER_NIGHT = ['06:30','07:30','08:30']; // 전날 야간자 다음날 열외
 // 유조차 운전병(정)이 부분근무로 설 수 있는 주간 칸 (토·일 한정, 이 중 1칸)
 const FUEL_DAY_SLOTS = ['12:30','13:30','14:30','15:30','16:30'];
+/* 시간대 열외(부분 열외) 밴드 — 주간 11칸을 셋으로 끊고 야간은 번초 4개.
+   저녁(17:30~21:30)은 역할 고정이라 열외 대상이 아니다. */
+const EX_BANDS = [
+  {id:'morning',   label:'아침', range:'06:30~08:30', units:['06:30','07:30','08:30']},
+  {id:'forenoon',  label:'오전', range:'09:30~11:30', units:['09:30','10:30','11:30']},
+  {id:'afternoon', label:'오후', range:'12:30~16:30', units:['12:30','13:30','14:30','15:30','16:30']},
+  {id:'night',     label:'야간', range:'1~4번초',    units:['N1','N2','N3','N4']},
+];
+// 열외 단위: 주간은 슬롯명, 야간은 번초('N1'~'N4')
+const EX_UNITS = EX_BANDS.reduce((a,b)=> a.concat(b.units), []);
+// 밥교대 근무시간(07:00~08:30 · 13:00~15:00 · 17:00~18:30)과 겹치는 주간 슬롯.
+// 이 중 하나라도 열외면 밥교대를 설 수 없다 — 오전(09:30~11:30)만 열외면 밥교대 가능.
+const MEAL_WORK_SLOTS = ['06:30','07:30','08:30','12:30','13:30','14:30'];
+// 17:00 추가 순찰이 걸리는 슬롯(16:30 = 16:30~17:30)
+const PATROL_SLOT = '16:30';
 const STORE_KEY = 'cctv_roster_v2';
 
 /* ---------- 기본 설정/가중치 ---------- */
@@ -152,6 +167,30 @@ const KR_HOLIDAYS = {
 function holidayName(ds){ return (DB.holidays&&DB.holidays[ds]) || KR_HOLIDAYS[ds] || null; }
 function isHolidayDate(ds){ return !!holidayName(ds); }
 
+/* ---------- 시간대 열외(slotEx) 헬퍼 ----------
+   slotEx = { 근무자id: ['06:30','N3',...] } — '부분' 열외만 담는다.
+   주간 전체는 dayEx, 야간 전체는 nightEx, 종일+분모제외는 bothEx가 계속 맡는다. */
+function normSlotEx(raw){
+  const out={};
+  Object.entries(raw||{}).forEach(([wid,units])=>{
+    const list=[...new Set((Array.isArray(units)?units:[]).filter(u=>EX_UNITS.includes(u)))];
+    if(list.length) out[wid]=list;
+  });
+  return out;
+}
+/* 배정 변수(주간 슬롯 / 야간 번초) → 열외 단위 키 */
+function exUnitOf(v){ return v.type==='day' ? v.key : 'N'+v.bunchoId; }
+/* wid가 그 단위에서 빠져 있는가 */
+function slotExcluded(ctx, wid, unit){
+  const u=(ctx && ctx.slotEx || {})[wid];
+  return !!u && u.includes(unit);
+}
+/* 부분 열외가 밥교대 근무시간과 겹치는가 */
+function mealBlockedBySlotEx(ctx, wid){
+  const u=(ctx && ctx.slotEx || {})[wid];
+  return !!u && u.some(x=>MEAL_WORK_SLOTS.includes(x));
+}
+
 function normSched(s){
   s = s||{};
   const out = {
@@ -165,7 +204,7 @@ function normSched(s){
     next2DutyId:s.next2DutyId||null, next2SituationId:s.next2SituationId||null,
     prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null,
     mealId:s.mealId||null,
-    dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[],
+    dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[], slotEx:normSlotEx(s.slotEx),
     assign:{...(s.assign||{})}, night:s.night||{},
     fixed:{...(s.fixed||{})}, patrolExtra:s.patrolExtra||null,
     fuelId:s.fuelId||null,   // 그날 유조차 부분근무를 선 정(正) 운전병 — 검증에서 허용 칸 판정에 사용
@@ -451,7 +490,8 @@ function mealCandidates(ds, ctx){
   ].filter(Boolean));
   const prevN = ctx._prevNight || new Set();
   // 운항병은 고정 부하가 커 밥교대 후보에서 제외
-  const base = baseEligible(ds).filter(w=> w.canMeal && w.roleReady!==false && !isNavigator(w) && !ex.has(w.id));
+  const base = baseEligible(ds).filter(w=> w.canMeal && w.roleReady!==false && !isNavigator(w)
+                                          && !ex.has(w.id) && !mealBlockedBySlotEx(ctx, w.id));
   const nextRole  = new Set([ctx.nextDutyId, ctx.nextSituationId].filter(Boolean));
   const prev2Role = new Set([ctx.prev2DutyId, ctx.prev2SituationId].filter(Boolean));
   // 소프트 제약을 순서대로 적용 — 어떤 단계가 후보를 0명으로 만들면 그 단계만 건너뛴다(미배정 방지)
@@ -1000,7 +1040,8 @@ function resolveNextMeal(ds, ctx){
    평일/주말·휴일 그룹별 순찰 배정률이 가장 낮은 한 명 선정 */
 function patrolCandidates(ds, ctx, assign, fixed){
   const ex = new Set([assign['16:30'], fixed['17:30'], ...ctx.bothEx].filter(Boolean));
-  return dayCandidates(ds, ctx).filter(w=> !ex.has(w.id));
+  // 17:00 순찰은 16:30 슬롯(16:30~17:30) 안에 들어간다 — 그 칸이 열외면 제외
+  return dayCandidates(ds, ctx).filter(w=> !ex.has(w.id) && !slotExcluded(ctx, w.id, PATROL_SLOT));
 }
 function assignPatrol(ds, ctx, assign, fixed){
   const cands = patrolCandidates(ds, ctx, assign, fixed);
@@ -1037,6 +1078,7 @@ function generateDay(input){
     prevDutyId: prev ? prev.dutyId : (input.prevDutyId||null),
     prevSituationId: prev ? prev.situationId : (input.prevSituationId||null),
     dayEx: input.dayEx||[], nightEx: input.nightEx||[], bothEx: input.bothEx||[],
+    slotEx: normSlotEx(input.slotEx),
     nextWorkHoliday: !!input.nextWorkHoliday,
   };
   // 통계는 '이 날짜 이전' 표 기준
@@ -1096,7 +1138,9 @@ function generateDay(input){
     // 주간 고정: 그날 주간 열외 대상(상황병·당직·전날역할·밥교대·주간열외)이 아니면 적용
     const dayEx = new Set([ctx.prevDutyId,ctx.dutyId,ctx.prevSituationId,ctx.situationId,ctx.mealId,...ctx.dayEx].filter(Boolean));
     if(!dayEx.has(nav.id)){
-      navFixedDaySlots(ds, ctx.workHoliday).forEach(sl=>{ if(!fixed[sl]) navDay[sl]=nav.id; });
+      navFixedDaySlots(ds, ctx.workHoliday).forEach(sl=>{
+        if(!fixed[sl] && !slotExcluded(ctx, nav.id, sl)) navDay[sl]=nav.id;   // 시간대 열외면 그 칸만 빠짐
+      });
     }
     // 야간: 금(wd5)/토(wd6)에 균등 배분으로 매주 1회. 야간 열외 대상이면 건너뜀(다른 날이 흡수).
     const nightEx = new Set([ctx.prevDutyId,ctx.dutyId,ctx.nextDutyId,ctx.prevSituationId,ctx.situationId,ctx.nextSituationId,ctx.nextMealId,...ctx.nightEx].filter(Boolean));
@@ -1112,8 +1156,11 @@ function generateDay(input){
       if(take){
         // 번초 균등: 그동안 가장 적게 선 번초 선택
         const bn = ctx.stats[nav.id] ? ctx.stats[nav.id].bunchoNum : {1:0,2:0,3:0,4:0};
-        const pick = [1,2,3,4].reduce((a,b)=> (bn[b]||0) < (bn[a]||0) ? b : a, 1);
-        navNight = {bunchoId: pick};
+        const open = [1,2,3,4].filter(b=> !slotExcluded(ctx, nav.id, 'N'+b));   // 시간대 열외된 번초는 제외
+        if(open.length){
+          const pick = open.reduce((a,b)=> (bn[b]||0) < (bn[a]||0) ? b : a, open[0]);
+          navNight = {bunchoId: pick};
+        }
       }
     }
   }
@@ -1177,7 +1224,12 @@ function generateDay(input){
   const nightCand = nightCandidates(ds, ctx).map(w=>w.id)
     .filter(id=> id!==ctx.mealId); // 밥교대는 기본 야간 제외 (부족 시에만 폴백 투입)
   const vars = dayVars.concat(nightVars);
-  const domains = vars.map(v=> v.type==='day'? dayCand.slice() : nightCand.slice());
+  // 시간대 열외는 칸마다 다르므로 도메인을 변수별로 거른다.
+  // solve()·1-opt는 domains[i]를 그대로 돌고 2-opt도 domains 포함 여부를 검사하므로 여기 한 곳이면 된다.
+  const domains = vars.map(v=>{
+    const unit = exUnitOf(v);
+    return (v.type==='day'? dayCand : nightCand).filter(id=> !slotExcluded(ctx, id, unit));
+  });
 
   // 당일 부하 사전 반영: 고정 역할 슬롯(14:30·17:30·18:30·19:30·20:30·21:30).
   // 이렇게 해야 '고정까지 포함해 하루 균등'이 되고, 다음날 상황/당직병(주간 후보엔 들어감)이 주간을 덧받지 않음.
@@ -1269,7 +1321,7 @@ function generateDay(input){
     next2DutyId:ctx.next2DutyId, next2SituationId:ctx.next2SituationId,
     nextMealAuto:ctx.nextMealAuto,
     prevDutyId:ctx.prevDutyId, prevSituationId:ctx.prevSituationId,
-    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx, fuelId:ctx.fuelId,
+    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx, slotEx:ctx.slotEx, fuelId:ctx.fuelId,
     nextWorkHoliday:ctx.nextWorkHoliday,
     assign, night, fixed, patrolExtra, relaxed, warnings, tier:usedTier,
     activeIds: activeWorkers().map(w=>w.id),   // 생성 시점 활성자 스냅샷 → 비활성자는 이 날 분모에서 제외
@@ -1322,6 +1374,7 @@ function validateSchedule(s){
   // 4) 열외 대상이 해당 영역에 배정 (14:30 당일상황병 고정 예외)
   const dEx=new Set([...(s.dayEx||[]),...(s.bothEx||[])]);
   const nEx=new Set([...(s.nightEx||[]),...(s.bothEx||[])]);
+  const sEx=s.slotEx||{};
   // 유조차 운전병(정)의 부분근무는 열외 중에도 허용된 자리 — 그 칸만 예외로 둔다
   const fuelAllow = s.fuelId ? fuelAllowedOn(s.date) : null;
   DAY_SLOTS.forEach(sl=>{
@@ -1329,10 +1382,18 @@ function validateSchedule(s){
     if(sl==='14:30' && fixed['14:30']===id) return; // 당일 상황병 고정 예외
     if(fuelAllow && id===s.fuelId && fuelAllow.day.includes(sl)) return; // 유조차 부분근무 예외
     if(dEx.has(id)) push(nameOf(id)+' 주간열외인데 '+sl+' 배정됨');
+    else if(sEx[id] && sEx[id].includes(sl)) push(nameOf(id)+' '+sl+' 시간대 열외인데 배정됨');
   });
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(!id) return;
     if(fuelAllow && id===s.fuelId && fuelAllow.night) return;            // 유조차 부분근무 예외
-    if(nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨'); });
+    if(nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨');
+    else if(sEx[id] && sEx[id].includes('N'+b.id)) push(nameOf(id)+' '+b.id+'번초 시간대 열외인데 배정됨'); });
+
+  // 4-1) 시간대 열외가 밥교대·17:00 순찰 근무시간과 겹치는데 배정된 경우
+  if(s.mealId && mealBlockedBySlotEx(s, s.mealId))
+    push('밥교대('+nameOf(s.mealId)+')가 밥교대 근무시간(07:00~08:30·13:00~15:00)에 시간대 열외입니다.');
+  if(s.patrolExtra && sEx[s.patrolExtra] && sEx[s.patrolExtra].includes(PATROL_SLOT))
+    push('순찰('+nameOf(s.patrolExtra)+')이 '+PATROL_SLOT+' 시간대 열외인데 배정되었습니다.');
 
   // 4-2) 같은 날 야간 번초 2개 이상 (이중 야간 금지 — 하드 규칙)
   const nightCnt={};
@@ -1487,6 +1548,7 @@ if(typeof module!=='undefined' && module.exports){
     getDB(){ return DB; },
     // 상수
     DAY_SLOTS, EVENING, NIGHT_BUNCHO, SLOT_ORDER, MORNING_AFTER_NIGHT, FUEL_DAY_SLOTS, STORE_KEY,
+    EX_BANDS, EX_UNITS, MEAL_WORK_SLOTS, PATROL_SLOT, normSlotEx, slotExcluded,
     DEFAULT_WEIGHTS, DEFAULT_SETTINGS, PREBOOK_KINDS, PREBOOK_KR, KR_HOLIDAYS,
     // 정규화/마이그레이션
     migrate, normWorker, normPrebook, normSched,
@@ -1499,7 +1561,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, score,
+    generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor
   };

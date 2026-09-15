@@ -150,8 +150,6 @@ details.adv summary{cursor:pointer;padding:11px 0;font-weight:700;font-size:12.5
 details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px}
 .smallnote{font-size:11px;color:var(--ink-faint);line-height:1.6}
 /* 열외 선택 칩 (터치 토글) */
-.exgrp{margin-bottom:14px}
-.exgrp>label{display:block;font-size:11.5px;color:var(--ink-dim);font-weight:600;margin-bottom:7px;letter-spacing:.03em}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips:empty::after{content:'활성 근무자가 없습니다';color:var(--ink-faint);font-size:11.5px}
 .chip{
@@ -162,6 +160,39 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .chip:active{transform:scale(.94)}
 .chip.on{background:var(--amber);border-color:var(--amber);color:#1a1206;box-shadow:0 3px 12px -4px var(--amber)}
 .chip .rk{font-family:var(--mono);font-size:9.5px;opacity:.65;margin-left:5px}
+.chip.part{background:var(--panel2);border-color:var(--amber);color:var(--ink)}
+/* 이름 옆 4칸 미니바 — 아침·오전·오후·야간 */
+.exbar{display:inline-flex;gap:2px;margin-left:6px;vertical-align:middle}
+.exbar i{width:5px;height:11px;border-radius:1.5px;background:var(--line);display:block}
+.exbar i.f{background:var(--amber)}
+.exbar i.p{background:linear-gradient(to top,var(--amber) 50%,var(--line) 50%)}
+.chip.on .exbar i{background:rgba(26,18,6,.28)}
+.chip.on .exbar i.f{background:#1a1206}
+.chip.on .exbar i.p{background:linear-gradient(to top,#1a1206 50%,rgba(26,18,6,.28) 50%)}
+/* 탭하면 칩 아래로 펼쳐지는 시간대 패널 */
+.expanel{flex:1 1 100%;border:1px solid var(--amber);border-radius:10px;padding:12px 13px;background:var(--panel2)}
+.expanel .who{font-size:12px;font-weight:700;color:var(--amber);margin-bottom:9px}
+.expanel .brow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+.exb{font-family:var(--kr);font-size:12px;font-weight:600;color:var(--ink-dim);background:var(--panel);
+  border:1px solid var(--line);border-radius:7px;padding:7px 11px;cursor:pointer;user-select:none;
+  -webkit-tap-highlight-color:transparent;transition:.12s;text-align:left}
+.exb:active{transform:scale(.96)}
+.exb.on{background:var(--amber);border-color:var(--amber);color:#1a1206}
+.exb .rg{font-family:var(--mono);font-size:9.5px;opacity:.6;margin-left:5px}
+.exb.clr{color:var(--ink-faint)}
+.expanel details{margin:2px 0 8px}
+.expanel details summary{cursor:pointer;font-size:11.5px;color:var(--ink-dim);font-weight:600;padding:4px 0}
+.expanel .units{display:flex;gap:5px;flex-wrap:wrap;padding:6px 0 2px}
+.exu{font-family:var(--mono);font-size:11px;color:var(--ink-dim);background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;padding:5px 7px;cursor:pointer;user-select:none;
+  -webkit-tap-highlight-color:transparent;transition:.12s}
+.exu.on{background:var(--amber);border-color:var(--amber);color:#1a1206}
+/* 상단 열외 현황 요약 */
+.exsum{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:11px;font-size:12px}
+.exsum .none{color:var(--ink-faint);font-size:11.5px}
+.exsum .e{border:1px solid var(--amber);color:var(--amber);border-radius:20px;padding:3px 10px;font-size:11.5px}
+.exsum .e b{font-weight:700}
+.exsum .e .w{font-family:var(--mono);font-size:10px;opacity:.75;margin-left:5px}
 .prevbox{margin-top:12px;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:12px 14px;font-size:12.5px}
 .prevbox:empty{display:none}
 .prevbox .pl{font-size:11px;color:var(--ink-dim);font-weight:700;letter-spacing:.04em;margin:0 0 7px;text-transform:uppercase}
@@ -283,7 +314,7 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v5.2</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v5.3</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <div class="clock" id="clock">--:--</div>
   </header>
@@ -406,15 +437,10 @@ body.ro select.cellsel{pointer-events:none;opacity:.7}
       <div id="gPreview" class="prevbox"></div>
       <details class="adv" open>
         <summary>열외자 지정</summary>
-        <div class="exgrp">
-          <label>주간 열외</label>
-          <div class="chips" id="gExDay"></div>
-        </div>
-        <div class="exgrp">
-          <label>주간·야간 모두 열외 (분모 제외)</label>
-          <div class="chips" id="gExBoth"></div>
-        </div>
-        <p class="smallnote">이름을 탭하면 켜지고(주황), 다시 탭하면 꺼집니다. ‘모두 열외’는 해당일 분모(겪은 근무표 수)에서도 제외됩니다.</p>
+        <div class="exsum" id="gExSummary"></div>
+        <div class="chips" id="gExChips"></div>
+        <p class="smallnote">이름을 탭하면 시간대 선택이 펼쳐집니다. 이름 옆 막대는 왼쪽부터 <b>아침·오전·오후·야간</b> 열외 여부입니다.<br>
+          저녁(17:30~21:30)은 역할 고정이라 열외 대상이 아닙니다. ‘분모에서 제외’는 종일 열외일 때만 켤 수 있고, 켜면 그날 분모(겪은 근무표 수)에서도 빠집니다.</p>
       </details>
       <div class="divider"></div>
       <div class="flexgap">
@@ -717,14 +743,16 @@ function refreshGenSelectors(){
   }
   fillSelect($('#gMeal'), mealList(), {blank:'— 자동 배정 —', selected: existing?existing.mealId:(prev?prev.nextMealId:null)});
   // 휴가 마지막날(복귀일)은 주간만 열외 — 복귀날 야간부터 투입 가능
-  genEx.day  = new Set(existing? (existing.dayEx||[])  : pb.filter(p=> p.kind==='exday' || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid));
-  genEx.both = new Set(existing? (existing.bothEx||[]) : pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid));
+  setGenExFrom(existing ? existing : {
+    dayEx:  pb.filter(p=> p.kind==='exday'  || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid),
+    bothEx: pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid)
+  });
   // 유조차 운전병(그 주 월~일)은 전체 열외로 자동 반영 — 금/토/일 부분근무는 generateDay가
   // 이 열외 목록을 그대로 둔 채 해당 칸에만 따로 꽂는다(분모 제외 유지). 단 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
   if(!existing){
     const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
                            $('#gPrevDuty').value,$('#gPrevSit').value].filter(Boolean));
-    pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub').forEach(p=>{ if(!roleIds.has(p.wid)) genEx.both.add(p.wid); });
+    pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub').forEach(p=>{ if(!roleIds.has(p.wid)) exMarkFull(p.wid, true); });
   }
   renderExChips();
   renderFuelNotice(ds);
@@ -758,24 +786,135 @@ function fillPrevSelect(sel, list, selId, enable){
   }
   sel.disabled=!enable;
 }
-/* 열외 칩 상태 (터치 토글) */
-const genEx = { day:new Set(), both:new Set() };
-function renderExChips(){
-  const list = DB.workers.filter(w=>w.active);
-  [['day','#gExDay'],['both','#gExBoth']].forEach(([kind,sel])=>{
-    const box=$(sel); box.innerHTML='';
-    list.forEach(w=>{
-      const c=el('div','chip'+(genEx[kind].has(w.id)?' on':''));
-      c.textContent=w.name;
-      if(isRecruit(w)){ const r=el('span','rk','신병'); c.appendChild(r); }
-      c.addEventListener('click',()=>{
-        if(genEx[kind].has(w.id)) genEx[kind].delete(w.id); else genEx[kind].add(w.id);
-        c.classList.toggle('on');
-        previewGen();
-      });
-      box.appendChild(c);
-    });
+/* ---------- 열외 상태 (시간대 단위) ----------
+   units: 근무자id -> Set(열외 단위)   ·   omit: 분모에서도 뺄 사람(종일 열외일 때만)
+   화면에서는 한 덩어리로 다루고, 저장할 때 dayEx/nightEx/bothEx/slotEx로 다시 쪼갠다. */
+const NIGHT_UNITS = ['N1','N2','N3','N4'];
+const genEx = { units:{}, omit:new Set(), open:null, detail:false };
+
+function exUnitsOf(wid){ return genEx.units[wid] || (genEx.units[wid]=new Set()); }
+function exSetOf(wid){ return genEx.units[wid] || new Set(); }
+/* 밴드가 통째로 켜졌는지 / 일부만인지 */
+function exBandState(wid, band){
+  const set=exSetOf(wid);
+  const n=band.units.filter(u=>set.has(u)).length;
+  return n===0 ? 'off' : n===band.units.length ? 'full' : 'part';
+}
+function exToggleUnits(wid, units, on){
+  const set=exUnitsOf(wid);
+  units.forEach(u=> on ? set.add(u) : set.delete(u));
+  if(!on) genEx.omit.delete(wid);          // 한 칸이라도 빠지면 분모 제외는 성립하지 않는다
+  if(!set.size) delete genEx.units[wid];
+}
+function exMarkFull(wid, omit){ EX_UNITS.forEach(u=>exUnitsOf(wid).add(u)); if(omit) genEx.omit.add(wid); }
+function exIsFull(wid){ const set=exSetOf(wid); return EX_UNITS.every(u=>set.has(u)); }
+function exLabel(wid){
+  const set=exSetOf(wid); if(!set.size) return '';
+  if(exIsFull(wid)) return '종일';
+  return EX_BANDS.map(b=>{ const st=exBandState(wid,b);
+    return st==='full' ? b.label : st==='part' ? b.label+' 일부' : null; }).filter(Boolean).join('·');
+}
+/* 저장된 근무표(또는 사전등록)에서 열외 상태를 읽어온다 */
+function setGenExFrom(src){
+  genEx.units={}; genEx.omit=new Set(); genEx.open=null;
+  const add=(wid,us)=>{ if(wid) us.forEach(u=>exUnitsOf(wid).add(u)); };
+  (src.dayEx||[]).forEach(w=>add(w,DAY_SLOTS));
+  (src.nightEx||[]).forEach(w=>add(w,NIGHT_UNITS));
+  (src.bothEx||[]).forEach(w=>{ add(w,EX_UNITS); genEx.omit.add(w); });
+  Object.entries(normSlotEx(src.slotEx)).forEach(([w,us])=>add(w,us));
+}
+/* 엔진에 넘길 네 필드로 분해 — 주간 전체=dayEx, 야간 전체=nightEx, 종일+분모제외=bothEx, 나머지=slotEx */
+function genExPayload(){
+  const dayEx=[], nightEx=[], bothEx=[], slotEx={};
+  Object.entries(genEx.units).forEach(([wid,set])=>{
+    if(!set.size) return;
+    if(genEx.omit.has(wid)){ bothEx.push(wid); return; }
+    const allDay=DAY_SLOTS.every(u=>set.has(u)), allNight=NIGHT_UNITS.every(u=>set.has(u));
+    if(allDay) dayEx.push(wid);
+    if(allNight) nightEx.push(wid);
+    const rest=[...set].filter(u=> u[0]==='N' ? !allNight : !allDay);
+    if(rest.length) slotEx[wid]=rest;
   });
+  return {dayEx, nightEx, bothEx, slotEx};
+}
+
+function renderExChips(){
+  const list=DB.workers.filter(w=>w.active);
+  const sum=$('#gExSummary'), box=$('#gExChips');
+  sum.innerHTML='';
+  const exList=list.filter(w=>exSetOf(w.id).size);
+  if(!exList.length){
+    sum.appendChild(el('span','none','열외자 없음 — 이름을 탭해 시간대를 고르세요.'));
+  }else{
+    exList.forEach(w=>{
+      const e=el('div','e','<b>'+esc(w.name)+'</b>');
+      e.appendChild(el('span','w', esc(exLabel(w.id)+(genEx.omit.has(w.id)?' · 분모제외':''))));
+      sum.appendChild(e);
+    });
+  }
+  box.innerHTML='';
+  list.forEach(w=>{
+    const n=exSetOf(w.id).size;
+    const c=el('div','chip'+(n===EX_UNITS.length?' on': n?' part':''));
+    c.appendChild(el('span',null,esc(w.name)));
+    if(isRecruit(w)) c.appendChild(el('span','rk','신병'));
+    if(n){   // 열외가 있을 때만 막대를 붙인다 — 없는 사람은 이름만
+      const bar=el('span','exbar');
+      EX_BANDS.forEach(b=>{ const st=exBandState(w.id,b); bar.appendChild(el('i', st==='full'?'f': st==='part'?'p':'')); });
+      c.appendChild(bar);
+    }
+    c.addEventListener('click',()=>{ genEx.open = genEx.open===w.id ? null : w.id; renderExChips(); });
+    box.appendChild(c);
+    if(genEx.open===w.id) box.appendChild(exPanel(w));
+  });
+}
+/* 칩 아래로 펼쳐지는 시간대 선택 패널 */
+function exPanel(w){
+  const p=el('div','expanel');
+  const redraw=()=>{ renderExChips(); previewGen(); };
+  p.appendChild(el('div','who', esc(w.name)+' — 열외 시간대'));
+  const brow=el('div','brow');
+  EX_BANDS.forEach(b=>{
+    const st=exBandState(w.id,b);
+    const btn=el('div','exb'+(st==='full'?' on':''), esc(b.label)+'<span class="rg">'+esc(b.range)+'</span>');
+    btn.addEventListener('click',()=>{ exToggleUnits(w.id,b.units, st!=='full'); redraw(); });
+    brow.appendChild(btn);
+  });
+  p.appendChild(brow);
+  const brow2=el('div','brow');
+  const full=exIsFull(w.id);
+  const allBtn=el('div','exb'+(full?' on':''),'종일 열외');
+  allBtn.addEventListener('click',()=>{ exToggleUnits(w.id,EX_UNITS,!full); redraw(); });
+  brow2.appendChild(allBtn);
+  if(exSetOf(w.id).size){
+    const clr=el('div','exb clr','열외 해제');
+    clr.addEventListener('click',()=>{ delete genEx.units[w.id]; genEx.omit.delete(w.id); redraw(); });
+    brow2.appendChild(clr);
+  }
+  p.appendChild(brow2);
+  // 세부 — 칸 하나씩
+  const d=el('details'); d.open=genEx.detail;
+  d.appendChild(el('summary',null,'세부 — 칸 하나씩 지정'));
+  const u1=el('div','units'), u2=el('div','units');
+  DAY_SLOTS.forEach(sl=> u1.appendChild(exUnitBtn(w.id, sl, sl, redraw)));
+  NIGHT_UNITS.forEach((u,i)=> u2.appendChild(exUnitBtn(w.id, u, (i+1)+'번초', redraw)));
+  d.appendChild(u1); d.appendChild(u2);
+  d.addEventListener('toggle',()=>{ genEx.detail=d.open; });
+  p.appendChild(d);
+  // 분모 제외 — 종일 열외일 때만
+  const lab=el('label','chk'), cb=el('input');
+  cb.type='checkbox'; cb.checked=genEx.omit.has(w.id); cb.disabled=!full;
+  cb.addEventListener('change',()=>{ if(cb.checked) genEx.omit.add(w.id); else genEx.omit.delete(w.id); redraw(); });
+  lab.appendChild(cb);
+  lab.appendChild(el('span',null,'분모(겪은 근무표 수)에서 제외'+(full?'':' — 종일 열외일 때만')));
+  p.appendChild(lab);
+  return p;
+}
+function exUnitBtn(wid, unit, text, redraw){
+  const on=exSetOf(wid).has(unit);
+  const b=el('div','exu'+(on?' on':''), esc(text));
+  b.addEventListener('click',()=>{ exToggleUnits(wid,[unit],!on); redraw(); });
+  return b;
 }
 function multiVal(sel){ return Array.from(sel.selectedOptions).map(o=>o.value).filter(Boolean); }
 
@@ -794,7 +933,7 @@ function buildPreviewCtx(){
     mealId:$('#gMeal').value|| (prev?prev.nextMealId:null)||null,
     prevDutyId: prev?prev.dutyId : ($('#gPrevDuty').value||null),
     prevSituationId: prev?prev.situationId : ($('#gPrevSit').value||null),
-    dayEx:[...genEx.day], nightEx:[], bothEx:[...genEx.both]
+    ...genExPayload()
   };
   ctx.stats=buildStats(ds);   // 읽기 전용
   return {ds,ctx,prev};
@@ -860,11 +999,19 @@ function previewGen(){
   }
   box.appendChild(m2);
 
-  // 후보 부족 점검
-  const dayN=dayCandidates(ds,ctx).length, nightN=nightCandidates(ds,ctx).filter(w=>w.id!==ctx.mealId).length;
+  // 후보 부족 점검 — 시간대 열외로 밴드마다 풀이 갈리므로 밴드별로 센다
+  const dayPool=dayCandidates(ds,ctx), nightPool=nightCandidates(ds,ctx).filter(w=>w.id!==ctx.mealId);
   const need=el('div','ln'); need.appendChild(el('span','k','후보 충원'));
-  need.appendChild(el('span', dayN>=11?'pill':'miss', '주간 후보 '+dayN+'명'+(dayN<11?' (11슬롯 부족 우려)':'')));
-  need.appendChild(el('span', nightN>=4?'pill':'miss', '야간 후보 '+nightN+'명'+(nightN<4?' (4번초 부족 — 밥교대 인원 자동 투입 예상)':'')));
+  EX_BANDS.forEach(b=>{
+    const pool = b.id==='night' ? nightPool : dayPool;
+    // 그 밴드 안에 설 수 있는 칸이 하나라도 남은 사람
+    const n = pool.filter(w=> b.units.some(u=> !slotExcluded(ctx, w.id, u))).length;
+    const short = n < b.units.length;
+    need.appendChild(el('span', short?'miss':'pill',
+      esc(b.label)+' '+n+'명 / '+b.units.length+(b.id==='night'?'번초':'칸')+(short?' 부족':'')));
+  });
+  if(nightPool.filter(w=> NIGHT_UNITS.some(u=>!slotExcluded(ctx,w.id,u))).length < 4)
+    need.appendChild(el('span','muted','(야간 부족 — 밥교대 인원 자동 투입 예상)'));
   box.appendChild(need);
 }
 ['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
@@ -883,7 +1030,7 @@ $('#gRun').addEventListener('click',()=>{
     next2DutyId:$('#gNext2Duty').value||null, next2SituationId:$('#gNext2Sit').value||null,
     nextMealId:$('#gNextMeal').value||null, mealId:$('#gMeal').value||null,
     prevDutyId:$('#gPrevDuty').value||null, prevSituationId:$('#gPrevSit').value||null,
-    dayEx:[...genEx.day], nightEx:[], bothEx:[...genEx.both],
+    ...genExPayload(),
   };
   const t0=performance.now();
   const sched=generateDay(input);
@@ -1129,7 +1276,7 @@ function schedToInput(s){
   return {date:s.date, workHoliday:s.workHoliday, dutyId:s.dutyId, situationId:s.situationId,
     nextDutyId:s.nextDutyId, nextSituationId:s.nextSituationId,
     nextMealId: s.nextMealAuto ? '' : (s.nextMealId || '__none__'),
-    mealId:s.mealId, dayEx:s.dayEx, nightEx:[], bothEx:s.bothEx, nextWorkHoliday:s.nextWorkHoliday,
+    mealId:s.mealId, dayEx:s.dayEx, nightEx:s.nightEx||[], bothEx:s.bothEx, slotEx:s.slotEx, nextWorkHoliday:s.nextWorkHoliday,
     prevDutyId:s.prevDutyId, prevSituationId:s.prevSituationId};
 }
 $('#vDate').addEventListener('change',renderView);

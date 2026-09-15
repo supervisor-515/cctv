@@ -10,7 +10,7 @@ const CACHE = 'cctv-roster-' + APP_VERSION;
 const PRECACHE = [
   './',
   './index.html',
-  './engine.js?v=5.2',
+  './engine.js?v=5.3',
   './manifest.webmanifest',
   './icon.svg',
   './icon-192.png',

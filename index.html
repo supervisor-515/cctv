@@ -218,6 +218,20 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .picklist button .rt{font-size:11px;color:var(--ink-faint);font-weight:500;margin-left:7px}
 .picklist button .why{display:block;font-size:11.5px;font-weight:500;color:var(--warn);margin-top:3px;line-height:1.4}
 .edsep{font-size:11.5px;color:var(--ink-faint);margin:12px 0 6px}
+.r1.why,.roles3>div.why{cursor:pointer}
+.r1.why:hover{background:color-mix(in srgb,var(--acc) 5%,transparent)}
+.mine .it.why,.its .it.why{cursor:pointer}
+.whyhd{font-size:12.5px;color:var(--ink-dim);margin:-2px 0 10px}
+.whyhd b{color:var(--ink);font-size:15px}
+.whylines{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.whylines div{font-size:13px;line-height:1.5;padding:8px 10px;border-radius:9px;background:var(--panel2);border:1px solid var(--line)}
+.whylines div:first-child{background:color-mix(in srgb,var(--acc) 9%,var(--panel2));border-color:color-mix(in srgb,var(--acc) 30%,var(--line))}
+.whylist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:10px}
+.whylist div{display:flex;gap:10px;padding:7px 10px;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.4}
+.whylist div:last-child{border-bottom:0}
+.whylist b{flex:none;min-width:56px}
+.whylist span{color:var(--ink-dim)}
+.whylist .ah b{color:var(--warn)}
 
 /* ---------- ② 근무표 생성 ---------- */
 .step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
@@ -571,7 +585,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.8.2</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.9.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -686,6 +700,14 @@ body.ro .no-ro{display:none!important}
       <div id="hdStatus" style="margin-bottom:10px"></div>
       <button class="btn full" id="hdAdd">휴무일 등록</button>
     </div>
+  </div>
+
+  <!-- 배정 이유 시트 — 근무표 칸·역할 카드·내 근무 항목을 누르면 -->
+  <div class="sheet-bg" id="whySheetBg"></div>
+  <div class="sheet" id="whySheet" role="dialog" aria-label="배정 이유">
+    <div class="grab"></div>
+    <div class="sh-h"><b id="whyTitle">배정 이유</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div id="whyBody"></div>
   </div>
 
   <!-- 근무자 변경 시트 (근무표 편집) -->
@@ -1009,7 +1031,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.8.2"></script>
+<script src="engine.js?v=6.9.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1064,7 +1086,7 @@ $$('[data-back]').forEach(b=>b.addEventListener('click',()=>showView('more')));
 /* 바텀 시트 열기/닫기 */
 function openSheet(id){ $('#'+id).classList.add('on'); $('#'+id+'Bg').classList.add('on'); }
 function closeSheet(id){ $('#'+id).classList.remove('on'); $('#'+id+'Bg').classList.remove('on'); }
-['pbSheet','pSheet','pickSheet','evSheet','edSheet'].forEach(id=>{
+['pbSheet','pSheet','pickSheet','evSheet','edSheet','whySheet'].forEach(id=>{
   $('#'+id+'Bg').addEventListener('click',()=>closeSheet(id));
   $('#'+id+' [data-close]').addEventListener('click',()=>closeSheet(id));
 });
@@ -1623,6 +1645,32 @@ function renderResultSummary(s){
   return box;
 }
 
+/* 배정 이유 — 엔진의 후보 조건·우선순위로 '왜 이 사람인지' 보여 준다 (explainAssignment) */
+function openWhy(s, key){
+  const x=explainAssignment(s, key);
+  $('#whyTitle').textContent='왜 이 사람?';
+  const b=$('#whyBody'); b.innerHTML='';
+  const nx=addDays(s.date,1), when = key[0]==='N' ? calMd(s.date)+' 밤 ~ '+calMd(nx)+' 새벽' : calMd(s.date)+' ('+DOW_KR[dow(s.date)]+')';
+  b.appendChild(el('div','whyhd','<b>'+(x.who?esc(nameOf(x.who)):'미배정')+'</b> · '+esc(x.title)+' · '+esc(when)));
+  const ls=el('div','whylines'); x.lines.forEach(t=>ls.appendChild(el('div',null,esc(t)))); b.appendChild(ls);
+  if(x.ranked.length){
+    b.appendChild(el('div','edsep','다른 후보 — 우선순위 순'));
+    const l=el('div','whylist');
+    x.ranked.slice(0,8).forEach(r=> l.appendChild(el('div', r.ahead?'ah':null, '<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>')));
+    if(x.ranked.length>8) l.appendChild(el('div',null,'<b></b><span>외 '+(x.ranked.length-8)+'명</span>'));
+    b.appendChild(l);
+  }
+  if(x.blocked.length){
+    const d=el('details','adv'); d.style.marginTop='0';
+    d.appendChild(el('summary',null,'이 칸 후보가 아니었던 사람 '+x.blocked.length+'명'));
+    const l=el('div','whylist'); x.blocked.forEach(r=> l.appendChild(el('div',null,'<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>'))); d.appendChild(l);
+    b.appendChild(d);
+  }
+  b.appendChild(el('p','smallnote', x.kind==='rule' ? '역할·고정 규칙으로 정해지는 자리입니다.'
+    : '완성된 표와 그 날짜 이전 기록으로 엔진의 기준(당일 칸 수 → 시간대 공정성 → 신병 순서 → 배정률·평균시간 → 마지막으로 선 날)을 다시 계산한 설명입니다. 생성 뒤 직접 고친 칸이나 이후 기록이 바뀐 경우 실제 생성 때와 다를 수 있습니다.'));
+  openSheet('whySheet');
+}
+
 /* 근무표 시간표 — [근무표 확인]의 보기·편집, 달력 상세, 생성 결과가 모두 이 한 가지 모양을 쓴다.
    06:30부터 05:30까지 시간순. ed를 넘기면 편집 상태: 각 행에 [변경] 버튼, 바뀐 행은 은은한 배경과 ‘기존: 이름’.
    ed = {orig, changed:Set(칸 키), onPick(key)} */
@@ -1647,7 +1695,11 @@ function renderSchedTimeline(s, who, ed){
       const b=el('button','chgb','변경');
       r.appendChild(b);
       r.addEventListener('click',()=>ed.onPick(key));
-    }else r.appendChild(el('div','h', h||''));
+    }else{
+      r.appendChild(el('div','h', h||''));
+      r.classList.add('why'); r.title='눌러서 배정 이유 보기';
+      r.addEventListener('click',()=>openWhy(s, key));
+    }
     return r;
   };
   const band=(title, range, right, rows)=>{
@@ -1704,6 +1756,7 @@ function renderRoleCards(s, ed){
     d.appendChild(el('b',null, id?esc(nameOf(id)):'—'));
     if(chg){ const was=schedKeyGet(ed.orig,key); d.appendChild(el('div','was','기존: '+(was?esc(nameOf(was)):'—'))); }
     if(ed) d.addEventListener('click',()=>ed.onPick(key));
+    else if(id){ d.classList.add('why'); d.addEventListener('click',()=>openWhy(s, key)); }
     r3.appendChild(d);
   });
   return r3;
@@ -1799,6 +1852,7 @@ function renderView(){
   whoSel.addEventListener('change',()=>{ meSet(whoSel.value); renderView(); });
   whoRow.appendChild(whoSel); body.appendChild(whoRow);
   body.appendChild(renderSchedTimeline(s, whoSel.value||null, ed));
+  if(!editing) body.appendChild(el('p','smallnote no-print','칸이나 역할 카드를 누르면 그 사람이 배정된 이유가 나옵니다.'));
   // 기술적인 설명과 삭제는 평소에 접어 둔다
   const det=el('details','adv no-print');
   det.appendChild(el('summary',null,'배정 상세 · 근무표 관리'));
@@ -2960,12 +3014,12 @@ function myItems(ds, s, id){
   const at=t=>{ const d=new Date(ds+'T'+t+':00'); if(Number(t.slice(0,2))<6) d.setDate(d.getDate()+1); return d; };
   DAY_SLOTS.forEach(sl=>{
     const fx=s.fixed&&s.fixed[sl];
-    if(((s.assign&&s.assign[sl])||fx)===id) items.push({t:sl, label: fx&&(sl==='14:30'||sl==='13:30')&&id===s.situationId ? '주간 · 당일 상황 고정' : '주간', cls:''});
+    if(((s.assign&&s.assign[sl])||fx)===id) items.push({key:'D:'+sl, t:sl, label: fx&&(sl==='14:30'||sl==='13:30')&&id===s.situationId ? '주간 · 당일 상황 고정' : '주간', cls:''});
   });
-  if(s.patrolExtra===id) items.push({t:'17:00', label:'추가 순찰', cls:'patrol'});
+  if(s.patrolExtra===id) items.push({key:'P', t:'17:00', label:'추가 순찰', cls:'patrol'});
   const evLabel={'17:30':['meal','다음날 밥교대(+순찰)'],'18:30':['sit','다음날 상황'],'19:30':['duty','다음날 당직'],'20:30':['sit','전날 상황'],'21:30':['duty','전날 당직']};
-  EVENING.forEach(sl=>{ if(s.fixed&&s.fixed[sl]===id) items.push({t:sl, label:evLabel[sl][1], cls:evLabel[sl][0]}); });
-  NIGHT_BUNCHO.forEach(b=>{ if(s.night&&s.night[b.id]===id) b.slots.forEach(t=>items.push({t, label:b.id+'번초', cls:'night'})); });
+  EVENING.forEach(sl=>{ if(s.fixed&&s.fixed[sl]===id) items.push({key:'E:'+sl, t:sl, label:evLabel[sl][1], cls:evLabel[sl][0]}); });
+  NIGHT_BUNCHO.forEach(b=>{ if(s.night&&s.night[b.id]===id) b.slots.forEach(t=>items.push({key:'N:'+b.id, t, label:b.id+'번초', cls:'night'})); });
   items.forEach(x=>x.at=at(x.t));
   items.sort((a,b)=>a.at-b.at);
   return items;
@@ -3019,7 +3073,7 @@ function renderMine(){
       const dh=el('div','dh'); dh.appendChild(el('b',null,'오늘 새벽')); dh.appendChild(el('span','dw', Number(ds.slice(5,7))+'/'+Number(ds.slice(8))+' 근무표'));
       d.appendChild(dh);
       const its=el('div','its');
-      left.forEach(x=>{ const it=el('div','it'); it.appendChild(el('span','t',x.t)); it.appendChild(el('span',null,esc(x.label))); its.appendChild(it); });
+      left.forEach(x=>{ const it=el('div','it why'); it.addEventListener('click',()=>openWhy(s, x.key)); it.appendChild(el('span','t',x.t)); it.appendChild(el('span',null,esc(x.label))); its.appendChild(it); });
       d.appendChild(its); list.appendChild(d);
       return;
     }
@@ -3043,7 +3097,8 @@ function renderMine(){
     else{
       const its=el('div','its');
       items.forEach(x=>{
-        const it=el('div','it'+(x.at<now?' past':''));
+        const it=el('div','it why'+(x.at<now?' past':''));
+        it.addEventListener('click',()=>openWhy(s, x.key));
         it.appendChild(el('span','t',x.t));
         it.appendChild(x.cls && x.cls!=='night' ? el('span','tag '+x.cls, esc(x.label)) : el('span',null, esc(x.label)));
         its.appendChild(it);
@@ -3145,11 +3200,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.8.2"></script>
+<script src="firebase-config.js?v=6.9.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.8.2"></script>
+<script src="sync.js?v=6.9.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

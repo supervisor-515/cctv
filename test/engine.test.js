@@ -1205,3 +1205,30 @@ test('밥교대 변경은 전체 재생성 없이 필요한 칸만 바꾼다 (re
   }
   assert.ok(checked > 20 && withChanges > 5, '검증 표본이 너무 적음');
 });
+
+test('explainAssignment: 순찰·다음날 밥교대는 설명의 1순위가 실제 배정자, 주간·야간도 대부분 1순위', () => {
+  const db = E.migrate({ workers: roster(13, 3) });
+  E.setDB(db); E.invalidateStats();
+  let ds = '2026-07-01';
+  for (let d = 0; d < 40; d++) {
+    const inp = E.autoInputFor(ds);
+    inp.dutyId = inp.dutyId || 'w' + ((d * 3) % 13); inp.situationId = inp.situationId || 'w' + ((d * 3 + 1) % 13);
+    inp.nextDutyId = 'w' + (((d + 1) * 3) % 13); inp.nextSituationId = 'w' + (((d + 1) * 3 + 1) % 13);
+    db.schedules[ds] = E.generateDay(inp); E.invalidateStats(); ds = E.addDays(ds, 1);
+  }
+  const first = x => x.ranked.every(r => !r.ahead) && !x.lines.some(l => l.startsWith('규칙상'));
+  let slots = 0, top = 0;
+  Object.keys(db.schedules).slice(10).forEach(d => {
+    const s = db.schedules[d];
+    assert.ok(first(E.explainAssignment(s, 'P')), d + ' 순찰');
+    assert.ok(first(E.explainAssignment(s, 'nextMeal')), d + ' 다음날 밥교대');
+    assert.equal(E.explainAssignment(s, 'E:19:30').kind, 'rule');
+    E.SCHED_KEYS.filter(k => k[0] === 'D' || k[0] === 'N').forEach(k => {
+      const x = E.explainAssignment(s, k);
+      if (x.kind !== 'rank' || !x.who) return;
+      slots++; if (first(x)) top++;
+      assert.ok(!x.lines.some(l => l.startsWith('규칙상')), d + ' ' + k + ' 배정자가 후보 조건에서 탈락');
+    });
+  });
+  assert.ok(top / slots > 0.85, '1순위 일치율 ' + (top / slots).toFixed(2));
+});

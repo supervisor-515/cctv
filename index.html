@@ -167,6 +167,8 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .datebar input[type=date]{font-family:var(--mono);font-size:15px;font-weight:700;padding:6px 8px;min-width:160px}
 .datebar .ib{width:34px;height:34px;padding:0;display:grid;place-items:center}
 .datebar .spacer{flex:1}
+/* 근무표 확인: 스크롤해도 날짜·보기/편집 전환이 보이게 (헤더 바로 아래 고정) */
+#view .datebar{position:sticky;top:var(--hdr-h,58px);z-index:20;background:var(--bg);padding:8px 0;margin:-8px 0 2px}
 .meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .status{display:flex;align-items:center;gap:8px;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700;margin-bottom:10px}
 .status.ok{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok);margin:0 0 10px}
@@ -196,22 +198,26 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .r1 .h{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint)}
 .r1 .bn{font-family:var(--mono);font-size:10px;color:var(--ink-faint);border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .r1.me{background:color-mix(in srgb,var(--acc) 10%,transparent);box-shadow:inset 3px 0 0 var(--acc)}
-.editnote{font-size:11.5px;color:var(--ink-faint);margin:0 0 10px}
-
-/* 편집 모드(기존 블록 구조) */
-.sched{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.block{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--panel)}
-.block .bh{padding:8px 12px;font-size:11.5px;font-weight:700;color:var(--ink-dim);background:var(--panel2);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
-.slot{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line)}
-.slot:last-child{border-bottom:none}
-.slot .t{font-family:var(--mono);font-size:12px;color:var(--ink-faint);width:50px;flex:none;line-height:1.2}
-.slot .t .sub{font-size:9px;opacity:.75}
-.slot.night .t{width:56px}
-.slot .nm{flex:1 1 110px;font-weight:600;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.slot .nm.empty{color:var(--err);font-weight:400;font-style:italic}
-.slot .hr{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);flex:none;width:32px;text-align:right}
-.nmwrap{flex:1 1 110px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
-.cellsel{flex:1 1 90px;min-width:84px;max-width:100%;padding:6px 8px;font-size:12.5px}
+.r1.ed{cursor:pointer}
+.r1.chg,.roles3>div.chg{background:color-mix(in srgb,var(--warn) 9%,var(--panel))}
+.r1.chg{padding-top:5px;padding-bottom:5px}
+.r1 .was,.roles3 .was{flex-basis:100%;font-size:10.5px;font-weight:500;color:var(--ink-faint)}
+.r1 .chgb{font:inherit;font-size:11.5px;font-weight:600;color:var(--acc);background:none;border:1px solid var(--line2);border-radius:7px;padding:4px 10px;cursor:pointer;flex:none}
+.tag.chgd{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);background:none}
+.roles3>div.ed{cursor:pointer}
+.roles3 .rl .sp{flex:1}
+.roles3 .rl .chgl{color:var(--acc);font-weight:700}
+.edbanner{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding:9px 12px;border-radius:10px;background:color-mix(in srgb,var(--acc) 10%,transparent);color:var(--acc);font-size:12.5px;margin-bottom:10px}
+.edbanner span{color:var(--ink-dim);font-size:11.5px}
+.edbar{margin-top:10px;border-top:1px solid var(--line)}
+.edbar .edcnt{font-size:13px;color:var(--ink-dim)}
+.edbar .edcnt b{color:var(--ink)}
+.edsub{font-size:12.5px;color:var(--ink-dim);line-height:1.55;margin:-2px 0 10px}
+.edsub b{color:var(--ink)}
+.edcur{font-size:13px;margin-bottom:10px}
+.picklist button .rt{font-size:11px;color:var(--ink-faint);font-weight:500;margin-left:7px}
+.picklist button .why{display:block;font-size:11.5px;font-weight:500;color:var(--warn);margin-top:3px;line-height:1.4}
+.edsep{font-size:11.5px;color:var(--ink-faint);margin:12px 0 6px}
 
 /* ---------- ② 근무표 생성 ---------- */
 .step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
@@ -488,7 +494,6 @@ details.arch[open] summary{margin-bottom:8px}
 }
 @media(max-width:1000px){ .tl{grid-template-columns:1fr} }
 @media(min-width:641px){ #count .subhdr .back,#people .subhdr .back{display:none} }
-@media(max-width:780px){ .sched{grid-template-columns:1fr} }
 
 /* ---------- 폰: 하단 탭 ---------- */
 @media(max-width:640px){
@@ -512,9 +517,6 @@ details.arch[open] summary{margin-bottom:8px}
   #pbTable .tag::before{display:none}
   .datebar .seg button{padding:6px 9px}
   .roles3{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .slot{flex-wrap:wrap;gap:6px 8px}
-  .slot .nmwrap,.slot .nm{flex:1 1 100%;order:5}
-  .cellsel{font-size:13px;padding:9px 10px;width:100%}
   .step{padding:12px}
   .matrix{border-spacing:3px;margin:-3px}
   .matrix th.rh{width:46px}
@@ -540,7 +542,7 @@ details.arch[open] summary{margin-bottom:8px}
 @media print{
   body{background:#fff;color:#000}
   header.top,nav.tabs,.no-print,.sheet,.sheet-bg{display:none!important}
-  .panel,.rows,.block{border:1px solid #ccc;break-inside:avoid;background:#fff}
+  .panel,.rows{border:1px solid #ccc;break-inside:avoid;background:#fff}
   .view{display:none!important}.view.on{display:block!important}
   .tag{border:1px solid #999;color:#000!important;background:#eee!important}
   .r1.me{box-shadow:none;background:#eee}
@@ -562,7 +564,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.6.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.7.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -677,6 +679,14 @@ body.ro .no-ro{display:none!important}
       <div id="hdStatus" style="margin-bottom:10px"></div>
       <button class="btn full" id="hdAdd">휴무일 등록</button>
     </div>
+  </div>
+
+  <!-- 근무자 변경 시트 (근무표 편집) -->
+  <div class="sheet-bg" id="edSheetBg"></div>
+  <div class="sheet" id="edSheet" role="dialog" aria-label="근무자 변경">
+    <div class="grab"></div>
+    <div class="sh-h"><b id="edTitle">변경</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div id="edBody"></div>
   </div>
 
   <!-- 일정 확인 시트 (달력) — 누르면 내용 확인 → 수정/삭제 -->
@@ -986,7 +996,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.6.0"></script>
+<script src="engine.js?v=6.7.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1012,6 +1022,9 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 
 /* 화면 전환 — 폰에서는 카운트·근무자·설정·백업·동기화·도움말이 [더보기] 아래에 있다 */
 const MORE_SUB=['count','people','settings','backup','sync','help'];
+/* 고정 헤더 높이 — 근무표 날짜 막대를 그 바로 아래에 붙인다 */
+function syncHdrH(){ const hd=document.querySelector('header.top'); if(hd) document.documentElement.style.setProperty('--hdr-h', hd.offsetHeight+'px'); }
+window.addEventListener('resize', syncHdrH);
 function showView(v){
   $$('.view').forEach(x=>x.classList.toggle('on', x.id===v));
   $$('#tabs button').forEach(x=>{
@@ -1026,17 +1039,18 @@ function showView(v){
 }
 $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
   const v=b.dataset.v;
+  vResolveDraft();
   if(v==='view'){ const L=latestSchedDate(); $('#vDate').value = L||todayStr(); renderView(); }
   if(v==='gen'){ const L=latestSchedDate(); $('#gDate').value = L? addDays(L,1) : todayStr(); refreshGenSelectors(); }
   showView(v);
 }));
-$$('[data-go]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.go)));
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ vResolveDraft(); showView(b.dataset.go); }));
 $$('[data-back]').forEach(b=>b.addEventListener('click',()=>showView('more')));
 
 /* 바텀 시트 열기/닫기 */
 function openSheet(id){ $('#'+id).classList.add('on'); $('#'+id+'Bg').classList.add('on'); }
 function closeSheet(id){ $('#'+id).classList.remove('on'); $('#'+id+'Bg').classList.remove('on'); }
-['pbSheet','pSheet','pickSheet','evSheet'].forEach(id=>{
+['pbSheet','pSheet','pickSheet','evSheet','edSheet'].forEach(id=>{
   $('#'+id+'Bg').addEventListener('click',()=>closeSheet(id));
   $('#'+id+' [data-close]').addEventListener('click',()=>closeSheet(id));
 });
@@ -1077,7 +1091,7 @@ const ROLE_OPTS=[['recruit','신병'],['duty','당직'],['situation','상황병'
 function roleValue(w){ return isNavigator(w)?'navigator' : isVeteran(w)?'veteran' : isRecruit(w)?'recruit' : w.roleType; }
 function roleLabel(w){ const v=roleValue(w); return (ROLE_OPTS.find(([x])=>x===v)||[,'상황병'])[1]; }
 /* 근무표 셀에 붙일 구분 태그(운항병·말년·신병만 표시, 그 외/삭제됨은 없음).
-   전역 el로 직접 만든다 — tagEl은 renderSchedTable 지역 함수라 여기선 안 보임. */
+   전역 el로 직접 만든다 — tagEl은 renderSchedTimeline 지역 함수라 여기선 안 보임. */
 function roleTag(id){ const w=W(id); if(!w) return null;
   const t = isNavigator(w)?'운항' : isVeteran(w)?'말년' : isRecruit(w)?'신병' : null;
   return t ? el('span','tag kind', t) : null; }
@@ -1582,17 +1596,31 @@ function renderResultSummary(s){
   return box;
 }
 
-/* 읽기 전용 타임라인 — 06:30부터 05:30까지 시간순. 편집은 renderSchedTable(편집 모드)에서 한다 */
-function renderSchedTimeline(s, who){
+/* 근무표 시간표 — [근무표 확인]의 보기·편집, 달력 상세, 생성 결과가 모두 이 한 가지 모양을 쓴다.
+   06:30부터 05:30까지 시간순. ed를 넘기면 편집 상태: 각 행에 [변경] 버튼, 바뀐 행은 은은한 배경과 ‘기존: 이름’.
+   ed = {orig, changed:Set(칸 키), onPick(key)} */
+const TIER_KR={1:'모든 규칙을 지킴',2:'같은 날 중복 투입 허용',3:'야간 이틀 연속 허용',4:'야간 3일 연속 허용',5:'일부 칸을 비워 둠(미배정)'};
+function renderSchedTimeline(s, who, ed){
   const tagEl=(cls,txt)=>el('span','tag '+cls, esc(txt));
-  const row=(t, id, tags, h, emptyText)=>{
-    const r=el('div','r1'+(who&&id===who?' me':''));
+  const row=(key, t, id, tags, h, emptyText)=>{
+    const chg = ed && ed.changed.has(key);
+    const r=el('div','r1'+(who&&id===who?' me':'')+(ed?' ed':'')+(chg?' chg':''));
+    r.dataset.k=key;
     r.appendChild(el('div','t', esc(t)));
     const n=el('div','n'+(id||emptyText?'':' empty'), id?esc(nameOf(id)):(emptyText||'미배정'));
     if(!id && emptyText) n.classList.add('muted');
     (tags||[]).forEach(x=> x && n.appendChild(x));
+    if(chg){
+      n.appendChild(tagEl('chgd','변경됨'));
+      const was=schedKeyGet(ed.orig,key);
+      n.appendChild(el('div','was','기존: '+(was?esc(nameOf(was)):'미배정')));
+    }
     r.appendChild(n);
-    r.appendChild(el('div','h', h||''));
+    if(ed){
+      const b=el('button','chgb','변경');
+      r.appendChild(b);
+      r.addEventListener('click',()=>ed.onPick(key));
+    }else r.appendChild(el('div','h', h||''));
     return r;
   };
   const band=(title, range, right, rows)=>{
@@ -1607,48 +1635,117 @@ function renderSchedTimeline(s, who){
     const fixedHere = s.fixed && s.fixed[slot];
     const id = (s.assign&&s.assign[slot]) || fixedHere || null;
     const tags=[];
-    if((slot==='14:30'||slot==='13:30') && fixedHere) tags.push(tagEl('sit','상황'));
+    if((slot==='14:30'||slot==='13:30') && (fixedHere || (ed && ed.orig.fixed && ed.orig.fixed[slot]))) tags.push(tagEl('sit','상황'));
     if(s.relaxed&&s.relaxed[slot]) tags.push(tagEl('relax', s.relaxed[slot]));
     tags.push(id&&roleTag(id));
-    return row(slot, id, tags, slotHours(slot).toFixed(1)+'h');
+    return row('D:'+slot, slot, id, tags, slotHours(slot).toFixed(1)+'h');
   })));
   // 저녁 (17:00 순찰 → 17:30~21:30 고정)
-  const evLabel={'17:30':['meal','다음날 밥교대'],'18:30':['sit','다음날 상황'],'19:30':['duty','다음날 당직'],'20:30':['sit','전날 상황'],'21:30':['duty','전날 당직']};
-  const ev=[row('17:00', s.patrolExtra||null, [tagEl('patrol','추가 순찰'), s.patrolExtra&&roleTag(s.patrolExtra)], DB.settings.patrolBonus.toFixed(1)+'h')];
+  const ev=[row('P','17:00', s.patrolExtra||null, [tagEl('patrol','추가 순찰'), s.patrolExtra&&roleTag(s.patrolExtra)], DB.settings.patrolBonus.toFixed(1)+'h')];
   EVENING.forEach(slot=>{
     const id=s.fixed&&s.fixed[slot];
-    const [cls,lab]=evLabel[slot];
+    const [cls,lab]=EVENING_LABEL[slot];
     const tags=[tagEl(cls,lab)];
     if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) tags.push(tagEl('relax','밥교대자와 다름'));
     tags.push(id&&roleTag(id));
-    ev.push(row(slot, id||null, tags, slot==='17:30'?(1+DB.settings.patrolBonus).toFixed(1)+'h':'1.0h', '—'));
+    ev.push(row('E:'+slot, slot, id||null, tags, slot==='17:30'?(1+DB.settings.patrolBonus).toFixed(1)+'h':'1.0h', '—'));
   });
   tl.appendChild(band('저녁','17:00–21:30','역할 고정', ev));
-  // 야간 — 번초마다 두 시간에 모두 표시
+  // 야간 — 번초마다 두 시간에 모두 표시(편집도 번초 단위: 어느 시간을 눌러도 그 번초가 바뀐다)
   const nights=[];
   NIGHT_BUNCHO.forEach(b=> b.slots.forEach(t=> nights.push({t,b})));
   nights.sort((x,y)=>SLOT_ORDER.indexOf(x.t)-SLOT_ORDER.indexOf(y.t));
   // 자정 이후 칸은 실제로 다음날 새벽 — 근무표 날짜와 헷갈리지 않게 구분선을 넣는다
   const nx=addDays(s.date,1), nightRows=[];
   nights.forEach(({t,b})=>{
-    if(t.startsWith('00:')) nightRows.push(el('div','daysep', esc(Number(nx.slice(5,7))+'/'+Number(nx.slice(8))+' ('+DOW_KR[dow(nx)]+') 새벽 — '+Number(s.date.slice(5,7))+'/'+Number(s.date.slice(8))+' 근무표에 포함')));
+    if(t.startsWith('00:')) nightRows.push(el('div','daysep', esc(calMd(nx)+' ('+DOW_KR[dow(nx)]+') 새벽 — '+calMd(s.date)+' 근무표에 포함')));
     const id=s.night&&s.night[b.id];
-    nightRows.push(row(t, id||null, [el('span','bn', b.id+'번초'), id&&s.mealId===id?tagEl('meal','밥교대'):null, id&&roleTag(id)], ''));
+    nightRows.push(row('N:'+b.id, t, id||null, [el('span','bn', b.id+'번초'), id&&s.mealId===id?tagEl('meal','밥교대'):null, id&&roleTag(id)], ''));
   });
   tl.appendChild(band('야간','22:30–05:30', (nightGroup(s.date,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')+' · 번초당 1.0h', nightRows));
   return tl;
 }
+const EVENING_LABEL={'17:30':['meal','다음날 밥교대'],'18:30':['sit','다음날 상황'],'19:30':['duty','다음날 당직'],'20:30':['sit','전날 상황'],'21:30':['duty','전날 당직']};
+const ROLE_CARDS=[['duty','당직','duty'],['sit','상황병','sit'],['meal','밥교대','meal'],['nextMeal','다음날 밥교대','meal']];
+/* 역할 카드 — 보기·편집 공통. 편집 중에는 카드마다 [변경] */
+function renderRoleCards(s, ed){
+  const r3=el('div','roles3');
+  ROLE_CARDS.forEach(([key,l,c])=>{
+    const id=schedKeyGet(s,key), chg=ed && ed.changed.has(key);
+    const d=el('div',(ed?'ed':'')+(chg?' chg':'')); d.dataset.k=key;
+    d.appendChild(el('div','rl','<i style="background:var(--'+c+')"></i>'+esc(l)+(ed?'<span class="sp"></span><span class="chgl">변경</span>':'')));
+    d.appendChild(el('b',null, id?esc(nameOf(id)):'—'));
+    if(chg){ const was=schedKeyGet(ed.orig,key); d.appendChild(el('div','was','기존: '+(was?esc(nameOf(was)):'—'))); }
+    if(ed) d.addEventListener('click',()=>ed.onPick(key));
+    r3.appendChild(d);
+  });
+  return r3;
+}
+/* 상태 한 줄 — 판단에 필요한 말만(모두 배정됨 · 미배정 N곳 · 확인 필요 N건) */
+function schedEmptyCount(s){
+  return DAY_SLOTS.filter(sl=>!((s.assign&&s.assign[sl])||(s.fixed&&s.fixed[sl]))).length
+       + NIGHT_BUNCHO.filter(b=>!(s.night&&s.night[b.id])).length;
+}
+function renderStatusLine(box, s, issues){
+  const empty=schedEmptyCount(s);
+  const txt=(empty?'미배정 '+empty+'곳':'모두 배정됨')+' · '+(issues.length?'확인 필요 '+issues.length+'건':'확인할 문제 없음');
+  if(issues.length || empty){
+    box.appendChild(el('div','status warn',(issues.length?'⚠ ':'')+esc(txt)));
+    if(issues.length){ const lst=el('div','status-list'); issues.forEach(w=>lst.appendChild(el('div',null,'· '+esc(w)))); box.appendChild(lst); }
+  }else box.appendChild(el('div','status ok','✓ '+esc(txt)));
+}
 
 let vMode='view';   // 보기 / 편집 (열람 전용 계정은 항상 보기)
+let vDraft=null;    // 편집 중 임시 표 {date, orig, s} — [변경사항 저장] 전까지 DB에 쓰지 않는다
 const ME_KEY='cctv_me_v1';
 function meGet(){ if(window.MY_WORKER) return window.MY_WORKER; try{ return localStorage.getItem(ME_KEY)||''; }catch(e){ return ''; } }
 function meSet(id){ try{ if(id) localStorage.setItem(ME_KEY,id); else localStorage.removeItem(ME_KEY); }catch(e){} }
-$$('#vMode button').forEach(b=>b.addEventListener('click',()=>{ vMode=b.dataset.m; renderView(); }));
+const clone=o=>JSON.parse(JSON.stringify(o));
+function vChangedKeys(){
+  if(!vDraft) return new Set();
+  return new Set(SCHED_KEYS.filter(k=> schedKeyGet(vDraft.orig,k)!==schedKeyGet(vDraft.s,k)));
+}
+function vCommit(){
+  if(!vDraft) return;
+  DB.schedules[vDraft.date]=vDraft.s; save();
+  vDraft=null; vMode='view';
+  refreshAll();
+}
+/* 편집 중에 날짜를 옮기거나 다른 탭으로 나갈 때만 묻는다. 확인 = 저장, 취소 = 버리기 */
+function vResolveDraft(){
+  if(!vDraft) return;
+  const n=vChangedKeys().size;
+  if(n && confirm('저장하지 않은 변경 '+n+'건이 있습니다.\n\n[확인] 저장   [취소] 변경 버리기')){ vCommit(); return; }
+  vDraft=null; vMode='view';
+}
+/* 화면을 다시 그려도 보고 있던 행이 같은 자리에 있게 한다 */
+function keepScroll(fn){
+  const lim=$('#view .datebar').getBoundingClientRect().bottom;
+  const rows=[...document.querySelectorAll('#vBody [data-k]')];
+  const a=rows.find(r=>r.getBoundingClientRect().top>=lim);
+  const key=a&&a.dataset.k, top=a&&a.getBoundingClientRect().top;
+  fn();
+  if(key){ const b=document.querySelector('#vBody [data-k="'+key+'"]'); if(b) window.scrollBy(0, b.getBoundingClientRect().top-top); }
+}
+$$('#vMode button').forEach(b=>b.addEventListener('click',()=>{
+  if(b.dataset.m===vMode) return;
+  keepScroll(()=>{
+    if(b.dataset.m==='view'){
+      const n=vChangedKeys().size;
+      if(n && !confirm('변경 '+n+'건을 저장하지 않고 편집을 끝낼까요?')) return;
+      vDraft=null; vMode='view';
+    }else vMode='edit';
+    renderView();
+  });
+}));
 
 function renderView(){
   const ds=$('#vDate').value||todayStr(); $('#vDate').value=ds;
-  const s=DB.schedules[ds];
-  const editing = vMode==='edit' && !document.body.classList.contains('ro');
+  const saved=DB.schedules[ds];
+  if(vDraft && vDraft.date!==ds) vDraft=null;
+  const editing = vMode==='edit' && !document.body.classList.contains('ro') && !!saved;
+  if(editing && !vDraft) vDraft={date:ds, orig:clone(saved), s:clone(saved)};
+  const s = editing ? vDraft.s : saved;
   $$('#vMode button').forEach(b=>b.classList.toggle('on', b.dataset.m===(editing?'edit':'view')));
   const body=$('#vBody'); body.innerHTML='';
   const meta=el('div','meta');
@@ -1662,198 +1759,123 @@ function renderView(){
   }
   body.appendChild(meta);
   if(!s){ body.appendChild(el('div','err','이 날짜의 근무표가 없습니다. [생성] 탭에서 먼저 생성하세요.')); return; }
-  // 상태 한 줄 요약
-  const issues=validateScheduleCached(s);
-  const empty = DAY_SLOTS.filter(sl=>!((s.assign&&s.assign[sl])||(s.fixed&&s.fixed[sl]))).length
-              + NIGHT_BUNCHO.filter(b=>!(s.night&&s.night[b.id])).length;
-  const tierTxt='tier '+s.tier+(empty?' · 미배정 '+empty+'칸':' · 모두 배정');
-  if(issues.length){
-    body.appendChild(el('div','status warn','⚠ 점검 필요 '+issues.length+'건<span class="sp"></span><small>'+esc(tierTxt)+'</small>'));
-    const lst=el('div','status-list'); issues.forEach(w=>lst.appendChild(el('div',null,'· '+esc(w)))); body.appendChild(lst);
-  }else{
-    body.appendChild(el('div','status ok','✓ 제약 위반 없음<span class="sp"></span><small>'+esc(tierTxt)+'</small>'));
-  }
-  if(editing){
-    const bar=el('div','flexgap'); bar.style.marginBottom='10px';
-    bar.appendChild(el('span','editnote','각 칸의 드롭다운으로 근무자를 바꾸면 즉시 저장되고 카운트·검증에 반영됩니다.'));
-    const sp=el('div'); sp.style.flex='1'; bar.appendChild(sp);
-    const delBtn=el('button','btn danger sm no-print','이 근무표 삭제');
-    delBtn.addEventListener('click',()=>{
-      if(!confirm(ds+' ('+DOW_KR[dow(ds)]+') 근무표를 삭제할까요?\n이 날짜의 배정·수동 편집 기록이 모두 사라집니다. (되돌릴 수 없음)')) return;
-      delete DB.schedules[ds]; save(); refreshAll();
-    });
-    bar.appendChild(delBtn);
-    body.appendChild(bar);
-    body.appendChild(renderSchedTable(s,false));
-    return;
-  }
-  // 역할 요약
-  const r3=el('div','roles3');
-  [['당직','duty',s.dutyId],['상황병','sit',s.situationId],['밥교대','meal',s.mealId],['다음날 밥교대','meal',s.nextMealId]].forEach(([l,c,id])=>{
-    const d=el('div'); d.appendChild(el('div','rl','<i style="background:var(--'+c+')"></i>'+esc(l)));
-    d.appendChild(el('b',null, id?esc(nameOf(id)):'—')); r3.appendChild(d);
-  });
-  body.appendChild(r3);
+  const changed=vChangedKeys();
+  const ed = editing ? {orig:vDraft.orig, changed, onPick:openEdPick} : null;
+  if(editing) body.appendChild(el('div','edbanner','<b>편집 중</b><span>바꿀 칸의 [변경]을 누르세요 · 저장 전까지는 표에 반영되지 않습니다</span>'));
+  const issues = editing ? validateSchedule(s) : validateScheduleCached(s);
+  renderStatusLine(body, s, issues);
+  body.appendChild(renderRoleCards(s, ed));
   // 내 근무 강조 (이 기기에만 기억)
   const whoRow=el('div','who no-print'); whoRow.appendChild(el('span',null,'내 근무 강조'));
   if(window.MY_WORKER) whoRow.style.display='none';   // 구성원 계정은 본인이 자동 강조
   const whoSel=el('select'); fillSelect(whoSel, activeWorkers(), {blank:'— 선택 안 함 —', selected:meGet()||null});
   whoSel.addEventListener('change',()=>{ meSet(whoSel.value); renderView(); });
   whoRow.appendChild(whoSel); body.appendChild(whoRow);
-  body.appendChild(renderSchedTimeline(s, whoSel.value||null));
+  body.appendChild(renderSchedTimeline(s, whoSel.value||null, ed));
+  // 기술적인 설명과 삭제는 평소에 접어 둔다
+  const det=el('details','adv no-print');
+  det.appendChild(el('summary',null,'배정 상세 · 근무표 관리'));
+  det.appendChild(el('p','smallnote','배정 단계: tier '+s.tier+' — '+esc(TIER_KR[s.tier]||'')+'. 숫자가 클수록 규칙을 더 완화해 채운 표입니다.'));
+  det.appendChild(el('p','smallnote','편집 내용은 [변경사항 저장] 시 카운트·검증에 반영됩니다. 17:30 근무자만 바꾸면 그 시간만 교체되고, 다음날 밥교대 카드를 바꾸면 밥교대 지정과 함께 설 수 없게 된 칸이 조정됩니다.'));
+  const delBtn=el('button','btn danger sm no-ro','이 근무표 삭제');
+  delBtn.style.margin='0 0 14px';
+  delBtn.addEventListener('click',()=>{
+    if(!confirm(ds+' ('+DOW_KR[dow(ds)]+') 근무표를 삭제할까요?\n이 날짜의 배정·수동 편집 기록이 모두 사라집니다. (되돌릴 수 없음)')) return;
+    delete DB.schedules[ds]; vDraft=null; vMode='view'; save(); refreshAll();
+  });
+  det.appendChild(delBtn);
+  body.appendChild(det);
+  if(editing){
+    const bar=el('div','runbar edbar no-print');
+    bar.appendChild(el('span','edcnt', changed.size ? '<b>변경 '+changed.size+'건</b>'+(issues.length?' · 확인 '+issues.length+'건':' · 문제 없음') : '변경 없음'));
+    const sp=el('div'); sp.style.flex='1'; bar.appendChild(sp);
+    const cancel=el('button','btn ghost','취소');
+    cancel.addEventListener('click',()=>{
+      if(changed.size && !confirm('변경 '+changed.size+'건을 버릴까요?')) return;
+      keepScroll(()=>{ vDraft=null; vMode='view'; renderView(); });
+    });
+    const ok=el('button','btn','변경사항 저장'); ok.disabled=!changed.size;
+    ok.addEventListener('click',()=> keepScroll(vCommit));
+    bar.appendChild(cancel); bar.appendChild(ok);
+    body.appendChild(bar);
+  }
 }
-/* 슬롯 편집용 근무자 셀렉트 (활성 + 현재 배정자 보강) */
-function workerSelect(currentId){
-  const sel=el('select','cellsel');
-  const o0=el('option'); o0.value=''; o0.textContent='미배정'; sel.appendChild(o0);
-  const list=activeWorkers(); const ids=new Set(list.map(w=>w.id));
-  list.forEach(w=>{ const o=el('option'); o.value=w.id; o.textContent=w.name; sel.appendChild(o); });  // 구분은 슬롯 옆 태그로 표시 — 이름 뒤 (신병) 접미사 제거
-  if(currentId && !ids.has(currentId)){ const o=el('option'); o.value=currentId; o.textContent=nameOf(currentId)+' (비활성)'; sel.appendChild(o); }
-  sel.value=currentId||'';
-  return sel;
+
+/* 편집 — 누른 칸만 아래 선택창에서 바꾼다(생성 탭의 근무자 선택 시트와 같은 모양) */
+function edKeyInfo(s, key){
+  const md=d=>calMd(d)+' ('+DOW_KR[dow(d)]+')';
+  const at=t=> t<'06:30' ? addDays(s.date,1) : s.date;   // 자정 이후 칸은 다음날 새벽
+  if(key[0]==='N'){
+    const b=NIGHT_BUNCHO.find(x=>String(x.id)===key.slice(2));
+    return {title:b.id+'번초 근무자 변경', sub:b.slots.map(t=>md(at(t))+' '+t).join(' · '), note:'두 시간의 근무자가 함께 변경됩니다.'};
+  }
+  if(key==='P') return {title:'17:00 추가 순찰 변경', sub:md(s.date)+' 17:00', note:'이 시간 근무자만 바뀝니다.'};
+  if(key[0]==='D') return {title:key.slice(2)+' 근무자 변경', sub:md(s.date)+' '+key.slice(2), note:'이 시간 근무자만 바뀝니다.'};
+  if(key[0]==='E') return {title:key.slice(2)+' 근무자 변경', sub:md(s.date)+' '+key.slice(2)+' · '+EVENING_LABEL[key.slice(2)][1]+' 칸',
+    note: key==='E:17:30' ? '이 시간 근무자만 바뀝니다(외출 등). 다음날 밥교대 지정 자체를 바꾸려면 위쪽 ‘다음날 밥교대’ 카드를 누르세요.' : '이 시간 근무자만 바뀝니다.'};
+  if(key==='duty') return {title:'당직 변경', sub:md(s.date), note:'당직 지정만 바뀝니다. 시간표의 칸은 그대로입니다.'};
+  if(key==='sit') return {title:'상황병 변경', sub:md(s.date), note:'상황병 지정만 바뀝니다. 시간표의 칸은 그대로입니다.'};
+  return {title:(key==='meal'?'밥교대':'다음날 밥교대')+' 변경', sub:md(s.date),
+    note:'밥교대 담당자와 함께, 새 담당자가 설 수 없게 된 칸만 다른 사람으로 조정합니다. 고르면 바뀌는 칸을 먼저 보여 줍니다.'};
 }
-function renderSchedTable(s, compact){
-  // 셀 헬퍼
-  const tagEl=(cls,txt)=>el('span','tag '+cls, esc(txt));
-  const timeCell=(main,sub)=>{ const d=el('div','t', esc(main)); if(sub) d.appendChild(el('div','sub', esc(sub))); return d; };
-  const editCell=(id,onChange,tags)=>{
-    const wrap=el('div','nmwrap');
-    const sel=workerSelect(id);
-    sel.addEventListener('change',()=> onChange(sel.value||null));
-    wrap.appendChild(sel);
-    (tags||[]).forEach(t=> t && wrap.appendChild(t));
-    return wrap;
+function openEdPick(key){
+  if(!vDraft) return;
+  const s=vDraft.s, info=edKeyInfo(s,key), cur=schedKeyGet(s,key);
+  const isMeal = key==='meal'||key==='nextMeal';
+  $('#edTitle').textContent=info.title;
+  const body=$('#edBody'); body.innerHTML='';
+  body.appendChild(el('div','edsub','<b>'+esc(info.sub)+'</b><br>'+esc(info.note)));
+  body.appendChild(el('div','edcur','현재: <b>'+(cur?esc(nameOf(cur)):'미배정')+'</b>'));
+  const list=el('div','picklist');
+  // 그 사람으로 바꾸면 새로 생기는 점검 문제 — 구체적인 이유를 이름 아래에 보여 준다
+  const base=new Set(validateSchedule(s));
+  const why=id=>{
+    if(isMeal) return [];
+    const t=schedKeySet(clone(s), key, id, vDraft.orig);
+    return validateSchedule(t).filter(x=>!base.has(x));
   };
-  const staticCell=(id,emptyText,tags)=>{
-    const nm=el('div','nm'+(id?'':' empty'), id?esc(nameOf(id)):(emptyText||'미배정'));
-    (tags||[]).forEach(t=> t && nm.appendChild(t));
-    return nm;
+  const pick=id=>{
+    if((id||null)===(cur||null)){ closeSheet('edSheet'); return; }
+    if(isMeal){ edMealPreview(key, id); return; }
+    schedKeySet(s, key, id, vDraft.orig);
+    closeSheet('edSheet'); keepScroll(renderView);
   };
-  const grid=el('div','sched');
-  // 주간
-  const dayBlock=el('div','block');
-  dayBlock.appendChild(el('div','bh','<span>주간 06:30 – 16:30</span><span>'+DAYGROUP_KR[dayGroup(s.date,s.workHoliday)]+'</span>'));
-  DAY_SLOTS.forEach(slot=>{
-    const fixedHere = s.fixed && s.fixed[slot];
-    const id = (s.assign&&s.assign[slot]) || fixedHere || null;
-    const row=el('div','slot');
-    row.appendChild(timeCell(slot));
-    const tags=[];
-    if((slot==='14:30'||slot==='13:30') && fixedHere) tags.push(tagEl('sit','상황'));  // 당일상황 고정(금요일은 13:30)
-    if(s.relaxed&&s.relaxed[slot]) tags.push(tagEl('relax', s.relaxed[slot]));
-    { const rt=id&&roleTag(id); if(rt) tags.push(rt); }
-    if(!compact){
-      row.appendChild(editCell(id, v=>{
-        if(fixedHere){                              // 금요일 13:30도 고정칸으로 유지
-          if(v) s.fixed[slot]=v; else delete s.fixed[slot];
-          delete s.assign[slot];                    // 이전 일반 배정까지 제거해 중복 집계 방지
-        }else{
-          if(v) s.assign[slot]=v; else delete s.assign[slot];
-        }
-        save(); renderView();
-      }, tags));
-    }else{
-      row.appendChild(staticCell(id,'미배정',tags));
-    }
-    row.appendChild(el('div','hr', slotHours(slot).toFixed(1)+'h'));
-    dayBlock.appendChild(row);
+  const ws=activeWorkers().slice();
+  if(cur && !ws.some(w=>w.id===cur) && W(cur)) ws.push(W(cur));
+  ws.forEach(w=>{
+    const b=el('button', w.id===cur?'on':'');
+    b.appendChild(el('span',null,esc(w.name)));
+    b.appendChild(el('span','rt',esc(roleLabel(w))+(w.active?'':' · 비활성')));
+    if(w.id!==cur) why(w.id).forEach(m=> b.appendChild(el('span','why','⚠ '+esc(m))));
+    b.addEventListener('click',()=>pick(w.id));
+    list.appendChild(b);
   });
-  grid.appendChild(dayBlock);
-
-  // 저녁 (17:00 순찰 → 17:30~21:30)
-  const evBlock=el('div','block');
-  evBlock.appendChild(el('div','bh','<span>저녁 17:00 – 21:30</span><span>17:00 순찰 · 17:30~ 고정</span>'));
-  // 17:00 추가 순찰 (순찰만 도는 1명, 0.5h, 고정 아님) — 17:30 바로 위
-  {
-    const pr=el('div','slot'); pr.appendChild(timeCell('17:00'));
-    const ptags=[ tagEl('patrol','추가 순찰') ];
-    { const rt=s.patrolExtra&&roleTag(s.patrolExtra); if(rt) ptags.push(rt); }
-    if(!compact){
-      pr.appendChild(editCell(s.patrolExtra||null, v=>{ s.patrolExtra=v||null; save(); renderView(); }, ptags));
-    }else{
-      pr.appendChild(staticCell(s.patrolExtra||null,'미배정',ptags));
-    }
-    pr.appendChild(el('div','hr',DB.settings.patrolBonus.toFixed(1)+'h'));
-    evBlock.appendChild(pr);
-  }
-  const evLabel={'17:30':['meal','17:30 근무+순찰'],'18:30':['sit','다음날상황'],'19:30':['duty','다음날당직'],'20:30':['sit','전날상황'],'21:30':['duty','전날당직']};
-  EVENING.forEach(slot=>{
-    const id=s.fixed&&s.fixed[slot];
-    const row=el('div','slot'); row.appendChild(timeCell(slot));
-    const [cls,lab]=evLabel[slot];
-    const tags=[ tagEl(cls,lab) ];
-    // 17:30이 다음날 밥교대 지정자와 다르면(외출 등으로 교체됨) 표시
-    if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) tags.push(tagEl('relax','밥교대자와 다름'));
-    { const rt=id&&roleTag(id); if(rt) tags.push(rt); }
-    if(!compact){
-      // 17:30 포함 전부 카운트 전용 직접 편집 (재생성 안 함) — 외출 등으로 그 시간 근무자만 교체
-      row.appendChild(editCell(id, v=>{ if(v) s.fixed[slot]=v; else delete s.fixed[slot]; save(); renderView(); }, tags));
-    }else{
-      row.appendChild(staticCell(id,'—',tags));
-    }
-    row.appendChild(el('div','hr', slot==='17:30'?(1+DB.settings.patrolBonus).toFixed(1)+'h':'1.0h'));
-    evBlock.appendChild(row);
-  });
-  grid.appendChild(evBlock);
-
-  // 야간 번초
-  const nBlock=el('div','block');
-  nBlock.appendChild(el('div','bh','<span>야간 번초 (각 4시간 간격 2슬롯)</span><span>'+(nightGroup(s.date,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')+'</span>'));
-  NIGHT_BUNCHO.forEach(b=>{
-    const id=s.night&&s.night[b.id];
-    const row=el('div','slot night bch'); 
-    row.appendChild(timeCell(b.id+'번초', b.slots.join('·')));
-    const tags=[];
-    if(id && s.mealId===id) tags.push(tagEl('meal','밥교대'));
-    { const rt=id&&roleTag(id); if(rt) tags.push(rt); }
-    if(!compact){
-      row.appendChild(editCell(id, v=>{ if(v) s.night[b.id]=v; else delete s.night[b.id]; save(); renderView(); }, tags));
-    }else{
-      row.appendChild(staticCell(id,'미배정',tags));
-    }
-    row.appendChild(el('div','hr','1.0h'));
-    nBlock.appendChild(row);
-  });
-  grid.appendChild(nBlock);
-
-  // 역할 · 밥교대 (외출 등으로 강제 배정자도 직접 교체 가능)
-  const meta=el('div','block');
-  meta.appendChild(el('div','bh','<span>역할 · 밥교대</span><span>직접 교체 가능</span>'));
-  function metaRow(label, curId, onChange){
-    const row=el('div','slot'); row.appendChild(el('div','t',label));
-    if(!compact){
-      const wrap=el('div','nmwrap'); const sel=workerSelect(curId);
-      sel.addEventListener('change',()=>{ onChange(sel.value||null); save(); renderView(); });
-      wrap.appendChild(sel); row.appendChild(wrap);
-    }else{ row.appendChild(el('div','nm', curId?esc(nameOf(curId)):'—')); }
-    return row;
-  }
-  meta.appendChild(metaRow('당직', s.dutyId, v=>{ s.dutyId=v; }));
-  meta.appendChild(metaRow('상황', s.situationId, v=>{ s.situationId=v; }));
-  // 당일·다음날 밥교대: 바꾸면 규칙상 설 수 없게 된 칸만 다른 사람으로 바꾼다(전체 재생성 안 함)
-  {
-    const row=el('div','slot'); row.appendChild(el('div','t','당일 밥교대'));
-    if(!compact){
-      const wrap=el('div','nmwrap'); const sel=workerSelect(s.mealId);
-      sel.addEventListener('change',()=> applyMealChange(s, 'meal', sel.value||null));
-      wrap.appendChild(sel); row.appendChild(wrap);
-    }else{ row.appendChild(el('div','nm', s.mealId?esc(nameOf(s.mealId)):'—')); }
-    meta.appendChild(row);
-  }
-  {
-    const row=el('div','slot'); row.appendChild(el('div','t','다음날 밥교대'));
-    if(!compact){
-      const wrap=el('div','nmwrap'); const sel=workerSelect(s.nextMealId);
-      sel.addEventListener('change',()=> applyMealChange(s, 'nextMeal', sel.value||null));
-      wrap.appendChild(sel);
-      if(s.nextMealAuto && s.nextMealId) wrap.appendChild(tagEl('patrol','⚙자동'));
-      row.appendChild(wrap);
-    }else{ row.appendChild(el('div','nm', s.nextMealId?esc(nameOf(s.nextMealId)):'—')); }
-    meta.appendChild(row);
-  }
-  meta.appendChild(el('div','slot', '<div class="t"></div><div class="nm" style="font-size:11px;color:var(--ink-faint);font-weight:400">밥교대를 바꾸면 새 밥교대자가 설 수 없게 된 칸(야간·16:30·순찰, 당일 밥교대는 주간 칸)만 다른 사람으로 바꿉니다 — 바뀌는 칸을 먼저 보여주고 확인을 받습니다. 외출 등으로 17:30 근무자만 바꿀 때는 위 저녁 블록의 17:30 칸을 직접 수정하세요.</div>'));
-  grid.appendChild(meta);
-  return grid;
+  body.appendChild(list);
+  body.appendChild(el('div','edsep','또는'));
+  const none=el('button','btn ghost full', isMeal||key==='duty'||key==='sit' ? '지정 안 함으로 변경' : '미배정으로 변경');
+  none.disabled=!cur;
+  none.addEventListener('click',()=>pick(null));
+  body.appendChild(none);
+  openSheet('edSheet');
+  $('#edSheet .picklist').scrollTop=0;
+}
+/* 밥교대 변경 — 함께 바뀌는 칸을 앱 안에서 보여 주고, [적용]하면 임시 표에 반영 */
+function edMealPreview(key, id){
+  const s=vDraft.s, cur=schedKeyGet(s,key);
+  const res=repairRoleChange(s, key, id);
+  const body=$('#edBody'); body.innerHTML='';
+  body.appendChild(el('div','edsub','<b>'+esc((key==='meal'?'밥교대':'다음날 밥교대')+': '+nameOf(cur)+' → '+nameOf(id))+'</b>'));
+  const lst=el('div','cday-list');
+  const item=(t,sub)=>lst.appendChild(el('div','cday-item','<div class="bd"><div class="nm">'+t+'</div>'+(sub?'<div class="cd">'+sub+'</div>':'')+'</div>'));
+  if(key==='nextMeal') item('17:30', esc(nameOf(s.fixed&&s.fixed['17:30']))+' → '+esc(nameOf(id))+' <span class="muted">(밥교대 근무+순찰)</span>');
+  res.changes.forEach(c=> item(esc(repairKeyLabel(c.key)), esc(nameOf(c.from))+' → <b>'+esc(nameOf(c.to))+'</b>'));
+  res.unresolved.forEach(u=> item(esc(repairKeyLabel(u.key)), u.kept?esc(nameOf(u.kept))+' 유지 — 대신 설 사람이 없음':'비워 둠 — 대신 설 사람이 없음'));
+  body.appendChild(el('div','edsep', res.changes.length||res.unresolved.length||key==='nextMeal' ? '함께 바뀌는 칸' : '다른 칸은 바뀌지 않습니다'));
+  body.appendChild(lst);
+  const two=el('div','two'); two.style.marginTop='12px';
+  const back=el('button','btn ghost full','다른 사람 선택'); back.addEventListener('click',()=>openEdPick(key));
+  const ok=el('button','btn full','적용'); ok.addEventListener('click',()=>{ vDraft.s=res.sched; closeSheet('edSheet'); keepScroll(renderView); });
+  two.appendChild(back); two.appendChild(ok); body.appendChild(two);
 }
 function schedToInput(s){
   return {date:s.date, workHoliday:s.workHoliday, dutyId:s.dutyId, situationId:s.situationId,
@@ -1862,22 +1884,9 @@ function schedToInput(s){
     mealId:s.mealId, dayEx:s.dayEx, nightEx:s.nightEx||[], bothEx:s.bothEx, slotEx:s.slotEx, nextWorkHoliday:s.nextWorkHoliday,
     prevDutyId:s.prevDutyId, prevSituationId:s.prevSituationId};
 }
-/* 밥교대 변경 — 최소 수정 결과를 보여주고 확인 후 적용 */
-function applyMealChange(s, kind, id){
-  const cur = kind==='nextMeal' ? s.nextMealId : s.mealId;
-  if((cur||null)===(id||null)){ renderView(); return; }
-  const res = repairRoleChange(s, kind, id);
-  const lab = kind==='nextMeal' ? '다음날 밥교대(17:30)' : '당일 밥교대';
-  let msg = lab+': '+nameOf(cur)+' → '+nameOf(id)+'\n\n';
-  msg += res.changes.length ? '함께 바뀌는 칸:\n· '+res.changes.map(c=> repairKeyLabel(c.key)+': '+nameOf(c.from)+' → '+nameOf(c.to)).join('\n· ')
-                            : '다른 칸은 바뀌지 않습니다.';
-  if(res.unresolved.length) msg += '\n\n대신 설 사람이 없어 그대로 둔 칸:\n· '+res.unresolved.map(u=> repairKeyLabel(u.key)+(u.kept?' — '+nameOf(u.kept)+' 유지':' — 비워 둠')).join('\n· ')+'\n(편집 모드에서 직접 채울 수 있습니다)';
-  if(!confirm(msg+'\n\n적용할까요?')){ renderView(); return; }
-  DB.schedules[s.date]=res.sched; save(); renderView();
-}
-$('#vDate').addEventListener('change',renderView);
-$('#vPrev').addEventListener('click',()=>{ $('#vDate').value=addDays($('#vDate').value||todayStr(),-1); renderView(); });
-$('#vNext').addEventListener('click',()=>{ $('#vDate').value=addDays($('#vDate').value||todayStr(),1); renderView(); });
+$('#vDate').addEventListener('change',()=>{ vResolveDraft(); renderView(); });
+$('#vPrev').addEventListener('click',()=>{ vResolveDraft(); $('#vDate').value=addDays($('#vDate').value||todayStr(),-1); renderView(); });
+$('#vNext').addEventListener('click',()=>{ vResolveDraft(); $('#vDate').value=addDays($('#vDate').value||todayStr(),1); renderView(); });
 $('#vPrint').addEventListener('click',()=>window.print());
 $('#vCsv').addEventListener('click',()=>{
   const ds=$('#vDate').value; const s=DB.schedules[ds]; if(!s){alert('표 없음');return;}
@@ -3091,6 +3100,7 @@ function renderMore(){
   }
   $$('#mTheme button').forEach(b=>b.classList.toggle('on', b.dataset.t===themePref()));
 }
+syncHdrH();
 function refreshAll(){ renderPeople(); renderSettings(); refreshGenSelectors(); renderView(); renderCal(); renderBackupInfo(); renderMore(); renderMine(); }
 function init(){
   load();
@@ -3104,11 +3114,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.6.0"></script>
+<script src="firebase-config.js?v=6.7.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.6.0"></script>
+<script src="sync.js?v=6.7.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

@@ -283,64 +283,60 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 /* ---------- ①-b 달력 ---------- */
 .dayhdr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .dayhdr .d{font-family:var(--mono);font-size:16px;font-weight:700}
-.cal-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.cal-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .cal-title{font-size:17px;font-weight:700;min-width:110px;text-align:center}
 .cal-head .spacer{flex:1}
-.kpi.cal-kpi{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.kpi.cal-kpi .c{display:flex;flex-direction:row-reverse;align-items:baseline;gap:6px;padding:4px 10px;border-radius:20px;background:var(--panel)}
-.kpi.cal-kpi .c .v{font-size:12px}
-.kpi.cal-kpi .c .l{font-size:11px;margin:0}
+.cal-modes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.cal-modes select{width:auto;max-width:170px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-dow{text-align:center;font-size:10.5px;color:var(--ink-faint);font-weight:700;padding:4px 0}
 .cal-dow:first-child{color:var(--err)}
 .cal-dow:last-child{color:var(--duty)}
-.cal-cell{border:1px solid var(--line);border-radius:9px;background:var(--panel);min-height:92px;min-width:0;padding:6px 7px;cursor:pointer;display:flex;flex-direction:column;gap:3px;overflow:hidden;position:relative}
+.cal-cell{border:1px solid var(--line);border-radius:9px;background:var(--panel);min-height:78px;min-width:0;padding:6px 7px;cursor:pointer;display:flex;flex-direction:column;gap:3px;overflow:hidden}
 .cal-cell:hover{border-color:var(--line2)}
 .cal-cell.out{opacity:0;pointer-events:none}
+.cal-cell.other .cal-d{opacity:.55}
 .cal-cell.today .cal-d>span:first-child{background:var(--ink);color:var(--bg);border-radius:5px;padding:0 4px}
-.cal-cell.wk{background:color-mix(in srgb,var(--acc) 5%,var(--panel))}
 .cal-cell.sel{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
-.cal-cell.hit{background:color-mix(in srgb,var(--acc) 12%,var(--panel))}
 .cal-d{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:5px}
 .cal-d.sun,.cal-d.hd{color:var(--err)}
 .cal-d.sat{color:var(--duty)}
 .cal-d .hol{font-size:9.5px;color:var(--err);font-family:var(--kr);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-st{height:3px;border-radius:2px;width:22px;flex:none}
-.cal-st.st-ok{background:var(--ok)} .cal-st.st-warn{background:var(--warn)}
-.cal-ev{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--ink-dim)}
-.cal-ln{font-size:10.5px;line-height:1.4;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-ln b{color:var(--ink);font-weight:600}
-.cal-ln .tag{font-size:9px;padding:0 4px;margin-right:3px}
-.cal-ln .tag::before{display:none}
-.cal-legend{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 0;font-size:11px;color:var(--ink-faint)}
-.cal-legend span{display:flex;align-items:center;gap:5px}
-.cal-legend .lg-ok{width:14px;height:3px;border-radius:2px;background:var(--ok)}
-.cal-legend .lg-warn{width:14px;height:3px;border-radius:2px;background:var(--warn)}
-.cal-legend .lg-ev{width:6px;height:6px;border-radius:50%;background:var(--ink-dim)}
-.agh{display:flex;align-items:center;gap:8px;font-size:13px;margin:16px 0 8px}
-.agh .sp{flex:1}
-.agh .lk{font:inherit;font-size:12px;color:var(--acc);font-weight:600;background:none;border:0;cursor:pointer}
-.agenda{display:flex;flex-direction:column;gap:6px}
-.ag{display:flex;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer;align-items:center}
-.ag.sel{border-color:var(--acc)}
-.ag .dt{width:34px;flex:none;text-align:center}
-.ag .dt b{display:block;font-family:var(--mono);font-size:16px;line-height:1.1}
-.ag .dt span{font-size:10.5px;color:var(--ink-faint)}
-.ag .dt.hol b,.ag .dt.hol span{color:var(--err)}
-.ag .dt.sat b{color:var(--duty)}
-.ag .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
-.ag .roles{max-width:560px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;font-size:13px;font-weight:600}
-.ag .roles span{display:flex;align-items:baseline;gap:6px;word-break:keep-all;overflow-wrap:anywhere;line-height:1.3}
-.ag .roles i{transform:translateY(-1px)}
-.ag .roles i{width:6px;height:6px;border-radius:50%;flex:none}
-.ag .mine{font-size:12.5px;font-weight:600}
-.ag .evs{display:flex;flex-wrap:wrap;gap:4px}
-.ag .evs span{font-size:11px;color:var(--ink-dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
-.ag .evs span.h{color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,transparent)}
-.ag .evs span.w{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
-.ag .none{font-size:12px;color:var(--ink-faint)}
-.ag .go{color:var(--ink-faint);font-size:16px;flex:none}
-.fab{position:fixed;right:max(18px,calc((100vw - 1240px)/2 + 18px));bottom:24px;z-index:40;font-size:14px;padding:12px 18px;border-radius:24px;box-shadow:var(--shadow)}
+/* 날짜 칸의 짧은 단어 — 글자만으로 뜻이 통하고 색은 보조 */
+.cw{align-self:flex-start;font-size:11px;font-weight:700;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;border-radius:4px;padding:0 4px;color:var(--ink)}
+.cw-ok{color:var(--ok)}
+.cw-warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 15%,transparent)}
+.cw-none{color:var(--ink-faint);font-weight:500}
+.cw-ex{color:var(--ink-dim);background:color-mix(in srgb,var(--ink-dim) 12%,transparent)}
+.cw-ret{color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.cw-duty{color:var(--duty)} .cw-sit{color:var(--sit)} .cw-meal{color:var(--meal)} .cw-fuel{color:var(--patrol)}
+.cal-hint{font-size:11px;color:var(--ink-faint);margin:8px 0 0;line-height:1.5}
+/* 선택한 날짜 상세 — 달력 바로 아래 */
+.cday{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.cday .dayhdr{margin-bottom:12px}
+.cday-sec{margin-top:14px}
+.cday-sec>h3{font-size:12px;font-weight:700;color:var(--ink-dim);margin:0 0 7px}
+.cday-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cday-roles>div{border:1px solid var(--line);border-radius:9px;padding:8px 10px;min-width:0}
+.cday-roles small{display:block;font-size:11px;font-weight:700}
+.cday-roles b{display:block;font-size:14px;margin-top:2px;word-break:keep-all;overflow-wrap:anywhere}
+.cday-none{font-size:13px;color:var(--ink-dim);padding:10px 12px;border:1px dashed var(--line2);border-radius:9px}
+.cday-list{display:flex;flex-direction:column;gap:6px}
+.cday-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;cursor:pointer;background:var(--panel)}
+.cday-item:hover{border-color:var(--line2)}
+.cday-item .bd{flex:1;min-width:0}
+.cday-item .nm{font-weight:700;font-size:13.5px}
+.cday-item .cd{font-size:12px;color:var(--ink-dim);margin-top:1px}
+.cday-item .pd{font-size:11px;color:var(--ink-faint);margin-top:1px}
+.cday-item .go{color:var(--ink-faint);font-size:16px;flex:none}
+.cday-iss{display:flex;flex-direction:column;gap:5px}
+.cday-iss>div{font-size:12.5px;line-height:1.45;padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--warn) 11%,transparent);border-left:3px solid var(--warn)}
+.cday-ok{font-size:12.5px;color:var(--ok);font-weight:600}
+.cday-me{font-size:13px;padding:8px 10px;border-radius:9px;background:color-mix(in srgb,var(--acc) 9%,transparent)}
+.daysep{font-size:10.5px;font-weight:700;color:var(--ink-dim);padding:4px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.ev-dl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:7px 10px;font-size:13px;margin:4px 0 12px}
+.ev-dl dt{color:var(--ink-faint);font-size:12px}
+.ev-dl dd{margin:0;font-weight:600}
 
 /* ---------- 바텀 시트 ---------- */
 .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;display:none}
@@ -530,16 +526,20 @@ details.arch[open] summary{margin-bottom:8px}
   .runbar{bottom:calc(62px + env(safe-area-inset-bottom))}
   .runbar .btn{flex:1}
   .cal-grid{gap:3px}
-  .cal-cell{min-height:48px;padding:5px 2px;border-radius:8px;align-items:center;gap:5px}
-  .cal-ln,.cal-d .hol{display:none}
-  .cal-d{font-size:12.5px}
-  .fab{bottom:calc(76px + env(safe-area-inset-bottom));right:16px}
+  .cal-cell{min-height:58px;padding:5px 1px;border-radius:8px;align-items:center;gap:2px}
+  .cal-d .hol{display:none}
+  .cal-d{font-size:12.5px;margin-bottom:1px}
+  .cw{align-self:center;font-size:10px;padding:0 2px;letter-spacing:-.02em}
+  .cal-head{gap:6px}
+  .cal-title{min-width:0;font-size:16px}
+  .cday{padding:12px}
+  .cday-roles b{font-size:13px}
   .rkr{grid-template-columns:86px minmax(0,1fr) 38px 44px;gap:8px}
   .sheet{border-radius:18px 18px 0 0}
 }
 @media print{
   body{background:#fff;color:#000}
-  header.top,nav.tabs,.no-print,.fab,.sheet,.sheet-bg{display:none!important}
+  header.top,nav.tabs,.no-print,.sheet,.sheet-bg{display:none!important}
   .panel,.rows,.block{border:1px solid #ccc;break-inside:avoid;background:#fff}
   .view{display:none!important}.view.on{display:block!important}
   .tag{border:1px solid #999;color:#000!important;background:#eee!important}
@@ -562,7 +562,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.5.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.6.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -601,29 +601,32 @@ body.ro .no-ro{display:none!important}
       <button class="btn ghost sm" id="calPrev">◀</button>
       <div class="cal-title" id="calTitle">—</div>
       <button class="btn ghost sm" id="calNext">▶</button>
-      <button class="btn ghost sm" id="calToday">이번달</button>
+      <button class="btn ghost sm" id="calToday">오늘</button>
       <div class="spacer"></div>
-      <div class="field"><label>근무자 강조</label><select id="calWho"></select></div>
+      <button class="btn ghost sm" id="calWeekBtn" title="선택한 날짜가 있는 주만 보기">한 주만 보기</button>
     </div>
-    <div class="kpi cal-kpi" id="calKpi"></div>
+    <div class="cal-modes">
+      <div class="seg" id="calMode"><button data-m="status">근무 상태</button><button data-m="leave">휴가·열외</button><button data-m="person">개인 근무</button></div>
+      <select id="calWho" aria-label="근무자"></select>
+    </div>
     <div class="cal-grid" id="calGrid"></div>
-    <div class="cal-legend"><span><i class="lg-ok"></i>생성됨</span><span><i class="lg-warn"></i>점검 필요</span><span><i class="lg-ev"></i>일정 있음</span><span style="color:var(--err)">빨간 숫자 = 휴무일</span></div>
-    <div class="agh"><b id="agTitle">—</b><div class="sp"></div><button class="lk" id="agThisWeek">이번 주로</button></div>
-    <div class="agenda" id="calAgenda"></div>
-    <div id="calDetail" style="margin-top:14px"></div>
+    <p class="cal-hint" id="calHint"></p>
+    <div id="calDetail"></div>
 
-    <div class="panel" style="margin-top:18px">
-      <h2>등록된 일정</h2>
-      <p class="desc">휴가·열외·당직/상황 예약·유조차는 [근무표 생성]에서 그 날짜를 열 때 자동 반영됩니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
-      <div class="flexgap" style="margin-bottom:10px"><label class="chk"><input type="checkbox" id="pbHidePast" checked> 지난 일정 숨기기</label></div>
-      <div class="tbl-wrap"><table id="pbTable"></table></div>
-    </div>
-    <div class="panel">
-      <h2>휴무일</h2>
-      <p class="desc">지정한 휴무일은 [근무표 생성]에서 ‘직장 휴무일’·‘다음날 휴무일’이 자동으로 켜집니다. 대한민국 공휴일(2025~2027)은 자동 반영됩니다.</p>
-      <div class="tbl-wrap"><table id="hdTable"></table></div>
-    </div>
-    <button class="btn fab no-ro no-print" id="calAdd">+ 일정</button>
+    <details class="adv" id="calLists" style="margin-top:18px">
+      <summary>등록된 일정 전체 · 휴무일 관리</summary>
+      <div class="panel">
+        <h2>등록된 일정</h2>
+        <p class="desc">휴가·열외·당직/상황 예약·유조차는 [근무표 생성]에서 그 날짜를 열 때 자동 반영됩니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
+        <div class="flexgap" style="margin-bottom:10px"><label class="chk"><input type="checkbox" id="pbHidePast" checked> 지난 일정 숨기기</label></div>
+        <div class="tbl-wrap"><table id="pbTable"></table></div>
+      </div>
+      <div class="panel">
+        <h2>휴무일</h2>
+        <p class="desc">지정한 휴무일은 [근무표 생성]에서 ‘직장 휴무일’·‘다음날 휴무일’이 자동으로 켜집니다. 대한민국 공휴일(2025~2027)은 자동 반영됩니다.</p>
+        <div class="tbl-wrap"><table id="hdTable"></table></div>
+      </div>
+    </details>
   </section>
 
   <!-- 역할 표 칸 선택 시트 (생성 · 폰) -->
@@ -673,6 +676,18 @@ body.ro .no-ro{display:none!important}
       <p class="smallnote">이미 생성된 표에는 소급 적용되지 않습니다.</p>
       <div id="hdStatus" style="margin-bottom:10px"></div>
       <button class="btn full" id="hdAdd">휴무일 등록</button>
+    </div>
+  </div>
+
+  <!-- 일정 확인 시트 (달력) — 누르면 내용 확인 → 수정/삭제 -->
+  <div class="sheet-bg" id="evSheetBg"></div>
+  <div class="sheet" id="evSheet" role="dialog" aria-label="일정 확인">
+    <div class="grab"></div>
+    <div class="sh-h"><b>일정</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div id="evBody"></div>
+    <div class="two no-ro" style="margin-top:12px">
+      <button class="btn ghost full" id="evEdit">수정</button>
+      <button class="btn danger full" id="evDel">삭제</button>
     </div>
   </div>
 
@@ -971,7 +986,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.5.0"></script>
+<script src="engine.js?v=6.6.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1021,7 +1036,7 @@ $$('[data-back]').forEach(b=>b.addEventListener('click',()=>showView('more')));
 /* 바텀 시트 열기/닫기 */
 function openSheet(id){ $('#'+id).classList.add('on'); $('#'+id+'Bg').classList.add('on'); }
 function closeSheet(id){ $('#'+id).classList.remove('on'); $('#'+id+'Bg').classList.remove('on'); }
-['pbSheet','pSheet','pickSheet'].forEach(id=>{
+['pbSheet','pSheet','pickSheet','evSheet'].forEach(id=>{
   $('#'+id+'Bg').addEventListener('click',()=>closeSheet(id));
   $('#'+id+' [data-close]').addEventListener('click',()=>closeSheet(id));
 });
@@ -1613,10 +1628,14 @@ function renderSchedTimeline(s, who){
   const nights=[];
   NIGHT_BUNCHO.forEach(b=> b.slots.forEach(t=> nights.push({t,b})));
   nights.sort((x,y)=>SLOT_ORDER.indexOf(x.t)-SLOT_ORDER.indexOf(y.t));
-  tl.appendChild(band('야간','22:30–05:30', (nightGroup(s.date,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')+' · 번초당 1.0h', nights.map(({t,b})=>{
+  // 자정 이후 칸은 실제로 다음날 새벽 — 근무표 날짜와 헷갈리지 않게 구분선을 넣는다
+  const nx=addDays(s.date,1), nightRows=[];
+  nights.forEach(({t,b})=>{
+    if(t.startsWith('00:')) nightRows.push(el('div','daysep', esc(Number(nx.slice(5,7))+'/'+Number(nx.slice(8))+' ('+DOW_KR[dow(nx)]+') 새벽 — '+Number(s.date.slice(5,7))+'/'+Number(s.date.slice(8))+' 근무표에 포함')));
     const id=s.night&&s.night[b.id];
-    return row(t, id||null, [el('span','bn', b.id+'번초'), id&&s.mealId===id?tagEl('meal','밥교대'):null, id&&roleTag(id)], '');
-  })));
+    nightRows.push(row(t, id||null, [el('span','bn', b.id+'번초'), id&&s.mealId===id?tagEl('meal','밥교대'):null, id&&roleTag(id)], ''));
+  });
+  tl.appendChild(band('야간','22:30–05:30', (nightGroup(s.date,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')+' · 번초당 1.0h', nightRows));
   return tl;
 }
 
@@ -1870,213 +1889,275 @@ $('#vCsv').addEventListener('click',()=>{
   downloadCsv('근무표_'+ds+'.csv', rows);
 });
 
-/* ---------- ①-b 달력 · 일정 탭 ---------- */
+/* ---------- ①-b 달력 · 일정 탭 ----------
+   월간 달력에서 날짜를 찾고 → 바로 아래에서 그날 상황을 읽는다.
+   날짜 칸은 표시 모드(근무 상태 / 휴가·열외 / 개인 근무)에 따라 짧은 단어만 보여 준다. */
 let calYM=null;        // 표시 중인 달 'YYYY-MM'
 let calSelDate=null;   // 선택된 날짜
-function calInitYM(){ if(!calYM) calYM=(latestSchedDate()||todayStr()).slice(0,7); }
+let calWeek=false;     // 선택한 주만 보기
+const CALMODE_KEY='cctv_calmode_v1', CALWHO_KEY='cctv_calwho_v1';
+function calModeGet(){ try{ const m=localStorage.getItem(CALMODE_KEY); return ['status','leave','person'].includes(m)?m:'status'; }catch(e){ return 'status'; } }
+function calModeSet(m){ try{ localStorage.setItem(CALMODE_KEY,m); }catch(e){} }
+function calWhoGet(){ try{ return localStorage.getItem(CALWHO_KEY)||''; }catch(e){ return ''; } }
+function calWhoSet(id){ try{ localStorage.setItem(CALWHO_KEY,id); }catch(e){} }
+function calInitYM(){
+  if(!calYM) calYM=(latestSchedDate()||todayStr()).slice(0,7);
+  if(!calSelDate) calSelDate = todayStr().slice(0,7)===calYM ? todayStr() : (latestSchedDate()||calYM+'-01');
+}
 function ymTitle(ym){ const [y,m]=ym.split('-'); return y+'년 '+Number(m)+'월'; }
 function ymShift(ym,n){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-1+n,1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }
+const calMd=d=>Number(d.slice(5,7))+'/'+Number(d.slice(8));
 const PREBOOK_TAGCLS={vacation:'ex', exday:'ex', exboth:'ex', duty:'duty', situation:'sit',
                       fueltruck:'patrol', fuelsub:'patrol'};
-const PREBOOK_SHORT={vacation:'휴가', exday:'주열', exboth:'열외', duty:'당직예', situation:'상황예',
-                     fueltruck:'유조차', fuelsub:'유조차대체'};
 
-/* 해당 표에서 근무자의 역할·슬롯 추출 (하이라이트용) */
+/* 그날 그 일정이 실제로 뜻하는 것 — 엔진(autoInputFor·applyFuelTruckEx)과 같은 규칙.
+   휴가 마지막 날(복귀일)은 주간만 열외, 그날 야간부터 투입된다. */
+function pbDayInfo(p, ds){
+  if(p.kind==='vacation') return ds===p.end
+    ? {word:'복귀', cls:'cw-ret', label:'휴가 복귀', cond:'복귀 · 주간만 열외, 야간 가능'}
+    : {word:'휴가', cls:'cw-ex', label:'휴가', cond:'휴가 중 · 종일 열외'};
+  if(p.kind==='exday') return {word:'주간', cls:'cw-ex', label:'주간 열외', cond:'주간만 열외, 야간 가능'};
+  if(p.kind==='exboth') return {word:'열외', cls:'cw-ex', label:'모두 열외', cond:'종일 열외 · 분모 제외'};
+  if(p.kind==='fuelsub') return {word:'유조차', cls:'cw-fuel', label:'유조차 (부)', cond:'종일 열외 · 당직/상황병 날은 역할 근무'};
+  if(p.kind==='fueltruck'){
+    const al=fuelAllowedOn(ds);
+    const cond = al.night ? '야간 번초만 가능, 나머지 열외'
+               : al.day.length ? al.day[0]+'~'+al.day[al.day.length-1]+'만 가능, 나머지 열외'
+               : '종일 열외';
+    return {word:'유조차', cls:'cw-fuel', label:'유조차 (정)', cond:cond+' · 분모 제외'};
+  }
+  if(p.kind==='duty') return {word:'당직예약', cls:'cw-duty', label:'당직 예약', cond:'이날 당직으로 지정'};
+  return {word:'상황예약', cls:'cw-sit', label:'상황병 예약', cond:'이날 상황병으로 지정'};
+}
+
+/* 해당 표에서 근무자의 역할·슬롯 추출 */
 function workerDayMarks(s,wid){
   const roles=[];
   if(s.dutyId===wid) roles.push('당직');
   if(s.situationId===wid) roles.push('상황병');
   if(s.mealId===wid) roles.push('밥교대');
-  const slots=[];
-  DAY_SLOTS.concat(EVENING).forEach(sl=>{ if((s.assign&&s.assign[sl]===wid)||(s.fixed&&s.fixed[sl]===wid)) slots.push(sl); });
-  NIGHT_BUNCHO.forEach(b=>{ if(s.night&&s.night[b.id]===wid) slots.push(b.id+'번초'); });
-  if(s.patrolExtra===wid) slots.push('17:00순찰');
-  return {roles, slots};
+  const day=DAY_SLOTS.filter(sl=> (s.assign&&s.assign[sl]===wid)||(s.fixed&&s.fixed[sl]===wid));
+  if(s.patrolExtra===wid) day.push('17:00순찰');
+  const eve=EVENING.filter(sl=> s.fixed&&s.fixed[sl]===wid);
+  const night=NIGHT_BUNCHO.filter(b=> s.night&&s.night[b.id]===wid).map(b=>b.id+'번초');
+  return {roles, day, eve, night, slots:day.concat(eve, night)};
 }
+
+/* 날짜 칸에 넣을 단어들 [{t, cls}] */
+function calCellWords(ds, mode, who){
+  const s=DB.schedules[ds];
+  if(mode==='status'){
+    if(!s) return [{t:'미생성', cls:'cw-none'}];
+    const n=validateScheduleCached(s).length;
+    return [n ? {t:'확인 '+n, cls:'cw-warn'} : {t:'표 있음', cls:'cw-ok'}];
+  }
+  if(mode==='leave'){
+    const cnt={}, cls={};
+    prebookOn(ds).filter(p=>p.kind!=='duty' && p.kind!=='situation').forEach(p=>{
+      const i=pbDayInfo(p,ds); cnt[i.word]=(cnt[i.word]||0)+1; cls[i.word]=i.cls;
+    });
+    return ['휴가','주간','복귀','열외','유조차'].filter(w=>cnt[w]).map(w=>({t:w+' '+cnt[w], cls:cls[w]}));
+  }
+  // 개인 근무
+  if(!who) return [];
+  const out=[];
+  prebookOn(ds).filter(p=>p.wid===who).forEach(p=>{ const i=pbDayInfo(p,ds); out.push({t:i.word, cls:i.cls}); });
+  if(!s){ out.push({t:'미생성', cls:'cw-none'}); return out; }
+  const mk=workerDayMarks(s,who);
+  const RC={'당직':'cw-duty','상황병':'cw-sit','밥교대':'cw-meal'};
+  mk.roles.forEach(r=>out.push({t:r, cls:RC[r]}));
+  if(mk.day.length) out.push({t:'주간 '+mk.day.length, cls:''});
+  if(mk.eve.length) out.push({t:'저녁 '+mk.eve.length, cls:''});
+  if(mk.night.length) out.push({t:'야간 '+mk.night.length, cls:''});
+  if(!mk.roles.length && !mk.slots.length) out.push({t:'없음', cls:'cw-none'});
+  return out;
+}
+
+const CAL_HINT={
+  status:'표 있음 = 생성됨 · 확인 N = 점검할 문제 N건 · 미생성 = 아직 표를 만들지 않음 · 빨간 숫자 = 휴무일',
+  leave:'휴가 = 종일 열외 · 복귀 = 주간만 열외(야간 가능) · 주간 = 주간 열외 · 열외 = 종일 열외 · 유조차 = 요일별로 일부만 가능',
+  person:'주간·저녁·야간 = 그날 표에서 맡은 칸 수(야간은 다음날 새벽까지) · 미생성 = 표 없음 · 없음 = 배정된 근무 없음'
+};
 
 function renderCal(){
   if(!$('#calGrid')) return;
   calInitYM();
-  $('#calTitle').textContent=ymTitle(calYM);
-  const whoSel=$('#calWho'); const keep=whoSel.value;
-  fillSelect(whoSel, activeWorkers(), {blank:'— 전체 —', selected:keep||null});
-  const who=whoSel.value||null;
+  const mode=calModeGet();
+  $$('#calMode button').forEach(b=>b.classList.toggle('on', b.dataset.m===mode));
+  const whoSel=$('#calWho');
+  const ws=activeWorkers();
+  let who = whoSel.value || calWhoGet() || meGet();
+  if(!ws.some(w=>w.id===who)) who = ws.length ? ws[0].id : '';
+  fillSelect(whoSel, ws, {blank:"— 근무자 선택 —", selected:who||null});
+  whoSel.style.display = mode==='person' ? '' : 'none';
+  if(mode!=='person') who='';
 
-  const agStart=calAgendaStart();
-  const agWeek=new Set([0,1,2,3,4,5,6].map(i=>addDays(agStart,i)));
+  const weekStart=addDays(calSelDate, -dow(calSelDate));
+  $('#calTitle').textContent = calWeek ? calMd(weekStart)+' – '+calMd(addDays(weekStart,6)) : ymTitle(calYM);
+  $('#calWeekBtn').textContent = calWeek ? '한 달 보기' : '한 주만 보기';
+  $('#calToday').textContent = calWeek ? '이번 주' : '오늘';
+
   const grid=$('#calGrid'); grid.innerHTML='';
   DOW_KR.forEach(d=> grid.appendChild(el('div','cal-dow',d)));
-  const [y,m]=calYM.split('-').map(Number);
-  const lead=dow(calYM+'-01');
-  const days=new Date(y,m,0).getDate();
+  let dates;
+  if(calWeek) dates=[0,1,2,3,4,5,6].map(i=>addDays(weekStart,i));
+  else {
+    const [y,m]=calYM.split('-').map(Number);
+    const days=new Date(y,m,0).getDate();
+    for(let i=0;i<dow(calYM+'-01');i++) grid.appendChild(el('div','cal-cell out'));
+    dates=Array.from({length:days},(_,i)=>calYM+'-'+pad(i+1));
+  }
   const today=todayStr();
-  let madeCnt=0, warnDays=0, holCnt=0;
-  for(let i=0;i<lead;i++) grid.appendChild(el('div','cal-cell out'));
-  for(let d=1;d<=days;d++){
-    const ds=calYM+'-'+pad(d);
-    const s=DB.schedules[ds];
-    const wd=dow(ds);
-    const hn=holidayName(ds);
-    const issues = s ? validateScheduleCached(s) : [];
-    if(s){ madeCnt++; if(issues.length) warnDays++; }
-    if(hn) holCnt++;
+  dates.forEach(ds=>{
+    const s=DB.schedules[ds], wd=dow(ds), hn=holidayName(ds);
     const cell=el('div','cal-cell');
     if(ds===today) cell.classList.add('today');
     if(ds===calSelDate) cell.classList.add('sel');
-    if(hn || (s&&s.workHoliday)) cell.classList.add('holiday');
-    if(agWeek.has(ds)) cell.classList.add('wk');
+    if(calWeek && ds.slice(0,7)!==calSelDate.slice(0,7)) cell.classList.add('other');
     const dn=el('div','cal-d'+(wd===0?' sun':wd===6?' sat':'')+(hn?' hd':''));
-    dn.appendChild(el('span',null,String(d)));
+    dn.appendChild(el('span',null,String(Number(ds.slice(8)))));
     if(hn) dn.appendChild(el('span','hol',esc(hn)));
     else if(s&&s.workHoliday) dn.appendChild(el('span','hol','휴무'));
     cell.appendChild(dn);
-    // 넓은 화면에서만 보이는 이름 줄 (폰에서는 아래 주간 목록에 줄임 없이 나온다)
-    if(s){
-      if(!who){
-        if(s.dutyId) cell.appendChild(el('div','cal-ln','<span class="tag duty">당</span><b>'+esc(nameOf(s.dutyId))+'</b>'));
-        if(s.situationId) cell.appendChild(el('div','cal-ln','<span class="tag sit">상</span><b>'+esc(nameOf(s.situationId))+'</b>'));
-        if(s.mealId) cell.appendChild(el('div','cal-ln','<span class="tag meal">밥</span>'+esc(nameOf(s.mealId))));
-      }else{
-        const mk=workerDayMarks(s,who);
-        if(mk.roles.length||mk.slots.length){
-          cell.classList.add('hit');
-          if(mk.roles.length) cell.appendChild(el('div','cal-ln','<b>'+esc(mk.roles.join(' · '))+'</b>'));
-          if(mk.slots.length) cell.appendChild(el('div','cal-ln',esc(mk.slots.join(' '))));
-        }
+    calCellWords(ds, mode, who).forEach(w=> cell.appendChild(el('div','cw '+w.cls, esc(w.t))));
+    cell.addEventListener('click',()=>{
+      selectCalDate(ds);
+      // ‘확인 N’을 누르면 그 N건이 바로 보이도록
+      if(mode==='status' && s && validateScheduleCached(s).length){
+        const iss=$('#calIssues'); if(iss) iss.scrollIntoView({block:'nearest', behavior:'smooth'});
       }
-    }
-    const pbs=prebookOn(ds).filter(p=>!who||p.wid===who);
-    pbs.forEach(p=>{
-      const returning = p.kind==='vacation' && ds===p.end && p.end!==p.start; // 복귀일: 주간만 열외
-      const short = returning ? '복귀' : PREBOOK_SHORT[p.kind];
-      const cls = returning ? 'ex' : PREBOOK_TAGCLS[p.kind];
-      cell.appendChild(el('div','cal-ln','<span class="tag '+cls+'">'+short+'</span>'+esc(nameOf(p.wid))));
     });
-    if(pbs.length) cell.appendChild(el('span','cal-ev'));
-    if(s) cell.appendChild(el('span','cal-st '+(issues.length?'st-warn':'st-ok')));
-    cell.addEventListener('click',()=>selectCalDate(ds));
     grid.appendChild(cell);
-  }
-  // 월 요약 KPI
-  {
-    const k=$('#calKpi'); k.innerHTML='';
-    const mStart=calYM+'-01', mEnd=calYM+'-'+pad(days);
-    const pbCnt=(DB.prebook||[]).filter(p=> p.start<=mEnd && p.end>=mStart).length;
-    addKpi(k,'근무표 생성', madeCnt+'/'+days+'일');
-    addKpi(k,'점검 필요 ⚠', warnDays+'일');
-    addKpi(k,'휴무일·공휴일', holCnt+'일');
-    addKpi(k,'등록 일정', pbCnt+'건');
-  }
-  renderCalAgenda(agStart, who);
-  renderCalDetail();
+  });
+  $('#calHint').textContent=CAL_HINT[mode];
+  renderCalDetail(who);
   renderPrebookForm();
   renderPrebookTable();
   renderHolidayTable();
   if(!$('#hdStart').value) $('#hdStart').value=todayStr();
 }
 
-/* 날짜 선택 — 달력 칸·주간 목록 공통. 일정 추가 시트의 시작일도 이 날짜로 채운다 */
+/* 날짜 선택 — 같은 자리의 상세만 바뀐다. 일정 추가 시트의 시작일도 이 날짜로 채운다 */
 function selectCalDate(ds){
   calSelDate=ds;
-  if(ds.slice(0,7)!==calYM) calYM=ds.slice(0,7);
+  calYM=ds.slice(0,7);
   $('#pbStart').value=ds;
   if($('#pbEnd').value && $('#pbEnd').value<ds) $('#pbEnd').value='';
   $('#hdStart').value=ds;
   if($('#hdEnd').value && $('#hdEnd').value<ds) $('#hdEnd').value='';
   renderCal();
 }
-/* 주간 목록의 시작(일요일): 선택한 날 → 오늘(이번 달일 때) → 그 달 1일 */
-function calAgendaStart(){
-  const today=todayStr();
-  const anchor = (calSelDate && calSelDate.slice(0,7)===calYM) ? calSelDate
-               : today.slice(0,7)===calYM ? today : calYM+'-01';
-  return addDays(anchor, -dow(anchor));
-}
-function renderCalAgenda(start, who){
-  const box=$('#calAgenda'); box.innerHTML='';
-  const end=addDays(start,6);
-  const md=d=>Number(d.slice(5,7))+'/'+Number(d.slice(8));
-  $('#agTitle').textContent=md(start)+' – '+md(end);
-  const ro=document.body.classList.contains('ro');
-  for(let i=0;i<7;i++){
-    const ds=addDays(start,i), s=DB.schedules[ds], wd=dow(ds), hn=holidayName(ds);
-    const r=el('div','ag'+(ds===calSelDate?' sel':''));
-    r.appendChild(el('div','dt'+((hn||wd===0)?' hol':wd===6?' sat':''), '<b>'+Number(ds.slice(8))+'</b><span>'+DOW_KR[wd]+'</span>'));
-    const bd=el('div','bd');
-    if(s && !who){
-      const R=(c,id)=>'<span><i style="background:var(--'+c+')"></i>'+(id?esc(nameOf(id)):'—')+'</span>';
-      bd.appendChild(el('div','roles', R('duty',s.dutyId)+R('sit',s.situationId)+R('meal',s.mealId)));
-    }else if(s && who){
-      const mk=workerDayMarks(s,who);
-      bd.appendChild(el('div','mine', mk.roles.length||mk.slots.length ? esc(mk.roles.concat(mk.slots).join(' · ')) : '<span class="muted">근무 없음</span>'));
-    }else{
-      bd.appendChild(el('div','none','근무표 없음'+(ro?'':' · 생성 ›')));
-    }
-    const evs=[];
-    if(hn) evs.push('<span class="h">'+esc(hn)+'</span>');
-    if(s){ const n=validateScheduleCached(s).length; if(n) evs.push('<span class="w">⚠ 점검 '+n+'건</span>'); }
-    prebookOn(ds).filter(p=>!who||p.wid===who).forEach(p=>{
-      const returning = p.kind==='vacation' && ds===p.end && p.end!==p.start;
-      evs.push('<span>'+esc((returning?'휴가 복귀':PREBOOK_KR[p.kind])+' · '+nameOf(p.wid))+'</span>');
-    });
-    if(evs.length) bd.appendChild(el('div','evs', evs.join('')));
-    r.appendChild(bd);
-    r.appendChild(el('span','go','›'));
-    r.addEventListener('click',()=>{
-      if(!s && !ro && calSelDate===ds){ $('#gDate').value=ds; refreshGenSelectors(); showView('gen'); return; }
-      selectCalDate(ds);
-    });
-    box.appendChild(r);
-  }
-}
-$('#agThisWeek').addEventListener('click',()=>selectCalDate(todayStr()));
 
-function renderCalDetail(){
+/* 선택한 날짜 상세 — 역할·확인할 문제·휴가/열외를 펼친 채로, 시간별 근무는 필요할 때 펼친다 */
+function renderCalDetail(who){
   const box=$('#calDetail'); box.innerHTML='';
-  if(!calSelDate || calSelDate.slice(0,7)!==calYM) return;
   const ds=calSelDate, s=DB.schedules[ds];
+  const wrap=el('div','cday');
   const hdr=el('div','dayhdr');
-  hdr.appendChild(el('div','d', ds+' ('+DOW_KR[dow(ds)]+')'));
+  hdr.appendChild(el('div','d', Number(ds.slice(5,7))+'월 '+Number(ds.slice(8))+'일 ('+DOW_KR[dow(ds)]+')'));
   { const hn=holidayName(ds); if(hn) hdr.appendChild(el('span','pill','휴무일 · '+esc(hn))); }
-  if(s && s.workHoliday) hdr.appendChild(el('span','pill','직장 휴무일'));
-  if(!s) hdr.appendChild(el('span','pill','근무표 없음'));
+  if(s && s.workHoliday && !holidayName(ds)) hdr.appendChild(el('span','pill','직장 휴무일'));
   const sp=el('div'); sp.style.flex='1'; hdr.appendChild(sp);
-  const go=el('button','btn ghost sm'+(s?'':' no-ro'), s?'근무표 보기':'이 날짜 생성');
+  const add=el('button','btn ghost sm no-ro','+ 일정');
+  add.addEventListener('click',()=>openPbSheet(null));
+  hdr.appendChild(add);
+  const go=el('button','btn sm'+(s?' ghost':' no-ro'), s?'근무표 보기':'이 날짜 생성');
   go.addEventListener('click',()=>{
     if(s){ $('#vDate').value=ds; renderView(); showView('view'); }
     else { $('#gDate').value=ds; refreshGenSelectors(); showView('gen'); }
   });
   hdr.appendChild(go);
-  box.appendChild(hdr);
-  const pbs=prebookOn(ds);
-  if(pbs.length){
-    const wrap=el('div','flexgap');
-    pbs.forEach(p=>{
-      const returning = p.kind==='vacation' && ds===p.end && p.end!==p.start;
-      const label = returning ? '휴가 복귀일 (주간만 열외)' : PREBOOK_KR[p.kind];
-      const chip=el('span','pill', esc(label+' · '+nameOf(p.wid)+(p.end!==p.start?' ('+p.start+'~'+p.end+')':''))+' ✕');
-      chip.style.cursor='pointer'; chip.title='클릭하면 이 일정을 삭제합니다';
-      chip.addEventListener('click',()=>{
-        if(!confirm(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)+' 일정을 삭제할까요?')) return;
-        DB.prebook=DB.prebook.filter(x=>x.id!==p.id); save(); renderCal(); refreshGenSelectors();
-      });
-      wrap.appendChild(chip);
+  wrap.appendChild(hdr);
+  const sec=(title)=>{ const x=el('div','cday-sec'); x.appendChild(el('h3',null,esc(title))); wrap.appendChild(x); return x; };
+
+  if(!s){
+    wrap.appendChild(el('div','cday-none','<b>근무표 미생성</b> — 이 날짜의 표를 아직 만들지 않았습니다.'));
+  }else{
+    const roles=el('div','cday-roles');
+    [['당직','duty',s.dutyId],['상황병','sit',s.situationId],['밥교대','meal',s.mealId]].forEach(([l,c,id])=>{
+      roles.appendChild(el('div',null,'<small style="color:var(--'+c+')">'+l+'</small><b>'+(id?esc(nameOf(id)):'<span class="muted">—</span>')+'</b>'));
     });
-    box.appendChild(wrap);
-  }
-  // 근무표가 있으면 경고 + 표 전체를 그 자리에서 열람 (탭 이동 불필요)
-  if(s){
+    wrap.appendChild(roles);
+    if(who){
+      const mk=workerDayMarks(s,who);
+      const parts=[];
+      if(mk.roles.length) parts.push(mk.roles.join('·'));
+      if(mk.day.length) parts.push('주간 '+mk.day.join('·'));
+      if(mk.eve.length) parts.push('저녁 '+mk.eve.join('·'));
+      if(mk.night.length) parts.push('야간 '+mk.night.join('·')+' ('+calMd(addDays(ds,1))+' 새벽까지)');
+      const me=el('div','cday-me','<b>'+esc(nameOf(who))+'</b> · '+(parts.length?esc(parts.join(' / ')):'<span class="muted">배정된 근무 없음</span>'));
+      me.style.marginTop='8px';
+      wrap.appendChild(me);
+    }
     const issues=validateScheduleCached(s);
-    if(issues.length) box.appendChild(el('div','warn','⚠ 점검 필요 '+issues.length+'건<br>'+issues.map(esc).join('<br>')));
+    const iw=sec(issues.length ? '확인할 문제 '+issues.length+'건' : '확인할 문제');
+    iw.id='calIssues';
+    if(issues.length){ const l=el('div','cday-iss'); issues.forEach(t=>l.appendChild(el('div',null,esc(t)))); iw.appendChild(l); }
+    else iw.appendChild(el('div','cday-ok','✓ 점검 결과 문제 없음'));
+  }
+
+  const pbs=prebookOn(ds).filter(p=>!who||p.wid===who);
+  const lw=sec('휴가·열외·예약');
+  if(pbs.length){
+    const l=el('div','cday-list');
+    const order={vacation:0,exday:1,exboth:2,fueltruck:3,fuelsub:4,duty:5,situation:6};
+    pbs.slice().sort((a,b)=>order[a.kind]-order[b.kind]).forEach(p=>{
+      const i=pbDayInfo(p,ds);
+      const it=el('div','cday-item');
+      it.appendChild(el('span','tag '+PREBOOK_TAGCLS[p.kind], esc(i.label)));
+      it.appendChild(el('div','bd','<div class="nm">'+esc(nameOf(p.wid))+'</div><div class="cd">'+esc(i.cond)+'</div>'
+        +(p.end!==p.start?'<div class="pd">'+shortRange(p.start,p.end)+'</div>':'')));
+      it.appendChild(el('span','go','›'));
+      it.addEventListener('click',()=>openEvSheet(p.id));
+      l.appendChild(it);
+    });
+    lw.appendChild(l);
+  }else lw.appendChild(el('div','muted',who?'이 사람의 일정 없음':'등록된 휴가·열외·예약 없음'));
+
+  if(s){
     const det=el('details','adv');
-    det.appendChild(el('summary',null,'근무표 전체 보기'));
+    det.appendChild(el('summary',null,'시간별 근무 전체 보기'));
     const inner=el('div'); inner.style.padding='0 0 14px';
-    inner.appendChild(renderSchedTimeline(s, $('#calWho').value||null));
+    inner.appendChild(renderSchedTimeline(s, who||null));
     det.appendChild(inner);
     if(window.innerWidth>780) det.open=true;
-    box.appendChild(det);
+    wrap.appendChild(det);
   }
+  box.appendChild(wrap);
 }
+
+/* 일정 확인 시트 — 누르면 먼저 내용을 보여 주고, 수정·삭제는 그다음 */
+let evSheetId=null;
+function prebookConflictList(p){
+  const confs=[]; let guard=0;
+  for(let d=p.start; d<=p.end && guard++<366; d=addDays(d,1)){
+    const s=DB.schedules[d]; if(!s) continue;
+    prebookConflictsFor(p,s).forEach(m=> confs.push(calMd(d)+' ('+DOW_KR[dow(d)]+') — '+m));
+  }
+  return confs;
+}
+function openEvSheet(id){
+  const p=(DB.prebook||[]).find(x=>x.id===id); if(!p) return;
+  evSheetId=id;
+  const i=pbDayInfo(p, calSelDate>=p.start && calSelDate<=p.end ? calSelDate : p.start);
+  const b=$('#evBody'); b.innerHTML='';
+  const dl=el('dl','ev-dl');
+  dl.innerHTML='<dt>종류</dt><dd><span class="tag '+PREBOOK_TAGCLS[p.kind]+'">'+esc(PREBOOK_KR[p.kind])+'</span></dd>'
+    +'<dt>근무자</dt><dd>'+esc(nameOf(p.wid))+'</dd>'
+    +'<dt>기간</dt><dd>'+shortRange(p.start,p.end)+'</dd>'
+    +'<dt>'+esc(calMd(calSelDate))+'</dt><dd>'+esc(i.cond)+'</dd>';
+  b.appendChild(dl);
+  if(p.kind==='vacation' && p.end!==p.start) b.appendChild(el('p','smallnote','마지막 날('+esc(calMd(p.end))+')은 복귀일 — 주간만 열외되고 그날 야간부터 투입됩니다.'));
+  const confs=prebookConflictList(p);
+  if(confs.length) b.appendChild(el('div','warn','⚠ 등록된 일정과 기존 배정이 겹칩니다 '+confs.length+'건 — 해당 날짜를 재생성하거나 [근무표 확인]에서 직접 수정하세요.<br>'+confs.map(esc).join('<br>')));
+  openSheet('evSheet');
+}
+$('#evEdit').addEventListener('click',()=>{ const id=evSheetId; closeSheet('evSheet'); openPbSheet(id); });
+$('#evDel').addEventListener('click',()=>{
+  const p=(DB.prebook||[]).find(x=>x.id===evSheetId); if(!p) return;
+  if(!confirm(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)+' ('+p.start+(p.end!==p.start?' ~ '+p.end:'')+') 일정을 삭제할까요?')) return;
+  DB.prebook=DB.prebook.filter(x=>x.id!==p.id); save(); closeSheet('evSheet'); renderCal(); refreshGenSelectors();
+});
 
 /* 표용 짧은 기간 표기 — 올해면 연도를 생략한다 */
 function shortRange(a,b){
@@ -2162,9 +2243,9 @@ function renderPrebookTable(){
     tr.appendChild(el('td',null, shortRange(p.start,p.end)));
     tr.appendChild(el('td',null,'<span class="tag '+PREBOOK_TAGCLS[p.kind]+'">'+PREBOOK_KR[p.kind]+'</span>'));
     tr.appendChild(el('td',null,'<b>'+esc(nameOf(p.wid))+'</b>'));
-    const td=el('td'); const del=el('button','btn danger sm','삭제');
-    del.addEventListener('click',()=>{ DB.prebook=DB.prebook.filter(x=>x.id!==p.id); save(); renderCal(); refreshGenSelectors(); });
-    td.appendChild(del); tr.appendChild(td);
+    const td=el('td'); const open=el('button','btn ghost sm','확인 ›');
+    open.addEventListener('click',()=>openEvSheet(p.id));
+    td.appendChild(open); tr.appendChild(td);
     t.appendChild(tr);
   });
 }
@@ -2178,13 +2259,27 @@ function setPbKind(k){
   $$('#pbKinds button').forEach(b=>b.classList.toggle('on', b.dataset.k===k));
 }
 $$('#pbKinds button').forEach(b=>b.addEventListener('click',()=>setPbKind(b.dataset.k)));
-$('#calAdd').addEventListener('click',()=>{
+/* 일정 추가/수정 시트. id가 있으면 그 일정을 불러와 수정한다(저장 시 같은 id로 교체) */
+let pbEditId=null;
+function openPbSheet(id){
+  const p = id ? (DB.prebook||[]).find(x=>x.id===id) : null;
+  pbEditId = p ? p.id : null;
   const ds=calSelDate||todayStr();
-  $('#pbStart').value=ds; $('#hdStart').value=ds; $('#pbEnd').value=''; $('#hdEnd').value='';
+  $('#pbSheet .sh-h b').textContent = p ? '일정 수정' : '일정 추가';
+  $('#pbAdd').textContent = p ? '수정 저장' : '등록';
+  $('#pbKinds [data-k="holiday"]').style.display = p ? 'none' : '';
   $('#pbStatus').innerHTML=''; $('#hdStatus').innerHTML='';
-  setPbKind($('#hdForm').style.display===''?'holiday':$('#pbKind').value);
+  $('#hdStart').value=ds; $('#hdEnd').value='';
+  if(p){
+    setPbKind(p.kind);
+    $('#pbWho').value=p.wid;
+    $('#pbStart').value=p.start; $('#pbEnd').value = p.end!==p.start ? p.end : '';
+  }else{
+    $('#pbStart').value=ds; $('#pbEnd').value='';
+    setPbKind($('#hdForm').style.display===''?'holiday':$('#pbKind').value);
+  }
   openSheet('pbSheet');
-});
+}
 $('#pbHidePast').addEventListener('change', renderPrebookTable);
 $('#pbAdd').addEventListener('click',()=>{
   const kind=$('#pbKind').value, wid=$('#pbWho').value, start=$('#pbStart').value;
@@ -2192,6 +2287,8 @@ $('#pbAdd').addEventListener('click',()=>{
   const st=$('#pbStatus');
   if(!wid){ st.innerHTML='<div class="err">근무자를 선택하세요.</div>'; return; }
   if(!start){ st.innerHTML='<div class="err">시작일을 선택하세요.</div>'; return; }
+  // 수정: 원래 일정을 빼고 같은 id로 다시 넣는다
+  if(pbEditId) DB.prebook=DB.prebook.filter(x=>x.id!==pbEditId);
   if(kind==='duty'||kind==='situation'){
     end=start;
     // 당직/상황병 예약은 날짜당 1명 — 같은 날짜 기존 예약은 교체
@@ -2203,19 +2300,15 @@ $('#pbAdd').addEventListener('click',()=>{
     DB.prebook=DB.prebook.filter(p=>!(p.kind==='fueltruck' && p.start===mon));
   }
   if(!end || end<start) end=start;
-  const p=normPrebook({kind,wid,start,end});
+  const p=normPrebook({id:pbEditId||undefined,kind,wid,start,end});
   DB.prebook.push(p);
   save();
-  st.innerHTML='<div class="ok">✓ '+esc(PREBOOK_KR[kind]+' · '+nameOf(wid)+' · '+start+(end!==start?' ~ '+end:''))+' 등록했습니다.</div>';
+  st.innerHTML='<div class="ok">✓ '+esc(PREBOOK_KR[kind]+' · '+nameOf(wid)+' · '+start+(end!==start?' ~ '+end:''))+(pbEditId?' 수정했습니다.':' 등록했습니다.')+'</div>';
   // 이미 생성된 표와 충돌 검사 — 사전등록은 소급 적용되지 않으므로 재생성/수정 안내
   {
-    const confs=[]; let guard=0;
-    for(let d=p.start; d<=p.end && guard++<366; d=addDays(d,1)){
-      const s=DB.schedules[d]; if(!s) continue;
-      prebookConflictsFor(p,s).forEach(m=> confs.push(d+' ('+DOW_KR[dow(d)]+') — '+m));
-    }
+    const confs=prebookConflictList(p);
     if(confs.length){
-      st.innerHTML += '<div class="warn">⚠ 이미 생성된 근무표와 충돌 '+confs.length+'건 — 사전등록은 기존 표에 소급 적용되지 않습니다. 해당 날짜를 재생성하거나 [근무표 확인]에서 직접 수정하세요.<br>'
+      st.innerHTML += '<div class="warn">⚠ 등록된 일정과 기존 배정이 겹칩니다 '+confs.length+'건 — 사전등록은 기존 표에 소급 적용되지 않습니다. 해당 날짜를 재생성하거나 [근무표 확인]에서 직접 수정하세요.<br>'
         + confs.map(esc).join('<br>') + '</div>';
     }
   }
@@ -2224,10 +2317,19 @@ $('#pbAdd').addEventListener('click',()=>{
   renderCal();
   refreshGenSelectors();
 });
-$('#calPrev').addEventListener('click',()=>{ calInitYM(); calYM=ymShift(calYM,-1); renderCal(); });
-$('#calNext').addEventListener('click',()=>{ calInitYM(); calYM=ymShift(calYM,1); renderCal(); });
-$('#calToday').addEventListener('click',()=>{ calYM=todayStr().slice(0,7); renderCal(); });
-$('#calWho').addEventListener('change', renderCal);
+/* ◀ ▶ — 월 보기에서는 한 달, 주 보기에서는 한 주씩. 선택 날짜도 함께 옮겨 상세가 비지 않게 한다 */
+function calShift(n){
+  calInitYM();
+  if(calWeek){ selectCalDate(addDays(calSelDate, 7*n)); return; }
+  const ym=ymShift(calYM,n);
+  selectCalDate(todayStr().slice(0,7)===ym ? todayStr() : ym+'-01');
+}
+$('#calPrev').addEventListener('click',()=>calShift(-1));
+$('#calNext').addEventListener('click',()=>calShift(1));
+$('#calToday').addEventListener('click',()=>selectCalDate(todayStr()));
+$('#calWeekBtn').addEventListener('click',()=>{ calWeek=!calWeek; renderCal(); });
+$$('#calMode button').forEach(b=>b.addEventListener('click',()=>{ calModeSet(b.dataset.m); renderCal(); }));
+$('#calWho').addEventListener('change',()=>{ if($('#calWho').value) calWhoSet($('#calWho').value); renderCal(); });
 
 /* ---------- ③ 카운트 탭 ---------- */
 function renderCount(){
@@ -3002,11 +3104,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.5.0"></script>
+<script src="firebase-config.js?v=6.6.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.5.0"></script>
+<script src="sync.js?v=6.6.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

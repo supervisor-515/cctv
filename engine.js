@@ -1198,11 +1198,12 @@ function generateDay(input){
     if(allow.night && !prevNight.has(fuelW.id)){
       // 번초 균등: 그동안 가장 적게 선 번초 (운항병과 같은 기준). 운항병 선점 번초는 피한다.
       const bn = fr ? fr.bunchoNum : {1:0,2:0,3:0,4:0};
-      const free = [1,2,3,4].filter(b=> !(navNight && navNight.bunchoId===b));
+      // 유조차 전체 열외(bothEx)의 예외는 허용 칸에만 적용 — 사용자가 따로 지정한 시간대 열외 번초는 제외
+      const free = [1,2,3,4].filter(b=> !(navNight && navNight.bunchoId===b) && !slotExcluded(ctx, fuelW.id, 'N'+b));
       if(free.length) fuelNight = {bunchoId: free.reduce((a,b)=> (bn[b]||0) < (bn[a]||0) ? b : a, free[0])};
     }
     // 토·일 주간: 그 사람의 해당 시간대 수행 횟수가 가장 적은 칸 (slotFairKey와 같은 기준)
-    const open = allow.day.filter(sl=> !fixed[sl] && !navDay[sl]);
+    const open = allow.day.filter(sl=> !fixed[sl] && !navDay[sl] && !slotExcluded(ctx, fuelW.id, sl));
     if(open.length){
       const g = ctx._dayGrp;
       const k = sl => fr ? ((fr.slotGNum[g]||{})[sl]||0)*2 + (fr.slotNum[sl]||0)*0.5 : 0;
@@ -1394,13 +1395,14 @@ function validateSchedule(s){
   DAY_SLOTS.forEach(sl=>{
     const id=assign[sl]; if(!id) return;
     if(sl==='14:30' && fixed['14:30']===id) return; // 당일 상황병 고정 예외
-    if(fuelAllow && id===s.fuelId && fuelAllow.day.includes(sl)) return; // 유조차 부분근무 예외
-    if(dEx.has(id)) push(nameOf(id)+' 주간열외인데 '+sl+' 배정됨');
+    // 유조차 부분근무 예외는 '유조차라서 붙은 전체 열외'에만 — 사용자가 지정한 시간대 열외는 그대로 검사
+    const fuelOk = fuelAllow && id===s.fuelId && fuelAllow.day.includes(sl);
+    if(!fuelOk && dEx.has(id)) push(nameOf(id)+' 주간열외인데 '+sl+' 배정됨');
     else if(sEx[id] && sEx[id].includes(sl)) push(nameOf(id)+' '+sl+' 시간대 열외인데 배정됨');
   });
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(!id) return;
-    if(fuelAllow && id===s.fuelId && fuelAllow.night) return;            // 유조차 부분근무 예외
-    if(nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨');
+    const fuelOk = fuelAllow && id===s.fuelId && fuelAllow.night;         // 유조차 부분근무 예외(전체 열외에만)
+    if(!fuelOk && nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨');
     else if(sEx[id] && sEx[id].includes('N'+b.id)) push(nameOf(id)+' '+b.id+'번초 시간대 열외인데 배정됨'); });
 
   // 4-1) 시간대 열외가 밥교대·17:00 순찰 근무시간과 겹치는데 배정된 경우

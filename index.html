@@ -561,7 +561,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.4.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.4.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -970,7 +970,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.4.0"></script>
+<script src="engine.js?v=6.4.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2232,10 +2232,14 @@ function countScopeFirst(){ const m=countMonth(); return Object.keys(DB.schedule
 function hadRecruitEra(w){ const f=countScopeFirst(); return !!(w.countResetAt && f && f < w.countResetAt); }
 /* 카운트 화면의 평균 계산 대상: 비신병·비운항병 + (신병 제외를 껐다면) 신병 시절 기록이 섞이지 않은 사람 */
 /* 표본이 너무 적은 사람(그 범위 근무일이 짧음)은 하루 평균이 크게 흔들리므로 평균 계산에서만 뺀다 */
-function countMinDays(){ const m=countMonth(); const n=Object.keys(DB.schedules).filter(d=>!m||d.slice(0,7)===m).length; return Math.max(1, Math.min(7, Math.ceil(n*0.25))); }
+/* 평균 계산 대상 — 카운트·내 근무·더보기 요약이 모두 이 한 기준을 쓴다:
+   비신병·비운항병(활성) + 그 범위 근무일이 최소 기준 이상(7일, 범위의 근무표가 적으면 그 25%) */
+function minDaysFor(nSched){ return Math.max(1, Math.min(7, Math.ceil(nSched*0.25))); }
+function inAvgPool(w, st, minDays){ const r=st[w.id]; return isFairW(w) && !!r && r.denom >= minDays; }
+function countMinDays(){ const m=countMonth(); return minDaysFor(Object.keys(DB.schedules).filter(d=>!m||d.slice(0,7)===m).length); }
 function countFair(w){
-  if(!isFairW(w) || (!$('#cNoRecruit').checked && hadRecruitEra(w))) return false;
-  const r=countStats()[w.id]; return !!r && r.denom >= countMinDays();
+  if(!$('#cNoRecruit').checked && hadRecruitEra(w)) return false;
+  return inAvgPool(w, countStats(), countMinDays());
 }
 function countExLabel(){ return '평균 계산 제외 — 신병·말년·운항병'+($('#cNoRecruit').checked?'':'·신병 기간 포함')+'·근무일 '+countMinDays()+'일 미만'+($('#cShowArchived').checked?'·보관':''); }
 function refreshCountMonths(){
@@ -2857,7 +2861,7 @@ function renderMine(){
   else if(noSchedFrom) box.appendChild(el('div','hint', Number(noSchedFrom.slice(5,7))+'/'+Number(noSchedFrom.slice(8))+'부터는 근무표가 아직 생성되지 않았습니다.'));
 
   // 부대 평균과 비교 — 카운트 탭과 같은 기준(각자 분모로 나눈 배정률)
-  const fair=activeWorkers().filter(x=>isFairW(x) && st[x.id].denom>0);
+  const fair=activeWorkers().filter(x=>inAvgPool(x, st, minDaysFor(Object.keys(DB.schedules).length)));
   const pr=(n,d)=> d>0 ? 100*n/d : null;
   const metrics=[
     ['하루 평균 근무시간','h',2, x=>avgHours(st[x.id])],
@@ -2867,6 +2871,7 @@ function renderMine(){
   ];
   { const bh=el('div','band-h','부대 평균과 비교<span class="r">전체 기간</span>'); bh.style.marginTop='16px'; box.appendChild(bh); }
   if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+'은(는) 배정 방식이 달라 평균 계산에서 빠져 있습니다. 평균보다 높거나 낮게 나오는 게 정상일 수 있습니다.'));
+  else if(!inAvgPool(w, st, minDaysFor(Object.keys(DB.schedules).length))) box.appendChild(el('p','smallnote','근무표에 포함된 날이 '+r.denom+'일로 적어(최소 '+minDaysFor(Object.keys(DB.schedules).length)+'일) 부대 평균 계산에서는 빠져 있습니다. 내 값은 그대로 보여줍니다.'));
   metrics.forEach(([label,unit,dec,f])=>{
     if(label.startsWith('밥교대') && !w.canMeal && !r.mealNum) return;
     const mine=f(w);
@@ -2908,7 +2913,7 @@ function renderMore(){
   $('#mAcctSub').classList.toggle('cta', !ro && !logged);
   const sy=$('#mSync'); sy.textContent = ro?'열람 전용': logged?'연결됨':'미연결'; sy.className='mv'+(logged||ro?' okv':'');
   const st=buildStats(null,null);
-  const fair=activeWorkers().filter(w=>isFairW(w)&&st[w.id].denom>0).map(w=>avgHours(st[w.id]));
+  const fair=activeWorkers().filter(w=>inAvgPool(w, st, minDaysFor(Object.keys(DB.schedules).length))).map(w=>avgHours(st[w.id]));
   $('#mCount').textContent = Object.keys(DB.schedules).length ? '평균시간 CV '+(cv(fair)*100).toFixed(1)+'%' : '';
   const act=DB.workers.filter(w=>w.active).length;
   $('#mPeople').textContent='활성 '+act+(DB.workers.length>act?' · 보관 '+(DB.workers.length-act):'');
@@ -2933,11 +2938,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.4.0"></script>
+<script src="firebase-config.js?v=6.4.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.4.0"></script>
+<script src="sync.js?v=6.4.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

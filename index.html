@@ -351,6 +351,41 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .kinds button.on{color:var(--ink);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
 
 /* ---------- 더보기 ---------- */
+.mine-h{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.mine-h .av{width:40px;height:40px;border-radius:50%;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc);display:grid;place-items:center;font-weight:700;flex:none}
+.mine-h b{font-size:16px}
+.mine-h .sub{font-size:12px;color:var(--ink-dim)}
+.next{background:color-mix(in srgb,var(--acc) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.next .l{font-size:11.5px;font-weight:700;color:var(--acc)}
+.next .v{font-size:18px;font-weight:700;margin-top:2px}
+.next .v .t{font-family:var(--mono)}
+.next .s{font-size:12px;color:var(--ink-dim)}
+.mday{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px}
+.mday.today{border-color:var(--acc)}
+.mday .dh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mday .dh b{font-size:13.5px}
+.mday .dh .dw{font-size:12px;color:var(--ink-faint)}
+.mday .dh .hol{color:var(--err)}
+.mday .its{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.mday .it{display:flex;gap:10px;align-items:center;font-size:13px;font-weight:600}
+.mday .it .t{font-family:var(--mono);font-size:12.5px;color:var(--ink-dim);width:44px;flex:none}
+.mday .it.past{opacity:.45}
+.mday .none{font-size:12px;color:var(--ink-faint)}
+.mday.empty{padding:6px 12px;background:none}
+.cmp .row1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.cmp .row1 b{font-size:13px}
+.cmp .row1 .me{font-family:var(--mono);font-size:16px;font-weight:700}
+.cmp .row1 .sp{flex:1}
+.cmp .row1 .avg{font-size:11.5px;color:var(--ink-dim)}
+.strip .ax .d.o{background:var(--line2);box-shadow:0 0 0 2px var(--panel);cursor:default}
+.strip .ax .d.me{background:var(--acc);width:14px;height:14px;margin-left:-7px;z-index:2;box-shadow:0 0 0 3px var(--panel),0 0 0 4px var(--acc)}
+.joinbox{margin-top:12px;border:1px solid var(--acc);border-radius:10px;padding:12px 14px;background:color-mix(in srgb,var(--acc) 6%,var(--panel))}
+.mlist{display:flex;flex-direction:column;gap:6px}
+.mrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.mrow .mw{flex:1 1 150px;min-width:0;display:flex;flex-direction:column}
+.mrow .mw span{font-size:11.5px;color:var(--ink-faint);overflow-wrap:anywhere}
+.mrow .ma{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mrow .ma select{padding:6px 8px;font-size:12.5px}
 .acct{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:6px;width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .acct .sp{flex:1}
 .acct .chev{color:var(--ink-faint)}
@@ -451,7 +486,7 @@ details.arch[open] summary{margin-bottom:8px}
 @media(max-width:640px){
   .wrap{padding:0 14px calc(84px + env(safe-area-inset-bottom))}
   header.top{padding:12px 0 10px}
-  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:50;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:6px 4px calc(8px + env(safe-area-inset-bottom))}
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:50;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:6px 4px calc(8px + env(safe-area-inset-bottom))}
   nav.tabs button{flex-direction:column;gap:2px;font-size:10.5px;padding:4px 0;border:0;background:none;justify-content:center}
   nav.tabs button svg{width:22px;height:22px}
   nav.tabs button.on,nav.tabs button.on-sub{color:var(--acc);background:none}
@@ -503,7 +538,7 @@ body.ro nav.tabs button[data-v=gen],body.ro nav.tabs button[data-v=people]{displ
 body.ro #gen,body.ro #people,body.ro #settings,body.ro #backup{display:none!important}
 body.ro .btn.danger{display:none!important}
 body.ro .no-ro{display:none!important}
-@media(max-width:640px){ body.ro nav.tabs{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:640px){ body.ro nav.tabs{grid-template-columns:repeat(4,1fr)} }
 #roBadge{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
 </style>
 </head>
@@ -512,13 +547,14 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.0.2</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.1.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
   <nav class="tabs" id="tabs">
     <button data-v="view" class="on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>근무표</button>
     <button data-v="cal"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>달력</button>
+    <button data-v="mine"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>내 근무</button>
     <button data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>생성</button>
     <button data-v="count" class="desk"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>카운트</button>
     <button data-v="people" class="desk"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>근무자</button>
@@ -540,6 +576,9 @@ body.ro .no-ro{display:none!important}
       <button class="btn ghost sm" id="vPrint">인쇄</button>
     </div>
   </section>
+
+  <!-- 내 근무 -->
+  <section class="view" id="mine"><div id="mineBody"></div></section>
 
   <!-- ①-b 달력 · 일정 -->
   <section class="view" id="cal">
@@ -845,11 +884,40 @@ body.ro .no-ro{display:none!important}
       <p class="desc">행보관(관리자)만 수정하고 구성원은 실시간 열람만 하도록 동기화합니다. 관리자가 저장하면 자동 업로드되고, 구성원 화면은 실시간으로 갱신됩니다. 미설정 시 기존처럼 이 브라우저에만 저장됩니다. 설정 절차: 저장소의 <b>FIREBASE_SETUP.md</b> 참고.</p>
       <div id="syStatus" style="margin-bottom:10px"></div>
       <div class="row" id="syLoginRow">
+        <div class="seg" id="syMode" style="flex:1 1 100%;max-width:260px"><button data-m="in" class="on" style="flex:1">로그인</button><button data-m="up" style="flex:1">회원가입</button></div>
         <div class="field"><label>이메일</label><input id="syEmail" type="email" autocomplete="username"></div>
         <div class="field"><label>비밀번호</label><input id="syPass" type="password" autocomplete="current-password"></div>
+        <div class="field" style="display:none"><label>비밀번호 확인</label><input id="syPass2" type="password" autocomplete="new-password"></div>
+        <div class="field" style="display:none"><label>부대 코드 (행보관에게 받은 코드)</label><input id="syJoinCode" type="text" autocomplete="off" autocapitalize="off"></div>
         <button class="btn" id="syLogin">로그인</button>
+        <button class="btn" id="sySignup" style="display:none">가입하기</button>
         <button class="btn ghost" id="syLogout" style="display:none">로그아웃</button>
         <button class="btn ghost" id="syUpload" style="display:none">지금 업로드</button>
+      </div>
+      <!-- 가입했지만 아직 부대 등록 전인 계정: 부대 코드 → 본인 선택 -->
+      <div class="joinbox" id="syJoin" style="display:none">
+        <div id="syJoinStep1">
+          <b>부대 등록</b>
+          <p class="smallnote" style="margin:4px 0 10px">행보관에게 받은 부대 코드를 입력하면 근무자 명단에서 본인을 고를 수 있습니다.</p>
+          <div class="row"><div class="field"><label>부대 코드</label><input id="syCode" type="text" autocomplete="off" autocapitalize="off"></div><button class="btn" id="syCodeCheck">확인</button></div>
+        </div>
+        <div id="syJoinStep2" style="display:none">
+          <b>본인 선택</b>
+          <p class="smallnote" style="margin:4px 0 10px">본인 이름을 고르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 행보관만 바꿀 수 있습니다.</p>
+          <div class="row"><div class="field"><label>근무자</label><select id="syWho"></select></div><button class="btn" id="syClaim">이 사람이 저입니다</button></div>
+        </div>
+      </div>
+      <!-- 관리자 전용: 부대 코드 · 가입자 관리 -->
+      <div id="syAdminBox" style="display:none">
+        <div class="divider"></div>
+        <h2 style="font-size:14px">부대 코드</h2>
+        <p class="smallnote" style="margin:2px 0 8px">구성원은 이 코드를 알아야 가입할 수 있습니다. 바꿔도 이미 가입한 사람은 그대로 유지됩니다. 8자 이상으로 정하세요.</p>
+        <div id="syCodeNow" style="font-size:13px;margin-bottom:8px">—</div>
+        <div class="row"><div class="field"><label>새 부대 코드</label><input id="syNewCode" type="text" autocomplete="off" autocapitalize="off"></div><button class="btn" id="syCodeSave">코드 저장</button></div>
+        <div class="divider"></div>
+        <div class="flexgap" style="margin-bottom:8px"><h2 style="font-size:14px;margin:0">가입자 관리</h2><span style="flex:1"></span><button class="btn ghost sm" id="syMembersLoad">새로고침</button></div>
+        <p class="smallnote" style="margin:0 0 8px">잘못 고른 사람은 [연결 변경], 전역·전출자는 [해제]하세요. 로그인 계정 자체의 삭제는 Firebase 콘솔 → Authentication에서 합니다.</p>
+        <div id="syMembers" class="mlist"></div>
       </div>
       <div id="sySetup" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel2);margin-top:12px">
         <h2 style="font-size:13px;margin-bottom:10px">연결 설정 (최초 1회 — FIREBASE_SETUP.md 참고)</h2>
@@ -880,7 +948,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.0.2"></script>
+<script src="engine.js?v=6.1.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -916,6 +984,7 @@ function showView(v){
   if(v==='count') renderCount();
   if(v==='cal') renderCal();
   if(v==='more') renderMore();
+  if(v==='mine') renderMine();
 }
 $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
   const v=b.dataset.v;
@@ -1439,7 +1508,7 @@ function renderSchedTimeline(s, who){
 
 let vMode='view';   // 보기 / 편집 (열람 전용 계정은 항상 보기)
 const ME_KEY='cctv_me_v1';
-function meGet(){ try{ return localStorage.getItem(ME_KEY)||''; }catch(e){ return ''; } }
+function meGet(){ if(window.MY_WORKER) return window.MY_WORKER; try{ return localStorage.getItem(ME_KEY)||''; }catch(e){ return ''; } }
 function meSet(id){ try{ if(id) localStorage.setItem(ME_KEY,id); else localStorage.removeItem(ME_KEY); }catch(e){} }
 $$('#vMode button').forEach(b=>b.addEventListener('click',()=>{ vMode=b.dataset.m; renderView(); }));
 
@@ -1494,6 +1563,7 @@ function renderView(){
   body.appendChild(r3);
   // 내 근무 강조 (이 기기에만 기억)
   const whoRow=el('div','who no-print'); whoRow.appendChild(el('span',null,'내 근무 강조'));
+  if(window.MY_WORKER) whoRow.style.display='none';   // 구성원 계정은 본인이 자동 강조
   const whoSel=el('select'); fillSelect(whoSel, activeWorkers(), {blank:'— 선택 안 함 —', selected:meGet()||null});
   whoSel.addEventListener('change',()=>{ meSet(whoSel.value); renderView(); });
   whoRow.appendChild(whoSel); body.appendChild(whoRow);
@@ -2572,12 +2642,155 @@ $('#bCsvAll').addEventListener('click',()=>{
 $('#bClear').addEventListener('click',()=>{ if(confirm('모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없습니다.')){ localStorage.removeItem(STORE_KEY); DB={version:2,lastBackupAt:null,workers:[],schedules:{},prebook:[],holidays:{},settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))}; invalidateStats(); refreshAll(); } });
 
 /* ---------- 초기화 ---------- */
+/* ---------- 내 근무 — 다가오는 근무 · 내 일정 · 부대 평균과 비교 ---------- */
+/* 그날 표에서 이 사람이 서는 칸을 시간 순으로 (at = 실제 시각, 새벽 칸은 다음날) */
+function myItems(ds, s, id){
+  const items=[];
+  const at=t=>{ const d=new Date(ds+'T'+t+':00'); if(Number(t.slice(0,2))<6) d.setDate(d.getDate()+1); return d; };
+  DAY_SLOTS.forEach(sl=>{
+    const fx=s.fixed&&s.fixed[sl];
+    if(((s.assign&&s.assign[sl])||fx)===id) items.push({t:sl, label: fx&&(sl==='14:30'||sl==='13:30')&&id===s.situationId ? '주간 · 당일 상황 고정' : '주간', cls:''});
+  });
+  if(s.patrolExtra===id) items.push({t:'17:00', label:'추가 순찰', cls:'patrol'});
+  const evLabel={'17:30':['meal','다음날 밥교대(+순찰)'],'18:30':['sit','다음날 상황'],'19:30':['duty','다음날 당직'],'20:30':['sit','전날 상황'],'21:30':['duty','전날 당직']};
+  EVENING.forEach(sl=>{ if(s.fixed&&s.fixed[sl]===id) items.push({t:sl, label:evLabel[sl][1], cls:evLabel[sl][0]}); });
+  NIGHT_BUNCHO.forEach(b=>{ if(s.night&&s.night[b.id]===id) b.slots.forEach(t=>items.push({t, label:b.id+'번초', cls:'night'})); });
+  items.forEach(x=>x.at=at(x.t));
+  items.sort((a,b)=>a.at-b.at);
+  return items;
+}
+function relTime(ms){
+  const m=Math.round(ms/60000);
+  if(m<60) return m+'분 후';
+  const h=Math.floor(m/60), r=m%60;
+  if(h<24) return h+'시간'+(r?' '+r+'분':'')+' 후';
+  return Math.round(h/24)+'일 후';
+}
+function renderMine(){
+  const box=$('#mineBody'); if(!box) return; box.innerHTML='';
+  const linked=!!window.MY_WORKER;
+  const id=meGet();
+  const w=id && DB.workers.find(x=>x.id===id);
+  if(!linked){
+    const row=el('div','who'); row.appendChild(el('span',null,'근무자'));
+    const sel=el('select'); fillSelect(sel, activeWorkers(), {blank:'— 본인을 선택하세요 —', selected:w?id:null});
+    sel.addEventListener('change',()=>{ meSet(sel.value); renderMine(); renderView(); });
+    row.appendChild(sel); box.appendChild(row);
+    box.appendChild(el('p','smallnote','구성원 계정으로 로그인하면 본인이 자동으로 선택됩니다. 여기서 고른 사람은 이 기기에만 기억됩니다.'));
+  }
+  if(!w){ box.appendChild(el('div','muted','근무자를 선택하면 내 근무 요약이 나옵니다.')); return; }
+  const st=buildStats(null,null), r=st[w.id];
+  // 머리 카드
+  const v=roleValue(w), cls = v==='duty'?'duty' : v==='situation'?'sit' : 'kind';
+  const h=el('div','mine-h');
+  h.appendChild(el('div','av', esc(w.name.replace(/^(이병|일병|상병|병장)\s*/,'').slice(0,1)||'·')));
+  const hi=el('div');
+  hi.appendChild(el('b',null, esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'));
+  hi.appendChild(el('div','sub', '겪은 근무표 '+r.denom+'일 · 누적 '+r.hours.toFixed(1)+'h · 하루 평균 '+avgHours(r).toFixed(2)+'h'));
+  h.appendChild(hi); box.appendChild(h);
+
+  // 다가오는 근무 (오늘부터 2주)
+  const today=todayStr(), now=new Date(), days=[];
+  for(let i=0;i<14;i++) days.push(addDays(today,i));
+  let next=null;
+  const list=el('div');
+  let noSchedFrom=null;
+  days.forEach(ds=>{
+    const s=DB.schedules[ds];
+    const pbs=prebookOn(ds).filter(p=>p.wid===w.id), hn=holidayName(ds);
+    if(!s && !pbs.length){ if(!noSchedFrom) noSchedFrom=ds; return; }
+    const items = s ? myItems(ds,s,w.id) : [];
+    items.forEach(x=>{ if(!next && x.at>now) next={ds, x}; });
+    const d=el('div','mday'+(ds===today?' today':''));
+    const dh=el('div','dh');
+    dh.appendChild(el('b',null, (ds===today?'오늘 ':ds===addDays(today,1)?'내일 ':'')+Number(ds.slice(5,7))+'/'+Number(ds.slice(8))));
+    dh.appendChild(el('span','dw'+(hn||dow(ds)===0?' hol':''), DOW_KR[dow(ds)]+(hn?' · '+esc(hn):'')));
+    if(s){
+      if(s.dutyId===w.id) dh.appendChild(el('span','tag duty','당직'));
+      if(s.situationId===w.id) dh.appendChild(el('span','tag sit','상황병'));
+      if(s.mealId===w.id) dh.appendChild(el('span','tag meal','밥교대'));
+    }
+    pbs.forEach(p=>{ const ret=p.kind==='vacation'&&ds===p.end&&p.end!==p.start; dh.appendChild(el('span','tag ex', esc(ret?'휴가 복귀':PREBOOK_KR[p.kind]))); });
+    d.appendChild(dh);
+    if(!s) d.appendChild(el('div','none','근무표 미생성'));
+    else if(!items.length) d.appendChild(el('div','none','CCTV 근무 없음'));
+    else{
+      const its=el('div','its');
+      items.forEach(x=>{
+        const it=el('div','it'+(x.at<now?' past':''));
+        it.appendChild(el('span','t',x.t));
+        it.appendChild(x.cls && x.cls!=='night' ? el('span','tag '+x.cls, esc(x.label)) : el('span',null, esc(x.label)));
+        its.appendChild(it);
+      });
+      d.appendChild(its);
+    }
+    list.appendChild(d);
+  });
+  const nx=el('div','next');
+  if(next){
+    const dl = next.ds===today?'오늘' : next.ds===addDays(today,1)?'내일' : Number(next.ds.slice(5,7))+'/'+Number(next.ds.slice(8))+'('+DOW_KR[dow(next.ds)]+')';
+    nx.appendChild(el('div','l','다음 근무'));
+    nx.appendChild(el('div','v', esc(dl)+' <span class="t">'+esc(next.x.t)+'</span> · '+esc(next.x.label)));
+    nx.appendChild(el('div','s', relTime(next.x.at-now)+(Number(next.x.t.slice(0,2))<6?' · 날짜상 다음날 새벽':'')));
+  }else{
+    nx.appendChild(el('div','l','다음 근무'));
+    nx.appendChild(el('div','v','예정된 근무 없음'));
+    nx.appendChild(el('div','s','생성된 근무표 기준 2주 안에 잡힌 CCTV 근무가 없습니다.'));
+  }
+  box.appendChild(nx);
+  box.appendChild(el('div','band-h','내 일정<span class="r">오늘부터 2주</span>'));
+  box.appendChild(list);
+  if(noSchedFrom && !list.children.length) box.appendChild(el('div','muted','앞으로 2주 안에 생성된 근무표가 없습니다.'));
+  else if(noSchedFrom) box.appendChild(el('div','hint', Number(noSchedFrom.slice(5,7))+'/'+Number(noSchedFrom.slice(8))+'부터는 근무표가 아직 생성되지 않았습니다.'));
+
+  // 부대 평균과 비교 — 카운트 탭과 같은 기준(각자 분모로 나눈 배정률)
+  const fair=activeWorkers().filter(isFairW);
+  const pr=(n,d)=> d>0 ? 100*n/d : null;
+  const metrics=[
+    ['하루 평균 근무시간','h',2, x=>avgHours(st[x.id])],
+    ['야간 배정률','%',0, x=>pr(st[x.id].nightNum, st[x.id].nightDen)],
+    ['밥교대 배정률','%',0, x=>pr(st[x.id].mealNum, st[x.id].mealDen)],
+    ['추가순찰 배정률','%',0, x=>pr(st[x.id].patrolNum, st[x.id].patrolDen)],
+  ];
+  { const bh=el('div','band-h','부대 평균과 비교<span class="r">전체 기간</span>'); bh.style.marginTop='16px'; box.appendChild(bh); }
+  if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+'은(는) 배정 방식이 달라 평균 계산에서 빠져 있습니다. 평균보다 높거나 낮게 나오는 게 정상일 수 있습니다.'));
+  metrics.forEach(([label,unit,dec,f])=>{
+    if(label.startsWith('밥교대') && !w.canMeal && !r.mealNum) return;
+    const mine=f(w);
+    const vals=fair.map(f).filter(x=>x!=null);
+    if(!vals.length && mine==null) return;
+    const all=mine==null?vals:vals.concat([mine]);
+    const mn=Math.min(...all), mx=Math.max(...all), avg=vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    const pos=x=> mx===mn ? 50 : (x-mn)/(mx-mn)*100;
+    const fmt=x=> dec? x.toFixed(dec) : String(Math.round(x));
+    const card=el('div','strip cmp');
+    const row1=el('div','row1');
+    row1.appendChild(el('b',null,esc(label)));
+    row1.appendChild(el('span','me', mine==null?'–':fmt(mine)+unit));
+    row1.appendChild(el('span','sp'));
+    if(avg!=null){
+      const df=mine==null?null:mine-avg;
+      row1.appendChild(el('span','avg','부대 평균 '+fmt(avg)+unit+(df==null?'':' · '+(df>=0?'+':'')+(dec?df.toFixed(dec):Math.round(df))+(unit==='%'?'%p':unit))));
+    }
+    card.appendChild(row1);
+    const seen={}, lvl=vals.map(x=>{ const k=fmt(x); return (seen[k]=(seen[k]||0)+1)-1; });
+    const H=22+Math.max(0,...lvl)*13;
+    const ax=el('div','ax'); ax.style.height=H+'px';
+    if(avg!=null) ax.appendChild(el('span','m')).style.left=pos(avg)+'%';
+    vals.forEach((x,i)=>{ const d=el('span','d o'); d.style.left=pos(x)+'%'; d.style.top=(H-17-lvl[i]*13)+'px'; ax.appendChild(d); });
+    if(mine!=null){ const d=el('span','d me'); d.style.left=pos(mine)+'%'; d.style.top=(H-18)+'px'; d.title='나'; ax.appendChild(d); }
+    card.appendChild(ax);
+    card.appendChild(el('div','ends','<span>'+fmt(mn)+unit+'</span><span>● 나 · 회색 = 다른 근무자</span><span>'+fmt(mx)+unit+'</span>'));
+    box.appendChild(card);
+  });
+}
+
 /* 더보기 메뉴 — 항목 옆에 현재 상태 표시 */
 function renderMore(){
   const ro=document.body.classList.contains('ro');
   const logged=$('#syLogout') && $('#syLogout').style.display!=='none';
   $('#mAvatar').textContent = ro?'열': logged?'관':'로';
-  $('#mAcct').textContent = ro?'구성원 로그인': logged?'관리자 로그인':'로컬 모드';
+  $('#mAcct').textContent = ro ? (window.MY_WORKER ? nameOf(window.MY_WORKER) : '구성원 로그인') : logged?'관리자 로그인':'로컬 모드';
   $('#mAcctSub').textContent = ro?'열람 전용 · 실시간 갱신': logged?'동기화 연결됨 · 저장 시 자동 업로드':'이 기기에만 저장 중 · 눌러서 로그인';
   $('#mAcctSub').classList.toggle('cta', !ro && !logged);
   const sy=$('#mSync'); sy.textContent = ro?'열람 전용': logged?'연결됨':'미연결'; sy.className='mv'+(logged||ro?' okv':'');
@@ -2594,7 +2807,7 @@ function renderMore(){
   }
   $$('#mTheme button').forEach(b=>b.classList.toggle('on', b.dataset.t===themePref()));
 }
-function refreshAll(){ renderPeople(); renderSettings(); refreshGenSelectors(); renderView(); renderCal(); renderBackupInfo(); renderMore(); }
+function refreshAll(){ renderPeople(); renderSettings(); refreshGenSelectors(); renderView(); renderCal(); renderBackupInfo(); renderMore(); renderMine(); }
 function init(){
   load();
   const L=latestSchedDate();
@@ -2607,11 +2820,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.0.2"></script>
+<script src="firebase-config.js?v=6.1.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.0.2"></script>
+<script src="sync.js?v=6.1.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

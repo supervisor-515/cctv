@@ -172,6 +172,100 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--kr);font-s
 .rate .n{color:var(--faint);font-size:10.5px}
 .hint{font-size:11px;color:var(--faint);margin-top:8px}
 
+.sect{font-size:16px;margin:36px 0 14px;padding-top:18px;border-top:1px solid var(--line)}
+
+/* 달력 */
+.chipf{font-size:11.5px;font-weight:600;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:3px 10px}
+.calhdr{display:flex;align-items:center;gap:8px;padding:12px 0 10px}
+.calhdr b{font-size:15.5px}
+.calhdr .sp{flex:1}
+.kmini{font-size:11px;color:var(--faint)}
+.kmini em{font-style:normal;color:var(--warn);font-weight:600}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cdow{text-align:center;font-size:10.5px;color:var(--faint);font-weight:700;padding:2px 0 4px}
+.cdow.su{color:var(--err)}.cdow.sa{color:var(--duty)}
+.cc{height:46px;border-radius:8px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding-top:5px;gap:4px;position:relative}
+.cc.out{background:none;border-color:transparent}
+.cc .dn{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.cc.hol .dn{color:var(--err)}
+.cc.sat .dn{color:var(--duty)}
+.cc.wk{background:color-mix(in srgb,var(--acc) 6%,var(--panel))}
+.cc.sel{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.cc .st{width:18px;height:3px;border-radius:2px}
+.cc .st.ok{background:var(--ok)}.cc .st.warn{background:var(--warn)}
+.cc .ev{position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:var(--dim)}
+.clegend{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--faint);margin:8px 0 14px}
+.clegend span{display:flex;align-items:center;gap:4px}
+.clegend i{display:block}
+.lg-ok{width:12px;height:3px;border-radius:2px;background:var(--ok)}
+.lg-warn{width:12px;height:3px;border-radius:2px;background:var(--warn)}
+.lg-ev{width:5px;height:5px;border-radius:50%;background:var(--dim)}
+.agh{display:flex;align-items:center;font-size:12.5px;margin-bottom:6px}
+.agh .sp{flex:1}
+.lk{font-size:11.5px;color:var(--acc);font-weight:600}
+.agenda{display:flex;flex-direction:column;gap:6px;padding-bottom:40px}
+.ag{display:flex;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.ag.sel{border-color:var(--acc)}
+.ag .dt{width:34px;flex:none;text-align:center}
+.ag .dt b{display:block;font-family:var(--mono);font-size:16px;line-height:1.1}
+.ag .dt span{font-size:10.5px;color:var(--faint)}
+.ag .dt.hol b,.ag .dt.hol span{color:var(--err)}
+.ag .dt.sat b{color:var(--duty)}
+.ag .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.ag .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:12.5px;font-weight:600}
+.ag .roles span{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.ag .roles i{width:6px;height:6px;border-radius:50%;flex:none}
+.ag .evs{display:flex;flex-wrap:wrap;gap:4px}
+.ag .evs span{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.ag .evs span.h{color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,transparent)}
+.ag .evs span.w{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.ag .none{font-size:12px;color:var(--faint)}
+.ag .none b{color:var(--acc);font-weight:600;margin-left:6px}
+.fab{position:absolute;right:16px;bottom:78px;background:var(--acc);color:#06140e;font-weight:700;font-size:13px;border-radius:24px;padding:10px 16px;box-shadow:0 8px 20px -8px rgba(0,0,0,.6)}
+
+/* 바텀 시트 */
+.dimmed{background:var(--bg);position:relative}
+.dimmed::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.sheet{position:absolute;left:0;right:0;bottom:62px;background:var(--panel);border-top:1px solid var(--line);border-radius:18px 18px 0 0;padding:8px 16px 16px;box-shadow:0 -12px 30px -12px rgba(0,0,0,.5)}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.sh-h{display:flex;align-items:center;margin-bottom:10px}
+.sh-h b{font-size:15px}.sh-h .sp{flex:1}.sh-h .x{color:var(--faint)}
+.lbl{font-size:11px;font-weight:600;color:var(--dim);margin:10px 0 5px}
+.kinds{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.kinds span{font-size:11.5px;font-weight:600;text-align:center;color:var(--dim);border:1px solid var(--line);border-radius:8px;padding:7px 2px;background:var(--panel2)}
+.kinds span.on{color:var(--ink);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
+.fld{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:13px;font-weight:600}
+.fld.mono{font-family:var(--mono);font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shint{font-size:11px;color:var(--faint);margin:10px 0 6px}
+.conf{font-size:11.5px;color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:8px;padding:7px 10px;margin-bottom:10px}
+
+/* 더보기 */
+.acct{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0 4px}
+.av{width:36px;height:36px;border-radius:50%;background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc);display:grid;place-items:center;font-weight:700}
+.acct .sub{font-size:11.5px;color:var(--ok)}
+.mgl{font-size:11px;font-weight:700;color:var(--faint);letter-spacing:.05em;margin:14px 2px 6px}
+.menu{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mi{display:flex;align-items:center;gap:10px;padding:0 12px;min-height:46px;border-bottom:1px solid var(--line);font-size:13.5px;font-weight:600;color:var(--ink)}
+.mi:last-child{border-bottom:0}
+.mi .sp{flex:1}
+.mic{width:26px;height:26px;border-radius:7px;background:var(--panel2);display:grid;place-items:center;font-size:13px;color:var(--dim)}
+.mv{font-size:11.5px;font-weight:500;color:var(--faint);margin-right:4px}
+.mv.warnv{color:var(--warn)}.mv.okv{color:var(--ok)}
+
+/* 근무자 카드 */
+.back{font-size:20px;color:var(--dim);margin-right:2px}
+.addb{font-size:12.5px;font-weight:700;color:var(--acc)}
+.plist{display:flex;flex-direction:column;gap:6px}
+.pc{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.pc .pn{font-weight:700;font-size:14px}
+.pc .pm{font-size:11px;color:var(--faint);margin-top:1px}
+.pc .sp{flex:1}
+.pc .ph{font-family:var(--mono);font-size:12px;color:var(--dim);text-align:right}
+.pc .ph small{display:block;font-size:10px;color:var(--faint)}
+.pc.off{opacity:.55}
+.arch{margin:10px 0 20px;font-size:12.5px;color:var(--dim);display:flex;justify-content:space-between;border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
+
 .changes{margin-top:28px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;font-size:13px}
 .changes h2{margin:0 0 8px;font-size:15px}
 .changes ul{margin:0;padding-left:18px;color:var(--dim)}
@@ -314,6 +408,102 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--kr);font-s
     </div>
   </div>
 
+  <h2 class="sect">달력 · 더보기</h2>
+  <div class="frames">
+    <!-- ④ 달력 -->
+    <div class="frame-wrap">
+      <h3>④ 달력 — 월 그리드 + 선택한 주의 목록</h3>
+      <p class="note">폰에서는 칸 안에 이름을 넣지 않고 상태만 표시합니다. 이름은 그리드 아래 주간 목록에 줄임 없이 나옵니다. 날짜를 누르면 그 주 목록으로 바뀝니다.</p>
+      <div class="phone">
+        <div class="apphdr"><b>달력</b><div class="sp"></div><span class="chipf">근무자 · 전체 ▾</span></div>
+        <div class="scroll">
+          <div class="calhdr"><div class="ib">◀</div><b>2026년 10월</b><div class="ib">▶</div><div class="sp"></div><span class="kmini">생성 12/31 · <em>⚠ 1</em></span></div>
+          <div class="cgrid" id="cgrid"></div>
+          <div class="clegend"><span><i class="lg-ok"></i>생성됨</span><span><i class="lg-warn"></i>점검 필요</span><span><i class="lg-ev"></i>일정 있음</span><span style="color:var(--err)">빨간 숫자 = 휴무</span></div>
+          <div class="agh"><b>9/27 – 10/3</b><div class="sp"></div><span class="lk">이번 주로</span></div>
+          <div class="agenda" id="agenda"></div>
+        </div>
+        <div class="fab">+ 일정</div>
+        <div class="bnav" data-on="1"></div>
+      </div>
+    </div>
+
+    <!-- ⑤ 일정 추가 시트 -->
+    <div class="frame-wrap">
+      <h3>⑤ 일정 추가 — 바텀 시트 하나로</h3>
+      <p class="note">휴무일 지정과 사전 등록 두 패널을 시트 하나로 합칩니다. 휴무일은 종류 중 하나가 되고, 날짜는 선택한 날로 채워집니다. 등록 처리(#pbAdd, #hdAdd)는 그대로 씁니다.</p>
+      <div class="phone">
+        <div class="apphdr"><b>달력</b></div>
+        <div class="scroll dimmed"><div style="height:280px"></div></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="sh-h"><b>일정 추가</b><div class="sp"></div><span class="x">✕</span></div>
+          <div class="lbl">종류</div>
+          <div class="kinds">
+            <span class="on">휴가</span><span>주간 열외</span><span>모두 열외</span><span>당직 예약</span>
+            <span>상황병 예약</span><span>유조차 (정)</span><span>유조차 (부)</span><span>휴무일</span>
+          </div>
+          <div class="lbl">근무자</div>
+          <div class="fld">송예준 ▾</div>
+          <div class="two">
+            <div><div class="lbl">시작</div><div class="fld mono">10-02 (금)</div></div>
+            <div><div class="lbl">종료</div><div class="fld mono">10-04 (일)</div></div>
+          </div>
+          <div class="shint">휴가 마지막 날(복귀일)은 주간만 열외되고 그날 야간부터 투입됩니다.</div>
+          <div class="conf">⚠ 10-02 근무표가 이미 있습니다 — 사전등록은 소급 적용되지 않습니다.</div>
+          <button class="btn" style="width:100%">등록</button>
+        </div>
+        <div class="bnav" data-on="1"></div>
+      </div>
+    </div>
+
+    <!-- ⑥ 더보기 -->
+    <div class="frame-wrap">
+      <h3>⑥ 더보기 — 메뉴 목록</h3>
+      <p class="note">카운트·근무자·설정·백업·동기화를 메뉴로 모으고, 각 항목 옆에 현재 상태를 보여줍니다. 열람 전용 계정에는 카운트·동기화·참고만 보입니다.</p>
+      <div class="phone">
+        <div class="apphdr"><b>더보기</b><div class="sp"></div><span class="ver">v5.4</span></div>
+        <div class="scroll">
+          <div class="acct"><div class="av">행</div><div><b>관리자 로그인</b><div class="sub">동기화 연결됨 · 방금 업로드</div></div></div>
+          <div class="mgl">현황</div>
+          <div class="menu">
+            <div class="mi"><span class="mic">▦</span>근무 카운트 · 배정률<div class="sp"></div><span class="mv">CV 6.2%</span>›</div>
+          </div>
+          <div class="mgl">관리</div>
+          <div class="menu">
+            <div class="mi"><span class="mic">☺</span>근무자 관리<div class="sp"></div><span class="mv">활성 18 · 보관 3</span>›</div>
+            <div class="mi"><span class="mic">⚙</span>기본 설정<div class="sp"></div><span class="mv">가중치 기본값</span>›</div>
+          </div>
+          <div class="mgl">데이터</div>
+          <div class="menu">
+            <div class="mi"><span class="mic">⤓</span>백업 · 내보내기<div class="sp"></div><span class="mv warnv">마지막 백업 9일 전</span>›</div>
+            <div class="mi"><span class="mic">⇅</span>서버 동기화<div class="sp"></div><span class="mv okv">연결됨</span>›</div>
+          </div>
+          <div class="mgl">도움말</div>
+          <div class="menu">
+            <div class="mi"><span class="mic">ⓘ</span>시간 구조 · 배정 규칙<div class="sp"></div>›</div>
+          </div>
+        </div>
+        <div class="bnav" data-on="3"></div>
+      </div>
+    </div>
+
+    <!-- ⑦ 근무자 관리 -->
+    <div class="frame-wrap">
+      <h3>⑦ 근무자 관리 — 표 대신 카드</h3>
+      <p class="note">가로 7칸 표 대신 한 사람을 한 줄 카드로 보여줍니다. 누르면 같은 입력 항목이 담긴 편집 시트가 열리고, 보관 인원은 접어 둡니다.</p>
+      <div class="phone">
+        <div class="apphdr"><span class="back">‹</span><b>근무자 관리</b><div class="sp"></div><span class="addb">+ 추가</span></div>
+        <div class="scroll">
+          <div class="seg" style="margin:12px 0"><button class="on">전체 18</button><button>당직 5</button><button>상황 5</button><button>신병 6</button><button>기타 2</button></div>
+          <div class="plist" id="plist"></div>
+          <div class="arch">보관 인원 3명 <span>▸</span></div>
+        </div>
+        <div class="bnav" data-on="3"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="changes">
     <h2>바꾸지 않는 것</h2>
     <ul>
@@ -369,6 +559,51 @@ night.forEach(([n,c,d],i)=>{
   t+='<tr><td class="nm">'+n+'</td>'+cell(c,d)+cell(Math.ceil(c/4),d)+cell(Math.floor(c/4)+(i%2),d)+cell(Math.round(c/4),d)+cell(Math.floor(c/4),d)+'</tr>';
 });
 document.getElementById('nightTbl').innerHTML=t;
+
+// 하단 탭 (새 프레임용)
+const NAV=[['근무표','<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/>'],
+  ['달력','<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>'],
+  ['생성','<path d="M12 5v14M5 12h14"/>'],
+  ['더보기','<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>']];
+document.querySelectorAll('.bnav[data-on]').forEach(n=>{
+  n.innerHTML=NAV.map(([l,s],i)=>'<div'+(i==n.dataset.on?' class="on"':'')+'><svg viewBox="0 0 24 24">'+s+'</svg>'+l+'</div>').join('');
+});
+
+// 달력 그리드 — 2026년 10월 (1일 = 목)
+const HOL={3:'개천절',9:'한글날'}, WARN=new Set([7]), EV=new Set([2,3,4,6,12,15,16,19,20,21,22,23]);
+let g=['일','월','화','수','목','금','토'].map((d,i)=>'<div class="cdow'+(i==0?' su':i==6?' sa':'')+'">'+d+'</div>').join('');
+for(let i=0;i<4;i++) g+='<div class="cc out"></div>';
+for(let d=1;d<=31;d++){
+  const w=(d+3)%7, cls=['cc'];
+  if(HOL[d]||w==0) cls.push('hol'); else if(w==6) cls.push('sat');
+  if(d<=3) cls.push('wk'); if(d==2) cls.push('sel');
+  g+='<div class="'+cls.join(' ')+'"><span class="dn">'+d+'</span>'+(d<=12?'<span class="st '+(WARN.has(d)?'warn':'ok')+'"></span>':'')+(EV.has(d)?'<span class="ev"></span>':'')+'</div>';
+}
+document.getElementById('cgrid').innerHTML=g;
+
+const R=(c,n)=>'<span><i style="background:var(--'+c+')"></i>'+n+'</span>';
+const AG=[
+  ['27','일','hol',['정우진','오승현','서은호'],[]],
+  ['28','월','',['이하준','한지호','윤태오'],[]],
+  ['29','화','',['박서준','최민재','황준영'],[]],
+  ['30','수','',['정우진','오승현','장현우'],['e:유조차 · 문지환 (~10/4)']],
+  ['1','목','',['이하준','한지호','서은호'],['e:유조차 · 문지환']],
+  ['2','금','sel',['박서준','최민재','윤태오'],['e:휴가 · 송예준 (~10/4)','e:유조차 · 문지환']],
+  ['3','토','hol',null,['h:개천절','e:휴가 · 송예준','e:당직 예약 · 정우진']],
+];
+document.getElementById('agenda').innerHTML=AG.map(([d,w,c,r,ev])=>{
+  const dt='<div class="dt'+(c==='hol'?' hol':w==='토'?' sat':'')+'"><b>'+d+'</b><span>'+w+'</span></div>';
+  const roles=r?'<div class="roles">'+R('duty',r[0])+R('sit',r[1])+R('meal',r[2])+'</div>':'<div class="none">근무표 없음<b>생성 ›</b></div>';
+  const evs=ev.length?'<div class="evs">'+ev.map(x=>{const[k,t]=x.split(/:(.*)/);return '<span class="'+k+'">'+t+'</span>';}).join('')+'</div>':'';
+  return '<div class="ag'+(c==='sel'?' sel':'')+'">'+dt+'<div class="bd">'+roles+evs+'</div></div>';
+}).join('');
+
+// 근무자 카드
+const PL=[['박서준','당직','duty','밥교대 가능',212.5,'0.0h/일'],['이하준','당직','duty','밥교대 가능',208,''],['최민재','상황병','sit','밥교대 가능',205.5,''],
+  ['서은호','운항병','kind','밥교대 불가',198,''],['김도윤','상황병','sit','밥교대 가능',201,''],['조민성','신병','kind','밥교대 가능',96.5,''],
+  ['배건우','신병','kind','밥교대 가능',88,''],['황준영','말년','kind','밥교대 가능',230,'']];
+document.getElementById('plist').innerHTML=PL.map(([n,r,c,m,h])=>
+  '<div class="pc"><div><div class="pn">'+n+' <span class="tag '+c+'">'+r+'</span></div><div class="pm">'+m+'</div></div><div class="sp"></div><div class="ph">'+h+'h<small>누적</small></div></div>').join('');
 
 const tb=document.getElementById('themeBtn');
 tb.addEventListener('click',()=>{

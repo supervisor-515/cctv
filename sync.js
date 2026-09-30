@@ -166,10 +166,10 @@
     // 가입 화면의 본인 선택 목록 — 바뀐 경우에만 쓴다
     const dj=dirPayloadJson();
     if(S.unitCode && dj!==S.dirJson){ batch.set(fs.collection('directory').doc(S.unitCode), {json:dj, updatedAt:firebase.firestore.FieldValue.serverTimestamp()}); ops++; }
-    if(!ops){ S.dirty=false; refreshStatus(); return Promise.resolve(); }
+    if(!ops){ S.dirty=false; refreshStatus(); return Promise.resolve(true); }
     return batch.commit()
-      .then(()=>{ S.dirty=false; S.lastUp=new Date(); S.dirJson=dj; refreshStatus(); })
-      .catch(e=>{ status('<div class="err">업로드 실패: '+esc(e.message)+' — 보안 규칙·관리자 이메일을 확인하세요.</div>'); });
+      .then(()=>{ S.dirty=false; S.lastUp=new Date(); S.dirJson=dj; refreshStatus(); return true; })
+      .catch(e=>{ status('<div class="err">업로드 실패: '+esc(e.message)+' — 보안 규칙·관리자 이메일을 확인하세요.</div>'); return false; });
   }
   function scheduleUpload(){ clearTimeout(S.timer); S.timer=setTimeout(upload, 1500); }
 
@@ -291,7 +291,7 @@
       .catch(e=>status('<div class="err">로그인 실패: '+esc(e.message)+'</div>'));
   });
   qs('#syLogout').addEventListener('click',()=>auth.signOut());
-  qs('#syUpload').addEventListener('click',()=>{ upload().then(()=>status('<div class="ok">✓ 업로드 완료</div>')); });
+  qs('#syUpload').addEventListener('click',()=>{ upload().then(ok=>{ if(ok) status('<div class="ok">✓ 업로드 완료</div>'); }); });
 
   auth.onAuthStateChanged(u=>{
     S.user=u; S.member=null; S.legacy=false; S.denied=false; window.MY_WORKER=null;

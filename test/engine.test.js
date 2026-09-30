@@ -749,7 +749,6 @@ test('score: 같은 그룹에서 그 시간대를 많이 선 사람일수록 뒤
   const ws = [A, B];
   const ids = ws.map(w => w.id);
   const db = freshDB({ workers: ws });
-  db.settings.weights.jitter = 0;          // 난수 제거 → 점수 비교가 결정적
   E.setDB(db);
   const seed = (ds, assign) => {
     db.schedules[ds] = { date: ds, workHoliday: false, nextWorkHoliday: false, assign, night: {}, fixed: {},
@@ -773,28 +772,15 @@ test('score: 같은 그룹에서 그 시간대를 많이 선 사람일수록 뒤
     '월화목 06:30: 그룹 내 비율이 높은 B가 우선순위에서 밀리지 않음');
 });
 
-/* 엔진은 동점 근처에서 일부러 무작위 흔들기(jitter)를 넣는다. 통계로 판정하는 테스트는
-   실행마다 결과가 달라져 허용치 경계에서 가끔 실패하므로, 고정 시드 난수로 재현 가능하게 돌린다. */
-function withSeed(seed, fn) {
-  const orig = Math.random;
-  let a = seed >>> 0;
-  Math.random = () => {   // mulberry32
-    a = (a + 0x6D2B79F5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  try { return fn(); } finally { Math.random = orig; }
-}
-
-test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정되지 않는다', () => withSeed(20260930, () => {
+test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정되지 않는다', () => {
   // 회귀: 배정 순서를 누적 '횟수'로 매기면 초기화로 카운터가 0이 된 사람이 남들 누적을
   // 따라잡을 때까지 계속 먼저 뽑혀, 전환 후 몇 달간 하루 근무량이 남들보다 많아졌다.
   // (초기화로 없애준 기록만큼을 도로 갚는 셈) → 같은 기간 환산으로 비교해야 한다.
+  // 배정은 결정적이라 같은 시행을 반복하면 같은 값만 나온다 → 초기화 대상을 명단 13개 위치에 한 번씩 두고 평균을 본다
+  // (한 자리만 보면 그 자리 고유의 편차가 섞인다: 위치별 -0.01~+0.09)
   const gaps = [];
-  for (let trial = 0; trial < 3; trial++) {
-    const ws = roster(13, 0, 't' + trial + 'w');
+  for (let trial = 0; trial < 13; trial++) {
+    const ws = roster(13);
     E.setDB(freshDB({ workers: ws }));
     let ds = '2026-06-01';
     const gen = n => { for (let d = 0; d < n; d++) {
@@ -802,7 +788,7 @@ test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정�
     } };
     gen(42);                       // 6주간 공통 이력을 쌓고
     const reset = ds;              // 이 날짜로 한 명만 카운트 초기화
-    const target = ws[0];
+    const target = ws[trial];
     target.countResetAt = reset;
     E.invalidateStats();
     gen(42);                       // 다시 6주
@@ -827,7 +813,7 @@ test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정�
   // 수정 전에는 +0.15칸/일 안팎으로 벌어졌다. 환산 비교 후에는 대조군과 붙어야 한다.
   assert.ok(Math.abs(avgGap) <= 0.08,
     `초기화된 사람의 하루 주간칸이 대조군과 ${avgGap.toFixed(3)}칸 차이 (허용 ±0.08)`);
-}));
+});
 
 test('scaledCnt: 분모가 짧아도 같은 기간 환산으로 비교된다', () => {
   // 같은 비율(0.5)이면 분모 길이와 무관하게 환산값이 비슷해야 한다

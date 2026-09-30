@@ -43,12 +43,12 @@ const DEFAULT_WEIGHTS = {
   // 분산시킨다 → 신병이 이른 칸(아침·09:30)만 도맡지 않도록. 특정 시간대·번초 반복은 강하게 막는다.
   avgHours:0.8, todayHours:1.6, groupRate:1.8, slotRate:7.0,
   nightRate:1.8, bunchoRate:3.0, mealRate:2.2, patrolRate:2.2,
-  recruitBias:-0.3, jitter:0.04
+  recruitBias:-0.3
 };
 const WEIGHT_LABELS = {
   avgHours:'누적평균시간', todayHours:'당일 이미받은시간', groupRate:'그룹 배정률',
   slotRate:'슬롯 배정률(그룹별)', nightRate:'야간 배정률', bunchoRate:'번초 배정률',
-  mealRate:'밥교대 배정률', patrolRate:'순찰 배정률', recruitBias:'신병 보정', jitter:'미세 난수'
+  mealRate:'밥교대 배정률', patrolRate:'순찰 배정률', recruitBias:'신병 보정'
 };
 // navFixed: 운항병 주간 고정 슬롯(설정에서 수정 가능). weekday=월~목, friday=금.
 const DEFAULT_NAV_FIXED = {weekday:['09:30','13:30'], friday:['09:30','14:30']};
@@ -331,6 +331,8 @@ function _computeStats(uptoDate, month, ignoreReset){
       slotGNum:{mtth:{},wed:{},fri:{},weekend:{}},
       nightNum:0, nightDen:0, nightGNum:{weekday:0,holiday:0}, nightGDen:{weekday:0,holiday:0},
       bunchoNum:{1:0,2:0,3:0,4:0},
+      // 동점 최종 기준용 '실제로 마지막에 선 날짜' — 카운트 초기화와 무관하게 기록(초기화된 사람이 '한 번도 안 선 사람'처럼 먼저 뽑히지 않게)
+      tieDay:{}, tieNight:{1:'',2:'',3:'',4:''}, tiePatrol:'',
       mealNum:0, mealDen:0, mealGNum:{weekday:0,weekend:0}, mealGDen:{weekday:0,weekend:0}, lastMeal:null,
       patrolNum:0, patrolDen:0, patrolGNum:{weekday:0,weekend:0}, patrolGDen:{weekday:0,weekend:0}
     };
@@ -374,6 +376,7 @@ function _computeStats(uptoDate, month, ignoreReset){
         st[id].slotLast[slot]=ds;   // 날짜 오름차순 순회 → 마지막(최근) 배정일이 남음
         addH(id, slotHours(slot));
       }
+      if(id && st[id]) st[id].tieDay[slot]=ds;
     });
     NIGHT_BUNCHO.forEach(b=>{
       const id = s.night && s.night[b.id];
@@ -381,6 +384,7 @@ function _computeStats(uptoDate, month, ignoreReset){
         st[id].nightNum++; st[id].nightGNum[ng]++; st[id].bunchoNum[b.id]++;
         addH(id, 1);
       }
+      if(id && st[id]) st[id].tieNight[b.id]=ds;
     });
     // 밥교대 (근무시간 부여 안 함 — 카운트만, 초기화 예외로 유지). 오름차순 순회라 lastMeal은 최근 날짜가 남음
     if(s.mealId && st[s.mealId]){
@@ -390,6 +394,7 @@ function _computeStats(uptoDate, month, ignoreReset){
     if(s.patrolExtra && st[s.patrolExtra] && okReset[s.patrolExtra]){
       st[s.patrolExtra].patrolNum++; st[s.patrolExtra].patrolGNum[mg]++; addH(s.patrolExtra, DB.settings.patrolBonus);
     }
+    if(s.patrolExtra && st[s.patrolExtra]) st[s.patrolExtra].tiePatrol=ds;
     // 고정 역할 슬롯 시간(부하 반영). 14:30(당일상황)·13:30(금요일 당일상황)도 고정 슬롯이므로 여기서 1회만 집계.
     // addH가 okReset로 게이트되므로 초기화 이전 고정근무 시간은 자동 제외된다.
     const fx = s.fixed||{};
@@ -540,7 +545,6 @@ function score(w, slotKey, opts){
     s += 0.08 * scaledCnt(daySlotTotal(r), r.slotDen||0, f.totP, f.refS);
   }
   if(isRecruit(w)) s += W_.recruitBias;            // 음수면 약간 우선
-  s += (Math.random()-0.5) * W_.jitter;
   return s;
 }
 
@@ -596,6 +600,12 @@ function isRotationVar(v){ return v && v.type==='day' && v.key===ROTATION_SLOT; 
 function rotCompare(a, b){
   return (a.rotCnt-b.rotCnt) || (a.rotLast<b.rotLast?-1:a.rotLast>b.rotLast?1:0);
 }
+/* 동점 최종 기준 — 이 칸(주간)·이 번초(야간)를 마지막으로 선 날짜. ''(한 적 없음)이 가장 먼저 */
+function lastKey(wid, v, ctx){
+  const r = ctx.stats[wid]; if(!r) return '';
+  return v.type==='day' ? ((r.tieDay&&r.tieDay[v.key])||'') : ((r.tieNight&&r.tieNight[v.bunchoId])||'');
+}
+function lastCmp(a, b){ return a.last<b.last ? -1 : a.last>b.last ? 1 : 0; }
 function rotKeys(wid, ctx){
   const r = ctx.stats[wid];
   if(!r) return {rotCnt:0, rotLast:''};
@@ -747,18 +757,18 @@ function solve(vars, domains, ctx, tier, prevNight){
       // 야간: 전날 야간 안 선 사람 우선(연속 야간 최소화). 주간은 0(영향 없음)
       const recentNight = (v.type==='night' && _prevN.has(wid)) ? 1 : 0;
       return {wid, cnt, recentNight, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o),
-              isRec: !!(w&&isRecruit(w)), raw: todayCount[wid]||0, ravg: recruitAvgBucket(wid, ctx), ...rotKeys(wid, ctx)};
+              isRec: !!(w&&isRecruit(w)), raw: todayCount[wid]||0, ravg: recruitAvgBucket(wid, ctx), last: lastKey(wid, v, ctx), ...rotKeys(wid, ctx)};
     });
     if(isRotationVar(v)){
       // 06:30 순번제: 횟수 적은 순 → 오래된 순. 동률만 기존 공정성 순서로.
-      bestList.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      bestList.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc) || lastCmp(a,b));
     }else if(v.type==='night'){
       // 야간: '전날 야간 안 선 사람'을 당일 개수보다 먼저 본다.
       // (개수를 먼저 보면 연속 허용 단계에서 전날 야간자가 개수가 적다는 이유로 먼저 뽑혀
       //  비연속 후보가 남아 있는데도 이틀 연속이 생긴다)
-      bestList.sort((a,b)=> (a.recentNight-b.recentNight) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      bestList.sort((a,b)=> (a.recentNight-b.recentNight) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc) || lastCmp(a,b));
     }else{
-      bestList.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      bestList.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc) || lastCmp(a,b));
       rebalanceRecruits(bestList);
     }
     bestList = bestList.map(x=>x.wid);
@@ -830,14 +840,14 @@ function greedyFill(vars, domains, ctx, prevNight, partial){
       const cnt=effTodayCount(wid, todayCount[wid]);
       const recentNight = (isNight && prevNight.has(wid)) ? 1 : 0;   // 전날 야간자는 야간 후순위(연속 최소화)
       return {wid, cnt, recentNight, fair:slotFairKey(wid, v, ctx), rec:recruitOrder(w, cnt, v.type==='night'), sc:score(w, v.type==='day'?v.key:null, o),
-              isRec: !!(w&&isRecruit(w)), raw: todayCount[wid]||0, ravg: recruitAvgBucket(wid, ctx), ...rotKeys(wid, ctx)};
+              isRec: !!(w&&isRecruit(w)), raw: todayCount[wid]||0, ravg: recruitAvgBucket(wid, ctx), last: lastKey(wid, v, ctx), ...rotKeys(wid, ctx)};
     });
     if(isRotationVar(v)){
-      pool.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      pool.sort((a,b)=> rotCompare(a,b) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc) || lastCmp(a,b));
     }else if(isNight){
-      pool.sort((a,b)=> (a.recentNight-b.recentNight) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      pool.sort((a,b)=> (a.recentNight-b.recentNight) || (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc) || lastCmp(a,b));
     }else{
-      pool.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc));
+      pool.sort((a,b)=> (a.cnt-b.cnt) || (a.fair-b.fair) || (a.rec-b.rec) || (a.sc-b.sc) || lastCmp(a,b));
       rebalanceRecruits(pool);
     }
     const wid=pool[0].wid;
@@ -882,7 +892,8 @@ function dropNeedlessConsecNights(vars, domains, ctx, assign, prevNight){
     const o = {stats:ctx.stats, todayHours:ctx._todayHours, isNight:true,
                dayGrp:ctx._dayGrp, nightGrp:ctx._nightGrp, bunchoId:v.bunchoId};
     // 오늘 덜 받은 사람 우선(미투입자가 맨 앞) → 공정성 점수
-    cands.sort((a,b)=> ((todayCount[a]||0)-(todayCount[b]||0)) || (score(W(a),null,o)-score(W(b),null,o)));
+    cands.sort((a,b)=> ((todayCount[a]||0)-(todayCount[b]||0)) || (score(W(a),null,o)-score(W(b),null,o))
+                    || lastCmp({last:lastKey(a,v,ctx)}, {last:lastKey(b,v,ctx)}));
     const pick = cands[0];
     assign[key]=pick;
     todayCount[pick]=(todayCount[pick]||0)+1;
@@ -997,7 +1008,6 @@ function assignMeal(ds, ctx){
     let sc = DB.settings.weights.mealRate * rate(r.mealGNum[mg], r.mealGDen[mg]);
     sc += DB.settings.weights.avgHours * avgHours(r) * 0.5;
     if(isRecruit(w)) sc += DB.settings.weights.recruitBias;
-    sc += (Math.random()-0.5)*DB.settings.weights.jitter;
     return {id:w.id,
             g: r.mealGNum[mg]||0,
             t: (r.mealGNum.weekday||0)+(r.mealGNum.weekend||0),
@@ -1054,9 +1064,8 @@ function assignPatrol(ds, ctx, assign, fixed){
     let sc = DB.settings.weights.patrolRate * rate(r.patrolGNum[pg], r.patrolGDen[pg]);
     sc += DB.settings.weights.avgHours * avgHours(r) * 0.4;
     if(isRecruit(w)) sc += DB.settings.weights.recruitBias;
-    sc += (Math.random()-0.5)*DB.settings.weights.jitter;
-    return {id:w.id, sc};
-  }).sort((a,b)=>a.sc-b.sc);
+    return {id:w.id, sc, last:r.tiePatrol||''};
+  }).sort((a,b)=> (a.sc-b.sc) || lastCmp(a,b));
   return scored[0].id;
 }
 
@@ -1200,13 +1209,8 @@ function generateDay(input){
   const occDay = new Set([...Object.keys(navDay), ...Object.keys(fuelDay)]);
   DAY_SLOTS.forEach(s=>{ if(fixed[s]) occDay.add(s); });   // 13:30/14:30 당일상황 고정칸
   const dayVars = DAY_SLOTS.filter(s=>!occDay.has(s)).map(key=>({type:'day',key}));
-  // 주간 변수 처리 순서 무작위화: 후보 동률(특히 '신병 먼저')일 때 늘 같은 이른 슬롯부터
-  // 배정되는 쏠림(신병이 매일 06:30 등 특정 시간대만 받는 현상)을 깬다.
-  // 시간대별 누적 공정성은 점수의 slotRate·slotCnt 페널티와 2-opt가 계속 맞춘다.
-  for(let i=dayVars.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [dayVars[i],dayVars[j]]=[dayVars[j],dayVars[i]];
-  }
+  // (예전엔 주간 칸 처리 순서를 무작위로 섞었지만, 06:30 순번제·시간대 환산 비교가 이른 칸 쏠림을
+  //  이미 막고 있어 순서를 고정한다 — 같은 입력이면 항상 같은 근무표)
   const nightVars = NIGHT_BUNCHO.filter(b=> !(navNight && navNight.bunchoId===b.id) && !(fuelNight && fuelNight.bunchoId===b.id)).map(b=>({type:'night',bunchoId:b.id}));
 
   /* 3-1) 밥교대 인원은 기본적으로 야간 제외 — 야간 후보가 부족할 때만 폴백으로 자동 투입(5단계).

@@ -571,7 +571,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.8.1</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.8.2</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -624,10 +624,10 @@ body.ro .no-ro{display:none!important}
 
     <details class="adv" id="calLists" style="margin-top:18px">
       <summary>등록된 일정 전체 · 휴무일 관리</summary>
+      <div class="flexgap" style="margin-bottom:10px"><label class="chk"><input type="checkbox" id="pbHidePast" checked> 지난 일정·휴무일 숨기기</label></div>
       <div class="panel">
         <h2>등록된 일정</h2>
         <p class="desc">휴가·열외·당직/상황 예약·유조차는 [근무표 생성]에서 그 날짜를 열 때 자동 반영됩니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
-        <div class="flexgap" style="margin-bottom:10px"><label class="chk"><input type="checkbox" id="pbHidePast" checked> 지난 일정 숨기기</label></div>
         <div class="tbl-wrap"><table id="pbTable"></table></div>
       </div>
       <div class="panel">
@@ -1009,7 +1009,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.8.1"></script>
+<script src="engine.js?v=6.8.2"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2205,6 +2205,7 @@ function shortRange(a,b){
 function renderHolidayTable(){
   const t=$('#hdTable'); if(!t) return;
   const today=todayStr();
+  const hide=$('#pbHidePast').checked;
   const dates=Object.keys(DB.holidays||{}).sort();
   t.innerHTML='<tr><th>기간</th><th>이름</th><th style="width:70px"></th></tr>';
   if(!dates.length){
@@ -2219,7 +2220,12 @@ function renderHolidayTable(){
     if(last && last.name===nm && addDays(last.end,1)===d) last.end=d;
     else runs.push({start:d,end:d,name:nm});
   });
-  runs.forEach(r=>{
+  const shown=runs.filter(r=> !hide || r.end>=today);
+  if(!shown.length){
+    const tr=el('tr'); const td=el('td',null,'<span class="muted">앞으로 남은 휴무일이 없습니다. 지난 휴무일은 [지난 일정 숨기기]를 끄면 보입니다.</span>');
+    td.colSpan=3; tr.appendChild(td); t.appendChild(tr); return;
+  }
+  shown.forEach(r=>{
     const tr=el('tr', r.end<today?'inactive-row':null);
     tr.appendChild(el('td',null, shortRange(r.start,r.end)));
     tr.appendChild(el('td',null,'<b>'+esc(r.name)+'</b>'));
@@ -2316,7 +2322,7 @@ function openPbSheet(id){
   }
   openSheet('pbSheet');
 }
-$('#pbHidePast').addEventListener('change', renderPrebookTable);
+$('#pbHidePast').addEventListener('change',()=>{ renderPrebookTable(); renderHolidayTable(); });
 $('#pbAdd').addEventListener('click',()=>{
   const kind=$('#pbKind').value, wid=$('#pbWho').value, start=$('#pbStart').value;
   let end=$('#pbEnd').value;
@@ -2606,13 +2612,11 @@ function renderSlotRates(st){
   box.appendChild(el('div','hint','칸을 누르면 그 행 아래에 횟수/분모와 그 시간대 평균이 나옵니다.'));
 }
 /* 공정성 — 지표마다 사람을 점으로 찍는다. 같은 값은 위로 쌓는다 */
-function renderFairness(st){
-  const ws=countWs(st).filter(countFair);
-  const box=$('#cFair'); box.innerHTML='';
-  // 사람마다 분모(겪은 근무표 수)가 달라 횟수로는 비교가 안 되므로 배정률로 본다. 분모 0인 사람은 그 지표에서 뺀다
-  const R=st=>(num,den)=> den>0 ? 100*num/den : null;
-  const pr=R(st);
-  const metrics=[
+/* 공정성 지표 — [카운트 › 공정성]과 [내 근무 › 부대 평균과 비교]가 이 한 목록을 쓴다.
+   사람마다 분모(겪은 근무표 수)가 달라 횟수로는 비교가 안 되므로 배정률로 본다. 분모 0인 사람은 그 지표에서 뺀다 */
+function fairMetrics(st){
+  const pr=(num,den)=> den>0 ? 100*num/den : null;
+  return [
     ['평균 근무시간','h/일',2, w=>avgHours(st[w.id])],
     ['야간 · 평일전야','%',0, w=>pr(st[w.id].nightGNum.weekday, st[w.id].nightGDen.weekday)],
     ['야간 · 휴일전야','%',0, w=>pr(st[w.id].nightGNum.holiday, st[w.id].nightGDen.holiday)],
@@ -2620,6 +2624,11 @@ function renderFairness(st){
     ['추가순찰 · 평일','%',0, w=>pr(st[w.id].patrolGNum.weekday, st[w.id].patrolGDen.weekday)],
     ['추가순찰 · 주말/휴일','%',0, w=>pr(st[w.id].patrolGNum.weekend, st[w.id].patrolGDen.weekend)],
   ];
+}
+function renderFairness(st){
+  const ws=countWs(st).filter(countFair);
+  const box=$('#cFair'); box.innerHTML='';
+  const metrics=fairMetrics(st);
   if(!ws.length){ box.appendChild(el('div','muted','비신병 활성 근무자가 없습니다.')); return; }
   metrics.forEach(([label,unit,dec,f])=>{
     const mw=ws.filter(w=>f(w)!=null);
@@ -3062,22 +3071,17 @@ function renderMine(){
   if(noSchedFrom && !list.children.length) box.appendChild(el('div','muted','앞으로 2주 안에 생성된 근무표가 없습니다.'));
   else if(noSchedFrom) box.appendChild(el('div','hint', Number(noSchedFrom.slice(5,7))+'/'+Number(noSchedFrom.slice(8))+'부터는 근무표가 아직 생성되지 않았습니다.'));
 
-  // 부대 평균과 비교 — 카운트 탭과 같은 기준(각자 분모로 나눈 배정률)
+  // 부대 평균과 비교 — [카운트 › 공정성]과 같은 지표·같은 평균 대상(전체 기간, 각자 분모로 나눈 배정률)
   const fair=activeWorkers().filter(x=>inAvgPool(x, st, minDaysFor(Object.keys(DB.schedules).length)));
-  const pr=(n,d)=> d>0 ? 100*n/d : null;
-  const metrics=[
-    ['하루 평균 근무시간','h',2, x=>avgHours(st[x.id])],
-    ['야간 배정률','%',0, x=>pr(st[x.id].nightNum, st[x.id].nightDen)],
-    ['밥교대 배정률','%',0, x=>pr(st[x.id].mealNum, st[x.id].mealDen)],
-    ['추가순찰 배정률','%',0, x=>pr(st[x.id].patrolNum, st[x.id].patrolDen)],
-  ];
+  const metrics=fairMetrics(st);
   { const bh=el('div','band-h','부대 평균과 비교<span class="r">전체 기간</span>'); bh.style.marginTop='16px'; box.appendChild(bh); }
   if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+'은(는) 배정 방식이 달라 평균 계산에서 빠져 있습니다. 평균보다 높거나 낮게 나오는 게 정상일 수 있습니다.'));
   else if(!inAvgPool(w, st, minDaysFor(Object.keys(DB.schedules).length))) box.appendChild(el('p','smallnote','근무표에 포함된 날이 '+r.denom+'일로 적어(최소 '+minDaysFor(Object.keys(DB.schedules).length)+'일) 부대 평균 계산에서는 빠져 있습니다. 내 값은 그대로 보여줍니다.'));
   metrics.forEach(([label,unit,dec,f])=>{
     if(label.startsWith('밥교대') && !w.canMeal && !r.mealNum) return;
     const mine=f(w);
-    const vals=fair.map(f).filter(x=>x!=null);
+    const vals=fair.map(f).filter(x=>x!=null);                             // 평균은 나를 포함(카운트 탭과 같게)
+    const others=fair.filter(x=>x.id!==w.id).map(f).filter(x=>x!=null);    // 회색 점은 다른 근무자만
     if(!vals.length && mine==null) return;
     const all=mine==null?vals:vals.concat([mine]);
     const mn=Math.min(...all), mx=Math.max(...all), avg=vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null;
@@ -3093,11 +3097,11 @@ function renderMine(){
       row1.appendChild(el('span','avg','부대 평균 '+fmt(avg)+unit+(df==null?'':' · '+(df>=0?'+':'')+(dec?df.toFixed(dec):Math.round(df))+(unit==='%'?'%p':unit))));
     }
     card.appendChild(row1);
-    const seen={}, lvl=vals.map(x=>{ const k=fmt(x); return (seen[k]=(seen[k]||0)+1)-1; });
+    const seen={}, lvl=others.map(x=>{ const k=fmt(x); return (seen[k]=(seen[k]||0)+1)-1; });
     const H=22+Math.max(0,...lvl)*13;
     const ax=el('div','ax'); ax.style.height=H+'px';
     if(avg!=null) ax.appendChild(el('span','m')).style.left=pos(avg)+'%';
-    vals.forEach((x,i)=>{ const d=el('span','d o'); d.style.left=pos(x)+'%'; d.style.top=(H-17-lvl[i]*13)+'px'; ax.appendChild(d); });
+    others.forEach((x,i)=>{ const d=el('span','d o'); d.style.left=pos(x)+'%'; d.style.top=(H-17-lvl[i]*13)+'px'; ax.appendChild(d); });
     if(mine!=null){ const d=el('span','d me'); d.style.left=pos(mine)+'%'; d.style.top=(H-18)+'px'; d.title='나'; ax.appendChild(d); }
     card.appendChild(ax);
     card.appendChild(el('div','ends','<span>'+fmt(mn)+unit+'</span><span>● 나 · 회색 = 다른 근무자</span><span>'+fmt(mx)+unit+'</span>'));
@@ -3141,11 +3145,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.8.1"></script>
+<script src="firebase-config.js?v=6.8.2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.8.1"></script>
+<script src="sync.js?v=6.8.2"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

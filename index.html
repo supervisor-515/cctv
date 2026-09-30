@@ -229,6 +229,15 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .matrix .rl i{width:7px;height:7px;border-radius:50%;flex:none}
 .matrix select{width:100%;padding:8px 6px;font-size:12.5px;font-weight:600}
 .matrix td.na{border:1px dashed var(--line);border-radius:8px;height:36px}
+/* 폰에서 표 칸에 보이는 이름 버튼 — 누르면 근무자 목록 시트가 열리고, 실제 값은 숨은 셀렉트에 들어간다 */
+.mcell{display:none;width:100%;min-height:48px;align-items:center;justify-content:center;text-align:center;font:inherit;font-size:12.5px;font-weight:700;line-height:1.25;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 3px;word-break:keep-all;overflow-wrap:anywhere;cursor:pointer}
+.mcell.none{color:var(--ink-faint);font-weight:500}
+.mcell.auto{color:var(--acc)}
+.mcell:disabled{opacity:.6;cursor:default}
+.picklist{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
+.picklist button{font:inherit;font-size:14px;font-weight:600;text-align:left;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;cursor:pointer}
+.picklist button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
+.picklist button.dim{color:var(--ink-faint);font-weight:500}
 .prevline{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12px}
 .prevbox{font-size:12.5px}
 .prevbox:empty{display:none}
@@ -510,13 +519,13 @@ details.arch[open] summary{margin-bottom:8px}
   .slot .nmwrap,.slot .nm{flex:1 1 100%;order:5}
   .cellsel{font-size:13px;padding:9px 10px;width:100%}
   .step{padding:12px}
-  .matrix,.matrix tbody{display:block;margin:0}
-  .matrix thead{display:none}
-  .matrix tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-bottom:12px}
-  .matrix th.rh{grid-column:1/-1;width:auto}
-  .matrix td.na{display:none}
-  .matrix td::before{content:attr(data-c);display:block;font-size:10.5px;color:var(--ink-faint);font-weight:600;margin-bottom:3px}
-  .matrix select{font-size:13px;padding:9px 8px}
+  .matrix{border-spacing:3px;margin:-3px}
+  .matrix th.rh{width:46px}
+  .matrix .rl{font-size:11.5px;flex-direction:column;align-items:flex-start;gap:3px}
+  .matrix thead th small{font-size:9px}
+  .matrix select{display:none}
+  .matrix .mcell{display:flex}
+  .matrix td.na{height:48px}
   .runbar{bottom:calc(62px + env(safe-area-inset-bottom))}
   .runbar .btn{flex:1}
   .cal-grid{gap:3px}
@@ -552,7 +561,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.1.1</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.1.2</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -616,6 +625,14 @@ body.ro .no-ro{display:none!important}
     <button class="btn fab no-ro no-print" id="calAdd">+ 일정</button>
   </section>
 
+  <!-- 역할 표 칸 선택 시트 (생성 · 폰) -->
+  <div class="sheet-bg" id="pickSheetBg"></div>
+  <div class="sheet" id="pickSheet" role="dialog" aria-label="근무자 선택">
+    <div class="grab"></div>
+    <div class="sh-h"><b id="pickTitle">선택</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="picklist" id="pickList"></div>
+  </div>
+
   <!-- 일정 추가 시트 (달력) -->
   <div class="sheet-bg" id="pbSheetBg"></div>
   <div class="sheet" id="pbSheet" role="dialog" aria-label="일정 추가">
@@ -677,19 +694,19 @@ body.ro .no-ro{display:none!important}
             <thead><tr><th class="rh"></th><th>전날<small>20:30·21:30</small></th><th>당일</th><th>다음날<small>17:30~19:30</small></th><th>이틀 뒤<small>밥교대 제외</small></th></tr></thead>
             <tbody>
               <tr><th class="rh"><span class="rl"><i style="background:var(--duty)"></i>당직</span></th>
-                <td data-c="전날 · 21:30"><select id="gPrevDuty" title="전날 당직 (21:30·당일 전부 열외)"></select></td>
-                <td data-c="당일"><select id="gDuty" title="당일 당직"></select></td>
-                <td data-c="다음날 · 19:30"><select id="gNextDuty" title="다음날 당직 (19:30)"></select></td>
-                <td data-c="이틀 뒤 (밥교대 제외용)"><select id="gNext2Duty" title="이틀 뒤 당직 (밥교대 제외용)"></select></td></tr>
+                <td><select id="gPrevDuty" title="전날 당직 (21:30·당일 전부 열외)"></select></td>
+                <td><select id="gDuty" title="당일 당직"></select></td>
+                <td><select id="gNextDuty" title="다음날 당직 (19:30)"></select></td>
+                <td><select id="gNext2Duty" title="이틀 뒤 당직 (밥교대 제외용)"></select></td></tr>
               <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>상황</span></th>
-                <td data-c="전날 · 20:30"><select id="gPrevSit" title="전날 상황병 (20:30·당일 전부 열외)"></select></td>
-                <td data-c="당일"><select id="gSit" title="당일 상황병"></select></td>
-                <td data-c="다음날 · 18:30"><select id="gNextSit" title="다음날 상황병 (18:30)"></select></td>
-                <td data-c="이틀 뒤 (밥교대 제외용)"><select id="gNext2Sit" title="이틀 뒤 상황병 (밥교대 제외용)"></select></td></tr>
+                <td><select id="gPrevSit" title="전날 상황병 (20:30·당일 전부 열외)"></select></td>
+                <td><select id="gSit" title="당일 상황병"></select></td>
+                <td><select id="gNextSit" title="다음날 상황병 (18:30)"></select></td>
+                <td><select id="gNext2Sit" title="이틀 뒤 상황병 (밥교대 제외용)"></select></td></tr>
               <tr><th class="rh"><span class="rl"><i style="background:var(--meal)"></i>밥교대</span></th>
                 <td class="na"></td>
-                <td data-c="당일"><select id="gMeal" title="당일 밥교대"></select></td>
-                <td data-c="다음날 · 17:30+순찰"><select id="gNextMeal" title="다음날 밥교대 (17:30·순찰)"></select></td>
+                <td><select id="gMeal" title="당일 밥교대"></select></td>
+                <td><select id="gNextMeal" title="다음날 밥교대 (17:30·순찰)"></select></td>
                 <td class="na"></td></tr>
             </tbody>
           </table>
@@ -953,7 +970,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.1.1"></script>
+<script src="engine.js?v=6.1.2"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1003,7 +1020,7 @@ $$('[data-back]').forEach(b=>b.addEventListener('click',()=>showView('more')));
 /* 바텀 시트 열기/닫기 */
 function openSheet(id){ $('#'+id).classList.add('on'); $('#'+id+'Bg').classList.add('on'); }
 function closeSheet(id){ $('#'+id).classList.remove('on'); $('#'+id+'Bg').classList.remove('on'); }
-['pbSheet','pSheet'].forEach(id=>{
+['pbSheet','pSheet','pickSheet'].forEach(id=>{
   $('#'+id+'Bg').addEventListener('click',()=>closeSheet(id));
   $('#'+id+' [data-close]').addEventListener('click',()=>closeSheet(id));
 });
@@ -1302,7 +1319,35 @@ function buildPreviewCtx(){
   ctx.stats=buildStats(ds);   // 읽기 전용
   return {ds,ctx,prev};
 }
+/* 역할 표 칸 — 각 셀렉트 옆에 이름 버튼을 두고, 셀렉트 값이 바뀔 때마다 글자를 맞춘다 */
+function syncMatrixCells(){
+  $$('.matrix select').forEach(sel=>{
+    let b=sel.nextElementSibling;
+    if(!b || !b.classList.contains('mcell')){
+      b=el('button','mcell'); b.type='button';
+      b.addEventListener('click',()=>openPick(sel));
+      sel.after(b);
+    }
+    const o=sel.options[sel.selectedIndex];
+    const txt=o?o.textContent:'—';
+    b.textContent = (!sel.value || sel.value==='__none__') ? (/자동/.test(txt)?'⚙ 자동':'—') : txt;
+    b.classList.toggle('none', !sel.value && !/자동/.test(txt) || sel.value==='__none__');
+    b.classList.toggle('auto', !sel.value && /자동/.test(txt));
+    b.disabled=sel.disabled;
+  });
+}
+function openPick(sel){
+  $('#pickTitle').textContent=sel.title||'선택';
+  const box=$('#pickList'); box.innerHTML='';
+  Array.from(sel.options).forEach(o=>{
+    const b=el('button', (o.value===sel.value?'on':'')+(!o.value||o.value==='__none__'?' dim':''), esc(o.textContent));
+    b.addEventListener('click',()=>{ sel.value=o.value; sel.dispatchEvent(new Event('change')); closeSheet('pickSheet'); });
+    box.appendChild(b);
+  });
+  openSheet('pickSheet');
+}
 function previewGen(){
+  syncMatrixCells();
   const box=$('#gPreview'); if(!box) return;
   const ds=$('#gDate').value; if(!ds){ box.innerHTML=''; return; }
   const {ctx}=buildPreviewCtx();
@@ -2830,11 +2875,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.1.1"></script>
+<script src="firebase-config.js?v=6.1.2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.1.1"></script>
+<script src="sync.js?v=6.1.2"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

@@ -18,14 +18,17 @@ function freshDB(over = {}) {
     settings: JSON.parse(JSON.stringify(E.DEFAULT_SETTINGS))
   }, over);
 }
+// 근무자 id를 고정 순번으로 준다 — 무작위 id면 동점 처리 순서가 실행마다 바뀌어 결과가 흔들린다
+let workerSeq = 0;
 function mkWorker(name, opts = {}) {
-  return E.normWorker(Object.assign({ name, roleReady: true, roleType: 'duty', canMeal: true, active: true }, opts),
-    Math.floor(Math.random() * 1e6));
+  const i = workerSeq++;
+  return E.normWorker(Object.assign({ id: 't' + i, name, roleReady: true, roleType: 'duty', canMeal: true, active: true }, opts), i);
 }
-function roster(n, recruits = 0) {
+// id는 부대 안에서만 고유하면 되므로 앞선 테스트와 무관한 고정값을 준다(prefix로 시행마다 다르게)
+function roster(n, recruits = 0, prefix = 'w') {
   const ws = [];
-  for (let i = 0; i < n; i++) ws.push(mkWorker('W' + i, { roleType: i % 2 ? 'duty' : 'situation' }));
-  for (let i = 0; i < recruits; i++) ws.push(mkWorker('R' + i, { roleReady: false }));
+  for (let i = 0; i < n; i++) ws.push(mkWorker('W' + i, { id: prefix + i, roleType: i % 2 ? 'duty' : 'situation' }));
+  for (let i = 0; i < recruits; i++) ws.push(mkWorker('R' + i, { id: prefix + 'r' + i, roleReady: false }));
   return ws;
 }
 /* 표 한 장에서 wid가 배정된 주간 슬롯 목록 */
@@ -770,13 +773,28 @@ test('score: 같은 그룹에서 그 시간대를 많이 선 사람일수록 뒤
     '월화목 06:30: 그룹 내 비율이 높은 B가 우선순위에서 밀리지 않음');
 });
 
-test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정되지 않는다', () => {
+/* 엔진은 동점 근처에서 일부러 무작위 흔들기(jitter)를 넣는다. 통계로 판정하는 테스트는
+   실행마다 결과가 달라져 허용치 경계에서 가끔 실패하므로, 고정 시드 난수로 재현 가능하게 돌린다. */
+function withSeed(seed, fn) {
+  const orig = Math.random;
+  let a = seed >>> 0;
+  Math.random = () => {   // mulberry32
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  try { return fn(); } finally { Math.random = orig; }
+}
+
+test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정되지 않는다', () => withSeed(20260930, () => {
   // 회귀: 배정 순서를 누적 '횟수'로 매기면 초기화로 카운터가 0이 된 사람이 남들 누적을
   // 따라잡을 때까지 계속 먼저 뽑혀, 전환 후 몇 달간 하루 근무량이 남들보다 많아졌다.
   // (초기화로 없애준 기록만큼을 도로 갚는 셈) → 같은 기간 환산으로 비교해야 한다.
   const gaps = [];
   for (let trial = 0; trial < 3; trial++) {
-    const ws = roster(13);
+    const ws = roster(13, 0, 't' + trial + 'w');
     E.setDB(freshDB({ workers: ws }));
     let ds = '2026-06-01';
     const gen = n => { for (let d = 0; d < n; d++) {
@@ -809,7 +827,7 @@ test('카운트 초기화(신병→역할 전환)된 사람이 이후 과배정�
   // 수정 전에는 +0.15칸/일 안팎으로 벌어졌다. 환산 비교 후에는 대조군과 붙어야 한다.
   assert.ok(Math.abs(avgGap) <= 0.08,
     `초기화된 사람의 하루 주간칸이 대조군과 ${avgGap.toFixed(3)}칸 차이 (허용 ±0.08)`);
-});
+}));
 
 test('scaledCnt: 분모가 짧아도 같은 기간 환산으로 비교된다', () => {
   // 같은 비율(0.5)이면 분모 길이와 무관하게 환산값이 비슷해야 한다

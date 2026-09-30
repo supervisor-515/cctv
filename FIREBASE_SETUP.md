@@ -94,7 +94,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/members/$(request.auth.uid)).data.workerId == workerId);
       allow update, delete: if isAdmin();
     }
-    // 서버 자동 백업(최근 10회) — 관리자만. 본문은 parts 하위 문서에 나눠 저장
+    // 서버 백업(최근 10회) — 관리자만. 본문은 parts 하위 문서에 나눠 저장
     match /backups/{id} {
       allow read, write: if isAdmin();
       match /parts/{n} {

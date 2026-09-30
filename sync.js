@@ -465,7 +465,7 @@
   }
 
   /* ============================================================
-     서버 자동 백업 (관리자) — 근무표를 생성할 때마다 전체 데이터(JSON 내보내기와 같은 내용)를
+     서버 백업 (관리자) — 근무표를 생성할 때마다(자동) 또는 [지금 서버에 백업](수동)으로 전체 데이터(JSON 내보내기와 같은 내용)를
      backups/{id}에 올리고 최근 BK_KEEP개만 남긴다. 문서 한도(1MB)를 넘지 않게 본문은
      backups/{id}/parts/{n}에 나눠 담는다. roster와 따로 두는 이유: 구성원 화면은 roster 전체를
      실시간 수신하므로 거기에 두면 백업까지 매번 내려받게 된다.
@@ -552,6 +552,16 @@
       });
     }).catch(e=>{ box.innerHTML='<div class="err">백업 목록을 불러오지 못했습니다: '+esc(bkErr(e))+'</div>'; });
   }
+  /* 수동 백업 */
+  qs('#bkNow').addEventListener('click',()=>{
+    const b=qs('#bkNow'), st=qs('#bkNowSt');
+    b.disabled=true; st.textContent='백업 중…';
+    bkCreate('수동 백업').then(r=>{
+      b.disabled=false;
+      st.textContent = r.ok ? '✓ 백업 완료 · '+r.at : r.skipped ? '관리자로 로그인해야 합니다' : '⚠ 실패: '+r.err;
+      if(r.ok) bkRender();
+    });
+  });
   window.SYNC_BACKUP=bkCreate;
   window.SYNC_BACKUP_LIST=bkRender;
 })();

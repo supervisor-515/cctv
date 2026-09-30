@@ -266,6 +266,55 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--kr);font-s
 .pc.off{opacity:.55}
 .arch{margin:10px 0 20px;font-size:12.5px;color:var(--dim);display:flex;justify-content:space-between;border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
 
+/* 카운트 가독성 */
+:root{--dv-lo:#4c8dff;--dv-hi:#f0645f;--dv-mid:#3a3f48}
+:root[data-theme=light]{--dv-lo:#2f6fe0;--dv-hi:#d9443f;--dv-mid:#e4e6ea}
+.subchips{display:flex;gap:5px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}
+.subchips span{flex:none;font-size:11.5px;font-weight:600;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:4px 10px}
+.subchips span.on{color:var(--ink);border-color:var(--ink)}
+.sumline{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.sumline span{font-size:11.5px;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 9px}
+.sumline b{color:var(--ink);margin-left:3px}
+.rank{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px}
+.rk{display:grid;grid-template-columns:52px 1fr 40px 44px;align-items:center;gap:8px;height:34px;cursor:pointer}
+.rk .n{font-weight:600;font-size:13px;white-space:nowrap}
+.rk .v{font-family:var(--mono);font-size:13px;font-weight:700;text-align:right}
+.rk .dv{font-family:var(--mono);font-size:10.5px;color:var(--faint);text-align:right}
+.rk .trk{position:relative;height:14px}
+.rk .trk i{position:absolute;left:0;top:3px;height:8px;border-radius:0 4px 4px 0;background:var(--acc)}
+.rk .trk b{position:absolute;top:-4px;bottom:-4px;width:0;border-left:1.5px dashed var(--dim)}
+.rk.sel .n{color:var(--acc)}
+.muted-rank .rk .trk i{background:var(--faint)}
+.muted-rank .rk .v{color:var(--dim)}
+.rkgl{font-size:11px;font-weight:700;color:var(--faint);margin:14px 2px 6px}
+.tipline{font-size:11.5px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:12px 0 20px;min-height:34px}
+.tipline b{color:var(--ink)}
+.hm{display:grid;grid-template-columns:44px repeat(11,1fr);gap:2px;font-family:var(--mono)}
+.hm .hh{font-size:9px;color:var(--faint);text-align:center;padding-bottom:3px;writing-mode:vertical-rl;transform:rotate(180deg);height:36px;justify-self:center}
+.hm .hn{font-family:var(--kr);font-size:11.5px;font-weight:600;display:flex;align-items:center;white-space:nowrap}
+.hm .c{height:26px;border-radius:4px;display:grid;place-items:center;font-size:10px;color:var(--ink);cursor:pointer}
+.hm .c.sel{outline:2px solid var(--ink);outline-offset:-1px}
+.hmleg{display:flex;align-items:center;gap:3px;font-size:10.5px;color:var(--faint);margin-top:10px}
+.hmleg i{width:18px;height:10px;border-radius:2px;display:block}
+.hmleg .sp{flex:1}
+.hmleg .lo2{background:color-mix(in srgb,var(--dv-lo) 70%,var(--panel))}
+.hmleg .lo1{background:color-mix(in srgb,var(--dv-lo) 35%,var(--panel))}
+.hmleg .mid{background:var(--dv-mid)}
+.hmleg .hi1{background:color-mix(in srgb,var(--dv-hi) 35%,var(--panel))}
+.hmleg .hi2{background:color-mix(in srgb,var(--dv-hi) 70%,var(--panel))}
+.fexp{font-size:11px;color:var(--faint);margin-bottom:10px}
+.strip{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px 12px;margin-bottom:8px}
+.strip .sh{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.strip .sh b{font-size:13px}
+.strip .sh .sp{flex:1}
+.strip .sh span{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.strip .ax{position:relative;height:22px;margin:0 6px}
+.strip .ax::before{content:"";position:absolute;left:0;right:0;bottom:10px;height:2px;border-radius:1px;background:var(--line)}
+.strip .ax .d{position:absolute;top:5px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 2px var(--panel);cursor:pointer}
+.strip .ax .d.sel{background:var(--ink)}
+.strip .ax .m{position:absolute;top:0;bottom:0;width:0;border-left:1.5px dashed var(--dim)}
+.strip .ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint);margin:4px 6px 0}
+
 .changes{margin-top:28px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;font-size:13px}
 .changes h2{margin:0 0 8px;font-size:15px}
 .changes ul{margin:0;padding-left:18px;color:var(--dim)}
@@ -504,6 +553,61 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--kr);font-s
     </div>
   </div>
 
+  <h2 class="sect">근무 카운트 — 가독성 개선안</h2>
+  <div class="frames">
+    <!-- ⑧ 순위 막대 -->
+    <div class="frame-wrap">
+      <h3>⑧ 배정률 — 표 대신 평균선이 있는 막대</h3>
+      <p class="note">한 번에 지표 하나만 봅니다. 이름 순서는 배정률 순이고, 세로선이 평균입니다. 막대가 선을 얼마나 넘는지로 많이 선 사람과 적게 선 사람이 바로 보입니다. 행을 누르면 횟수/분모가 나옵니다.</p>
+      <div class="phone">
+        <div class="apphdr"><span class="back">‹</span><b>근무 카운트</b><div class="sp"></div><span class="chipf">전체 기간 ▾</span></div>
+        <div class="scroll">
+          <div class="segscroll" style="margin-top:12px"><div class="seg"><button>누적</button><button class="on">야간</button><button>밥교대</button><button>순찰</button><button>시간대</button><button>공정성</button></div></div>
+          <div class="subchips" id="nightSub"><span class="on">야간 전체</span><span>평일전야</span><span>휴일전야</span><span>1번초</span><span>2번초</span><span>3번초</span><span>4번초</span></div>
+          <div class="sumline"><span>평균 <b id="rkAvg"></b></span><span>가장 많이 <b id="rkMax"></b></span><span>가장 적게 <b id="rkMin"></b></span></div>
+          <div class="rank" id="rank"></div>
+          <div class="rkgl">공정성 계산 제외 — 신병 · 운항병</div>
+          <div class="rank muted-rank" id="rank2"></div>
+          <div class="tipline" id="rkTip">행을 누르면 횟수/분모를 보여줍니다.</div>
+        </div>
+        <div class="bnav" data-on="3"></div>
+      </div>
+    </div>
+
+    <!-- ⑨ 시간대 히트맵 -->
+    <div class="frame-wrap">
+      <h3>⑨ 시간대별 — 칸 색은 평균과의 차이</h3>
+      <p class="note">가로 11칸 표를 색이 들어간 격자로 바꿉니다. 파랑은 그 시간대 평균보다 적게, 빨강은 많이 선 칸이고, 회색은 평균 근처입니다. 칸마다 숫자(%)도 그대로 적힙니다.</p>
+      <div class="phone">
+        <div class="apphdr"><span class="back">‹</span><b>근무 카운트</b><div class="sp"></div><span class="chipf">전체 기간 ▾</span></div>
+        <div class="scroll">
+          <div class="segscroll" style="margin-top:12px"><div class="seg"><button>누적</button><button>야간</button><button>밥교대</button><button>순찰</button><button class="on">시간대</button><button>공정성</button></div></div>
+          <div class="subchips"><span class="on">월화목</span><span>수</span><span>금</span><span>토일</span><span>전체</span></div>
+          <div class="hm" id="hm"></div>
+          <div class="hmleg"><span>적게</span><i class="lo2"></i><i class="lo1"></i><i class="mid"></i><i class="hi1"></i><i class="hi2"></i><span>많이</span><span class="sp"></span><span>평균 대비</span></div>
+          <div class="tipline" id="hmTip">칸을 누르면 횟수/분모와 그 시간대 평균을 보여줍니다.</div>
+        </div>
+        <div class="bnav" data-on="3"></div>
+      </div>
+    </div>
+
+    <!-- ⑩ 공정성 분포 -->
+    <div class="frame-wrap">
+      <h3>⑩ 공정성 — 숫자 표 대신 분포</h3>
+      <p class="note">지표마다 한 줄에 사람을 점으로 찍습니다. 점이 좁게 모이면 균등하고, 넓게 퍼지면 불균등합니다. CV·지니 숫자는 옆에 그대로 두고, 점을 누르면 이름이 나옵니다.</p>
+      <div class="phone">
+        <div class="apphdr"><span class="back">‹</span><b>근무 카운트</b><div class="sp"></div><span class="chipf">전체 기간 ▾</span></div>
+        <div class="scroll">
+          <div class="segscroll" style="margin-top:12px"><div class="seg"><button>누적</button><button>야간</button><button>밥교대</button><button>순찰</button><button>시간대</button><button class="on">공정성</button></div></div>
+          <div class="fexp">비신병 12명 기준 · 세로 눈금 = 평균 · 가로 축은 지표마다 최소~최대</div>
+          <div id="strips"></div>
+          <div class="tipline" id="stTip">점을 누르면 이름과 값을 보여줍니다.</div>
+        </div>
+        <div class="bnav" data-on="3"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="changes">
     <h2>바꾸지 않는 것</h2>
     <ul>
@@ -604,6 +708,68 @@ const PL=[['박서준','당직','duty','밥교대 가능',212.5,'0.0h/일'],['�
   ['배건우','신병','kind','밥교대 가능',88,''],['황준영','말년','kind','밥교대 가능',230,'']];
 document.getElementById('plist').innerHTML=PL.map(([n,r,c,m,h])=>
   '<div class="pc"><div><div class="pn">'+n+' <span class="tag '+c+'">'+r+'</span></div><div class="pm">'+m+'</div></div><div class="sp"></div><div class="ph">'+h+'h<small>누적</small></div></div>').join('');
+
+// ⑧ 순위 막대
+const RK=[['황준영',15,42],['김도윤',14,40],['강시우',13,41],['한지호',13,40],['임재윤',11,33],['장현우',12,39],['박서준',12,40],['최민재',11,39],['정우진',11,40],['이하준',10,41],['오승현',10,40],['윤태오',9,38]];
+const RK2=[['조민성',19,40],['배건우',18,39],['서은호',6,40]];
+const pr=([n,a,b])=>({n,a,b,p:100*a/b});
+const rk=RK.map(pr).sort((x,y)=>y.p-x.p), rk2=RK2.map(pr).sort((x,y)=>y.p-x.p);
+const avg=rk.reduce((s,r)=>s+r.p,0)/rk.length, scale=50;
+document.getElementById('rkAvg').textContent=Math.round(avg)+'%';
+document.getElementById('rkMax').textContent=rk[0].n+' '+Math.round(rk[0].p)+'%';
+document.getElementById('rkMin').textContent=rk[rk.length-1].n+' '+Math.round(rk[rk.length-1].p)+'%';
+function rankRows(list,id){
+  document.getElementById(id).innerHTML=list.map((r,i)=>{
+    const d=Math.round(r.p-avg);
+    return '<div class="rk" data-i="'+id+i+'"><span class="n">'+r.n+'</span><span class="trk"><i style="width:'+(r.p/scale*100)+'%"></i><b style="left:'+(avg/scale*100)+'%"></b></span><span class="v">'+Math.round(r.p)+'%</span><span class="dv">'+(d>0?'+':'')+d+'%p</span></div>';
+  }).join('');
+  document.querySelectorAll('#'+id+' .rk').forEach((e,i)=>e.addEventListener('click',()=>{
+    document.querySelectorAll('.rk').forEach(x=>x.classList.remove('sel')); e.classList.add('sel');
+    const r=list[i]; document.getElementById('rkTip').innerHTML='<b>'+r.n+'</b> · 야간 '+r.a+'회 / 겪은 야간 '+r.b+'일 = '+Math.round(r.p)+'% · 평균보다 '+Math.abs(Math.round(r.p-avg))+'%p '+(r.p>=avg?'많음':'적음');
+  }));
+}
+rankRows(rk,'rank'); rankRows(rk2,'rank2');
+
+// ⑨ 히트맵 — 평균 대비 편차를 발산 색으로
+const HMN=['황준영','김도윤','강시우','한지호','임재윤','장현우','박서준','최민재','정우진','이하준'];
+let seed=7; const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+const HMV=HMN.map(()=>DAY.map(()=>Math.round(17+rnd()*14)));
+const colAvg=DAY.map((_,j)=>HMV.reduce((s,r)=>s+r[j],0)/HMV.length);
+let h='<div></div>'+DAY.map(t=>'<div class="hh">'+t+'</div>').join('');
+HMN.forEach((n,i)=>{
+  h+='<div class="hn">'+n+'</div>';
+  DAY.forEach((t,j)=>{
+    const v=HMV[i][j], d=v-colAvg[j], k=Math.min(1,(Math.abs(d)-3)/6);
+    const bg=Math.abs(d)<3?'var(--dv-mid)':'color-mix(in srgb,var('+(d<0?'--dv-lo':'--dv-hi')+') '+Math.round(20+k*50)+'%,var(--panel))';
+    h+='<div class="c" style="background:'+bg+'" data-i="'+i+'" data-j="'+j+'">'+v+'</div>';
+  });
+});
+document.getElementById('hm').innerHTML=h;
+document.querySelectorAll('#hm .c').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#hm .c').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
+  const i=+c.dataset.i,j=+c.dataset.j,v=HMV[i][j],den=40,num=Math.round(v*den/100);
+  document.getElementById('hmTip').innerHTML='<b>'+HMN[i]+' · '+DAY[j]+'</b> (월화목) · '+num+'/'+den+' = '+v+'% · 이 시간대 평균 '+Math.round(colAvg[j])+'%';
+}));
+
+// ⑩ 공정성 분포
+const ST=[['평균 근무시간','h/일',[1.52,1.48,1.55,1.50,1.61,1.47,1.53,1.49,1.51,1.58,1.46,1.54],'CV 3.2% · 지니 0.018'],
+  ['야간 · 평일전야','회',[9,10,9,11,8,10,9,10,12,9,10,9],'CV 11.4% · 지니 0.061'],
+  ['야간 · 휴일전야','회',[5,6,4,5,6,5,7,5,4,6,5,5],'CV 15.8% · 지니 0.085'],
+  ['밥교대','회',[7,8,7,6,9,7,8,7,4,8,7,7],'CV 16.9% · 지니 0.080'],
+  ['추가순찰 평일','회',[3,4,3,3,4,3,3,4,3,3,4,3],'CV 13.5% · 지니 0.071']];
+document.getElementById('strips').innerHTML=ST.map(([l,u,vs,s],k)=>{
+  const mn=Math.min(...vs),mx=Math.max(...vs),av=vs.reduce((a,b)=>a+b,0)/vs.length,pos=v=>mx===mn?50:(v-mn)/(mx-mn)*100;
+  const fmt=v=>u==='회'?String(v):v.toFixed(2);
+  // 같은 값은 위로 쌓는다(점이 겹쳐 사라지지 않게)
+  const seen={}, lvl=vs.map(v=>(seen[v]=(seen[v]||0)+1)-1), H=22+Math.max(...lvl)*13;
+  return '<div class="strip"><div class="sh"><b>'+l+'</b><div class="sp"></div><span>'+s+'</span></div><div class="ax" style="height:'+H+'px"><span class="m" style="left:'+pos(av)+'%"></span>'+
+    vs.map((v,i)=>'<span class="d" data-k="'+k+'" data-i="'+i+'" style="left:'+pos(v)+'%;top:'+(H-17-lvl[i]*13)+'px"></span>').join('')+'</div><div class="ends"><span>'+fmt(mn)+u+'</span><span>평균 '+(u==='회'?av.toFixed(1):av.toFixed(2))+u+'</span><span>'+fmt(mx)+u+'</span></div></div>';
+}).join('');
+document.querySelectorAll('.strip .d').forEach(d=>d.addEventListener('click',()=>{
+  document.querySelectorAll('.strip .d').forEach(x=>x.classList.remove('sel')); d.classList.add('sel');
+  const [l,u,vs]=ST[+d.dataset.k], i=+d.dataset.i, same=vs.filter(v=>v===vs[i]).length;
+  document.getElementById('stTip').innerHTML='<b>'+RK[i][0]+'</b> · '+l+' '+(u==='회'?vs[i]:vs[i].toFixed(2))+u+(same>1?' (같은 값 '+same+'명)':'');
+}));
 
 const tb=document.getElementById('themeBtn');
 tb.addEventListener('click',()=>{

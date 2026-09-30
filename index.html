@@ -273,6 +273,7 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .expanel details summary{cursor:pointer;font-size:11.5px;color:var(--ink-dim);font-weight:600;padding:4px 0}
 .expanel .units{display:flex;gap:5px;flex-wrap:wrap;padding:6px 0 2px}
 .exu{font-family:var(--mono);font-size:11px;color:var(--ink-dim);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 7px;cursor:pointer;user-select:none}
+.exb.lock,.exu.lock{opacity:.45;cursor:default}
 .exu.on{color:var(--ink);border-color:var(--ink-dim);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--ink-dim) 22%,transparent) 0 3px,transparent 3px 6px),var(--panel)}
 .exsum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:11px;font-size:12px}
 .exsum .none{color:var(--ink-faint);font-size:11.5px}
@@ -561,7 +562,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.4.1</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.5.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -970,7 +971,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.4.1"></script>
+<script src="engine.js?v=6.5.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1096,7 +1097,7 @@ function renderFuelNotice(ds){
     const today = al.night ? '오늘(금)은 야간 번초 1개가 자동 배정됩니다.'
                 : al.day.length ? '오늘은 '+al.day[0]+'~'+al.day[al.day.length-1]+' 중 1칸이 자동 배정됩니다.'
                 : '오늘은 열외입니다.';
-    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 월~목 열외, 금 야간 1번초 · 토/일 12:30 이후 1칸만 섭니다(이 근무는 분모에 안 들어갑니다). '+today+'</div>';
+    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 월~목 종일 열외, 금 야간 번초 1자리 · 토/일 12:30 이후 1칸만 섭니다(그 주 7일 모두 분모 제외). '+today+' 그 안에서 못 서는 칸은 아래 열외에서 유조차 운전병을 눌러 추가로 고르세요.</div>';
   }else{
     box.innerHTML='<div class="warn">⚠ 이번 주 유조차 운전병이 등록되지 않았습니다. [달력 · 일정] 탭에서 이번 주 유조차를 등록해주세요.</div>';
   }
@@ -1127,13 +1128,18 @@ function refreshGenSelectors(){
   setGenExFrom(existing ? existing : {
     dayEx:  pb.filter(p=> p.kind==='exday'  || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid),
     bothEx: pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid)
-  });
-  // 유조차 운전병(그 주 월~일)은 전체 열외로 자동 반영 — 금/토/일 부분근무는 generateDay가
-  // 이 열외 목록을 그대로 둔 채 해당 칸에만 따로 꽂는다(분모 제외 유지). 단 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
+  }, ds);
+  // 유조차 운전병(정): 분모는 그 주 7일 내내 제외, 열외는 요일별 실제 규칙대로
+  //   월~목 종일 · 금 야간 번초 외 전부 · 토/일 12:30~16:30 외 전부 (열려 있는 칸 안에서 추가 열외 가능)
+  // 유조차 대체(부)는 지정 기간 종일 열외. 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
   if(!existing){
     const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
                            $('#gPrevDuty').value,$('#gPrevSit').value].filter(Boolean));
-    pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub').forEach(p=>{ if(!roleIds.has(p.wid)) exMarkFull(p.wid, true); });
+    pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub').forEach(p=>{
+      if(roleIds.has(p.wid)) return;
+      const fi = p.kind==='fueltruck' ? fuelExInfo(ds) : null;
+      if(fi && fi.wid===p.wid) exMarkFuel(fi); else exMarkFull(p.wid, true);
+    });
   }
   renderExChips();
   renderFuelNotice(ds);
@@ -1171,7 +1177,18 @@ function fillPrevSelect(sel, list, selId, enable){
    units: 근무자id -> Set(열외 단위)   ·   omit: 분모에서도 뺄 사람(종일 열외일 때만)
    화면에서는 한 덩어리로 다루고, 저장할 때 dayEx/nightEx/bothEx/slotEx로 다시 쪼갠다. */
 const NIGHT_UNITS = ['N1','N2','N3','N4'];
-const genEx = { units:{}, omit:new Set(), open:null, detail:false };
+const genEx = { units:{}, omit:new Set(), open:null, detail:false, fuel:null };
+
+/* 유조차 운전병(정) — 그날 설 수 있는 칸(allowed) 외에는 유조차 운행 때문에 열외(잠금, 풀 수 없음).
+   분모는 7일 내내 제외. 저장은 종전과 같이 bothEx(전체 열외·분모 제외) + 열린 칸 중 추가로 고른 열외는 slotEx. */
+function fuelExInfo(ds){
+  const f=fuelTruckOn(ds); if(!f) return null;
+  const al=fuelAllowedOn(ds);
+  const allowed=[...al.day, ...(al.night?NIGHT_UNITS:[])];
+  return {wid:f.wid, allowed, inherent:EX_UNITS.filter(u=>!allowed.includes(u)), night:al.night};
+}
+function isFuelEx(wid){ return !!(genEx.fuel && genEx.fuel.wid===wid); }
+function exMarkFuel(fi){ fi.inherent.forEach(u=>exUnitsOf(fi.wid).add(u)); genEx.omit.add(fi.wid); genEx.fuel=fi; }
 
 function exUnitsOf(wid){ return genEx.units[wid] || (genEx.units[wid]=new Set()); }
 function exSetOf(wid){ return genEx.units[wid] || new Set(); }
@@ -1182,6 +1199,11 @@ function exBandState(wid, band){
   return n===0 ? 'off' : n===band.units.length ? 'full' : 'part';
 }
 function exToggleUnits(wid, units, on){
+  if(isFuelEx(wid)){   // 유조차 운행 칸은 잠금 — 열린 칸만 켜고 끈다, 분모 제외는 유지
+    const set=exUnitsOf(wid);
+    units.filter(u=>genEx.fuel.allowed.includes(u)).forEach(u=> on ? set.add(u) : set.delete(u));
+    return;
+  }
   const set=exUnitsOf(wid);
   units.forEach(u=> on ? set.add(u) : set.delete(u));
   if(!on) genEx.omit.delete(wid);          // 한 칸이라도 빠지면 분모 제외는 성립하지 않는다
@@ -1191,25 +1213,41 @@ function exMarkFull(wid, omit){ EX_UNITS.forEach(u=>exUnitsOf(wid).add(u)); if(o
 function exIsFull(wid){ const set=exSetOf(wid); return EX_UNITS.every(u=>set.has(u)); }
 function exLabel(wid){
   const set=exSetOf(wid); if(!set.size) return '';
+  if(isFuelEx(wid)){
+    const f=genEx.fuel, left=f.allowed.filter(u=>!set.has(u));
+    if(!left.length) return '유조차 · 종일';
+    const what = f.night ? '야간' : '오후';
+    return '유조차 · '+what+(left.length<f.allowed.length?' 일부':'')+'만 가능';
+  }
   if(exIsFull(wid)) return '종일';
   return EX_BANDS.map(b=>{ const st=exBandState(wid,b);
     return st==='full' ? b.label : st==='part' ? b.label+' 일부' : null; }).filter(Boolean).join('·');
 }
 /* 저장된 근무표(또는 사전등록)에서 열외 상태를 읽어온다 */
-function setGenExFrom(src){
-  genEx.units={}; genEx.omit=new Set(); genEx.open=null;
+function setGenExFrom(src, ds){
+  genEx.units={}; genEx.omit=new Set(); genEx.open=null; genEx.fuel=null;
   const add=(wid,us)=>{ if(wid) us.forEach(u=>exUnitsOf(wid).add(u)); };
   (src.dayEx||[]).forEach(w=>add(w,DAY_SLOTS));
   (src.nightEx||[]).forEach(w=>add(w,NIGHT_UNITS));
   (src.bothEx||[]).forEach(w=>{ add(w,EX_UNITS); genEx.omit.add(w); });
   Object.entries(normSlotEx(src.slotEx)).forEach(([w,us])=>add(w,us));
+  // 유조차 운전병이 전체 열외로 저장돼 있으면 요일별 실제 열외로 되돌려 보여준다(추가로 고른 칸은 slotEx에서)
+  const fi = ds ? fuelExInfo(ds) : null;
+  if(fi && (src.bothEx||[]).includes(fi.wid)){
+    delete genEx.units[fi.wid]; exMarkFuel(fi);
+    ((normSlotEx(src.slotEx))[fi.wid]||[]).forEach(u=>{ if(fi.allowed.includes(u)) exUnitsOf(fi.wid).add(u); });
+  }
 }
 /* 엔진에 넘길 네 필드로 분해 — 주간 전체=dayEx, 야간 전체=nightEx, 종일+분모제외=bothEx, 나머지=slotEx */
 function genExPayload(){
   const dayEx=[], nightEx=[], bothEx=[], slotEx={};
   Object.entries(genEx.units).forEach(([wid,set])=>{
     if(!set.size) return;
-    if(genEx.omit.has(wid)){ bothEx.push(wid); return; }
+    if(genEx.omit.has(wid)){
+      bothEx.push(wid);
+      if(isFuelEx(wid)){ const extra=[...set].filter(u=>genEx.fuel.allowed.includes(u)); if(extra.length) slotEx[wid]=extra; }
+      return;
+    }
     const allDay=DAY_SLOTS.every(u=>set.has(u)), allNight=NIGHT_UNITS.every(u=>set.has(u));
     if(allDay) dayEx.push(wid);
     if(allNight) nightEx.push(wid);
@@ -1253,6 +1291,7 @@ function renderExChips(){
 function exPanel(w){
   const p=el('div','expanel');
   const redraw=()=>{ renderExChips(); previewGen(); };
+  if(isFuelEx(w.id)) return exPanelFuel(w, p, redraw);
   p.appendChild(el('div','who', esc(w.name)+' — 열외 시간대'));
   const brow=el('div','brow');
   EX_BANDS.forEach(b=>{
@@ -1291,11 +1330,36 @@ function exPanel(w){
   p.appendChild(lab);
   return p;
 }
-function exUnitBtn(wid, unit, text, redraw){
+function exUnitBtn(wid, unit, text, redraw, locked){
   const on=exSetOf(wid).has(unit);
-  const b=el('div','exu'+(on?' on':''), esc(text));
-  b.addEventListener('click',()=>{ exToggleUnits(wid,[unit],!on); redraw(); });
+  const b=el('div','exu'+(on?' on':'')+(locked?' lock':''), esc(text));
+  if(!locked) b.addEventListener('click',()=>{ exToggleUnits(wid,[unit],!on); redraw(); });
   return b;
+}
+/* 유조차 운전병 패널 — 운행 때문에 열외인 칸은 잠그고, 설 수 있는 칸 안에서만 추가 열외를 고른다 */
+function exPanelFuel(w, p, redraw){
+  const f=genEx.fuel;
+  p.appendChild(el('div','who', esc(w.name)+' — 유조차 운행 주간 (분모 7일 제외)'));
+  p.appendChild(el('p','smallnote', f.allowed.length
+    ? '이 날은 '+(f.night?'야간 번초':'12:30~16:30')+' 중 1자리만 섭니다(자동 선택). 잠긴 칸은 유조차 운행으로 열외입니다. 그 안에서 못 서는 칸이 있으면 추가로 고르세요.'
+    : '이 날은 유조차 운행으로 CCTV 근무에서 완전히 빠집니다.'));
+  if(f.allowed.length){
+    const u=el('div','units');
+    f.allowed.forEach(x=> u.appendChild(exUnitBtn(w.id, x, x[0]==='N' ? x.slice(1)+'번초' : x, redraw, false)));
+    p.appendChild(u);
+  }
+  const d=el('details'); d.open=genEx.detail;
+  d.appendChild(el('summary',null,'전체 칸 보기 (잠금 포함)'));
+  const u1=el('div','units'), u2=el('div','units');
+  DAY_SLOTS.forEach(sl=> u1.appendChild(exUnitBtn(w.id, sl, sl, redraw, !f.allowed.includes(sl))));
+  NIGHT_UNITS.forEach((x,i)=> u2.appendChild(exUnitBtn(w.id, x, (i+1)+'번초', redraw, !f.allowed.includes(x))));
+  d.appendChild(u1); d.appendChild(u2);
+  d.addEventListener('toggle',()=>{ genEx.detail=d.open; });
+  p.appendChild(d);
+  const lab=el('label','chk'), cb=el('input'); cb.type='checkbox'; cb.checked=true; cb.disabled=true;
+  lab.appendChild(cb); lab.appendChild(el('span',null,'분모(겪은 근무표 수)에서 제외 — 유조차 운행 주간 7일 고정'));
+  p.appendChild(lab);
+  return p;
 }
 function multiVal(sel){ return Array.from(sel.selectedOptions).map(o=>o.value).filter(Boolean); }
 
@@ -2938,11 +3002,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.4.1"></script>
+<script src="firebase-config.js?v=6.5.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.4.1"></script>
+<script src="sync.js?v=6.5.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

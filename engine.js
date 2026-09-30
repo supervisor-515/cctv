@@ -1444,6 +1444,91 @@ function validateSchedule(s){
 
 /* 사전등록 항목 p와 생성된 표 s의 충돌 목록.
    소급 적용이 안 되는 사전등록(나중에 등록한 휴가 등)을 달력 ⚠로 드러내기 위한 점검. */
+/* ============================================================
+   이미 만든 근무표의 밥교대만 바꿀 때 — 전체 재생성 대신 최소 수정
+   kind: 'nextMeal'(다음날 밥교대 = 오늘 17:30) | 'meal'(당일 밥교대)
+   1) 새 밥교대자가 규칙상 설 수 없게 된 칸만 비운다
+      - 다음날 밥교대: 오늘 야간 번초(야간 후보 제외), 16:30(17:30과 인접), 17:00 순찰
+      - 당일 밥교대: 주간 칸(주간 후보 제외), 야간 번초(원래 부족할 때만 폴백), 17:00 순찰
+   2) 빈 칸은 엔진 후보 조건 + 검증에서 새 문제가 생기지 않는 사람으로 채운다
+      (오늘 근무 적은 사람 → 평균 근무시간 낮은 사람). 없으면 한 번 맞교환한다.
+   3) 그래도 못 채우면 비워 두고 unresolved로 알린다. 다른 칸은 건드리지 않는다.
+   ============================================================ */
+function repairRoleChange(sched, kind, newId){
+  const t = JSON.parse(JSON.stringify(sched));
+  t.assign=t.assign||{}; t.fixed=t.fixed||{}; t.night=t.night||{};
+  const ds = t.date;
+  newId = newId || null;
+  if(kind==='nextMeal'){
+    t.nextMealId=newId; t.nextMealAuto=false;
+    if(newId) t.fixed['17:30']=newId; else delete t.fixed['17:30'];
+  }else{
+    t.mealId=newId;
+  }
+  // 칸 키: 'D:hh:mm' 주간, 'N:b' 번초, 'P' 17:00 순찰
+  const get = k => k==='P' ? (t.patrolExtra||null) : k[0]==='D' ? (t.assign[k.slice(2)]||null) : (t.night[k.slice(2)]||null);
+  const set = (k,v) => { if(k==='P') t.patrolExtra=v||null;
+    else if(k[0]==='D'){ if(v) t.assign[k.slice(2)]=v; else delete t.assign[k.slice(2)]; }
+    else { if(v) t.night[k.slice(2)]=v; else delete t.night[k.slice(2)]; } };
+  const vacate=[];
+  if(newId){
+    NIGHT_BUNCHO.forEach(b=>{ if(t.night[b.id]===newId) vacate.push('N:'+b.id); });
+    if(t.patrolExtra===newId) vacate.push('P');
+    if(kind==='nextMeal'){ if(t.assign['16:30']===newId) vacate.push('D:16:30'); }
+    else DAY_SLOTS.forEach(sl=>{ if(t.assign[sl]===newId) vacate.push('D:'+sl); });
+  }
+  const before = {}; vacate.forEach(k=>{ before[k]=get(k); set(k,null); });
+
+  const ctx = { date:ds, workHoliday:!!t.workHoliday, dutyId:t.dutyId||null, situationId:t.situationId||null,
+    nextDutyId:t.nextDutyId||null, nextSituationId:t.nextSituationId||null, nextMealId:t.nextMealId||null,
+    mealId:t.mealId||null, prevDutyId:t.prevDutyId||null, prevSituationId:t.prevSituationId||null,
+    dayEx:t.dayEx||[], nightEx:t.nightEx||[], bothEx:t.bothEx||[], slotEx:normSlotEx(t.slotEx) };
+  const dayIds = new Set(dayCandidates(ds, ctx).map(w=>w.id));
+  const nightIds = new Set(nightCandidates(ds, ctx).map(w=>w.id));
+  const eligible = (k, wid) => {
+    if(!wid) return false;
+    if(k==='P') return patrolCandidates(ds, ctx, t.assign, t.fixed).some(w=>w.id===wid);
+    if(k[0]==='D') return dayIds.has(wid) && !slotExcluded(ctx, wid, k.slice(2));
+    return nightIds.has(wid) && !slotExcluded(ctx, wid, 'N'+k.slice(2));
+  };
+  // 허용 기준: 비워 둔 상태(t0)에 없던 문제를 새로 만들지 않을 것 (관리자가 고른 사람 자체의 문제는 그대로 둔다)
+  const allowed = new Set(validateSchedule(t));
+  const clean = () => validateSchedule(t).every(m=> allowed.has(m));
+  // 채우기 순서: 오늘 근무 적은 사람 → 평균 근무시간 낮은 사람 → 목록 순서
+  const stats = buildStats(ds);
+  const todayCnt = wid => { let n=0; DAY_SLOTS.forEach(sl=>{ if(t.assign[sl]===wid||t.fixed[sl]===wid) n++; });
+    EVENING.forEach(sl=>{ if(t.fixed[sl]===wid) n++; }); NIGHT_BUNCHO.forEach(b=>{ if(t.night[b.id]===wid) n++; });
+    if(t.patrolExtra===wid) n++; return n; };
+  const order = ids => ids.slice().sort((a,b)=> (todayCnt(a)-todayCnt(b)) ||
+    ((stats[a]?avgHours(stats[a]):0)-(stats[b]?avgHours(stats[b]):0)));
+  const pool = () => activeWorkers().map(w=>w.id);
+  const movable = () => { const ks=[]; DAY_SLOTS.forEach(sl=>{ if(t.assign[sl] && !t.fixed[sl]) ks.push('D:'+sl); });
+    NIGHT_BUNCHO.forEach(b=>{ if(t.night[b.id]) ks.push('N:'+b.id); }); if(t.patrolExtra) ks.push('P'); return ks; };
+  const changes=[], unresolved=[];
+  vacate.forEach(k=>{
+    // ① 바로 채우기
+    for(const wid of order(pool().filter(id=> id!==newId && eligible(k,id)))){
+      set(k,wid); if(clean()){ changes.push({key:k, from:before[k], to:wid}); return; } set(k,null);
+    }
+    // ② 한 번 맞교환: 다른 칸 Y의 c를 k로 옮기고, Y를 d로 채운다
+    for(const Y of movable()){
+      if(vacate.includes(Y) && get(Y)==null) continue;
+      const c=get(Y); if(!c || c===newId || !eligible(k,c)) continue;
+      set(Y,null); set(k,c);
+      for(const d of order(pool().filter(id=> id!==newId && id!==c && eligible(Y,id)))){
+        set(Y,d); if(clean()){ changes.push({key:k, from:before[k], to:c}, {key:Y, from:c, to:d}); return; }
+      }
+      set(k,null); set(Y,c);
+    }
+    // ③ 못 채움 — 당일 밥교대의 야간은 원래 인원 부족 시 폴백 투입이므로 원래대로 둔다
+    if(kind==='meal' && k[0]==='N'){ set(k, before[k]); unresolved.push({key:k, kept:before[k]}); }
+    else unresolved.push({key:k, kept:null});
+  });
+  return {sched:t, changes, unresolved};
+}
+/* 칸 키를 사람이 읽는 이름으로 */
+function repairKeyLabel(k){ return k==='P' ? '17:00 순찰' : k[0]==='D' ? k.slice(2) : k.slice(2)+'번초'; }
+
 function prebookConflictsFor(p, s){
   const out=[];
   const who=nameOf(p.wid);
@@ -1571,6 +1656,6 @@ if(typeof module!=='undefined' && module.exports){
     // 배정
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
-    validateSchedule, validateScheduleCached, prebookConflictsFor
+    validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel
   };
 }

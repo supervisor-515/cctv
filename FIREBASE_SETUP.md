@@ -89,8 +89,9 @@ service cloud.firestore {
     match /claims/{workerId} {
       allow get: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       allow list: if isAdmin();
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
-        && getAfter(/databases/$(database)/documents/members/$(request.auth.uid)).data.workerId == workerId;
+      // 관리자는 [연결 변경]에서 다른 사람의 uid로 새 claim을 만든다 → 관리자 경로가 따로 필요
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/members/$(request.auth.uid)).data.workerId == workerId);
       allow update, delete: if isAdmin();
     }
     // 그 외 경로는 전부 차단
@@ -156,5 +157,6 @@ service cloud.firestore {
 | 가입 시 "부대 코드가 올바르지 않습니다" | 코드 오타 또는 행보관이 코드를 바꿈. [더보기 › 서버 동기화]의 현재 코드 확인 |
 | 본인 선택 시 "선택 실패" | 그 근무자에 이미 다른 계정이 연결됨. 행보관이 가입자 관리에서 해제 후 다시 선택 |
 | 관리자 화면에 "부대 코드 불러오기 실패" | 새 보안 규칙(4번)이 아직 게시되지 않음 |
+| 가입자 관리 [연결 변경]이 "Missing or insufficient permissions" | 예전 규칙(claims 생성에 관리자 경로 없음)을 쓰는 중. 4번 규칙을 다시 붙여넣고 게시 |
 | 구성원인데 편집 화면이 보임 | [연결 설정]의 관리자 이메일이 비어 있거나 본인 이메일로 되어 있음 |
 | "문서 …가 900KB를 넘었습니다" 경고 | 월별 분할 저장이라 정상 사용에서는 발생하지 않습니다. 발생 시 JSON 백업 후 오래된 근무표 삭제 (Firestore 문서 한도 1MB) |

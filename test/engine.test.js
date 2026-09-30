@@ -1113,3 +1113,42 @@ test('validateScheduleCached: 같은 날짜는 캐시 재사용, invalidate 후 
   E.invalidateStats();
   assert.notEqual(E.validateScheduleCached(s), a); // 새로 계산
 });
+
+test('밥교대 변경은 전체 재생성 없이 필요한 칸만 바꾼다 (repairRoleChange)', () => {
+  // 새 밥교대자가 설 수 없게 된 칸만 비우고 다른 사람으로 채운다. 나머지 칸은 그대로, 새 경고도 없어야 한다.
+  let a = 4242;
+  const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  let checked = 0, withChanges = 0;
+  for (let k = 0; k < 30; k++) {
+    const ws = roster(8 + Math.floor(rnd() * 8), Math.floor(rnd() * 3), 'm' + k + '_');
+    E.setDB(freshDB({ workers: ws }));
+    let ds = '2026-06-01';
+    for (let d = 0; d < 4; d++) { E.getDB().schedules[ds] = E.generateDay(E.autoInputFor(ds)); E.invalidateStats(); ds = E.addDays(ds, 1); }
+    const s = E.getDB().schedules[E.addDays(ds, -1)];
+    for (const kind of ['nextMeal', 'meal']) {
+      const roles = [s.dutyId, s.situationId, s.prevDutyId, s.prevSituationId, s.nextDutyId, s.nextSituationId];
+      const cands = ws.filter(w => w.canMeal && !roles.includes(w.id) && w.id !== (kind === 'nextMeal' ? s.nextMealId : s.mealId));
+      if (!cands.length) continue;
+      const N = cands[Math.floor(rnd() * cands.length)].id;
+      const before = new Set(E.validateSchedule(s));
+      const { sched: t, changes, unresolved } = E.repairRoleChange(s, kind, N);
+      checked++; if (changes.length) withChanges++;
+      if (kind === 'nextMeal') {
+        assert.equal(t.fixed['17:30'], N);
+        assert.ok(!Object.values(t.night).includes(N), '다음날 밥교대자가 오늘 야간에 남음');
+        assert.notEqual(t.assign['16:30'], N, '17:30과 인접한 16:30에 남음');
+      } else {
+        assert.equal(t.mealId, N);
+        assert.ok(!E.DAY_SLOTS.some(sl => t.assign[sl] === N), '당일 밥교대자가 주간 칸에 남음');
+      }
+      assert.notEqual(t.patrolExtra, N);
+      const nm = E.nameOf(N);
+      const fresh = E.validateSchedule(t).filter(m => !before.has(m) && !m.includes(nm));
+      assert.deepEqual(fresh, [], '수정으로 새 문제가 생김');
+      const touched = new Set(changes.map(c => c.key).concat(unresolved.map(u => u.key)));
+      E.DAY_SLOTS.forEach(sl => { if (!touched.has('D:' + sl)) assert.equal(t.assign[sl] || null, s.assign[sl] || null, sl + ' 칸이 이유 없이 바뀜'); });
+      [1, 2, 3, 4].forEach(b => { if (!touched.has('N:' + b)) assert.equal(t.night[b] || null, s.night[b] || null, b + '번초가 이유 없이 바뀜'); });
+    }
+  }
+  assert.ok(checked > 20 && withChanges > 5, '검증 표본이 너무 적음');
+});

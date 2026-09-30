@@ -309,7 +309,8 @@ function invalidateStats(){ _statsCache.clear(); _validCache.clear(); }
 /* ignoreReset: 카운트 화면 표시용 — 신병→역할 전환(countResetAt) 이전 기록도 포함해 센다.
    배정(generateDay 등)은 항상 기본값(false)으로 호출하므로 배정 로직은 그대로다. */
 function buildStats(uptoDate, month, ignoreReset){
-  const key = (month||'') + '\u0001' + ((uptoDate==null) ? '\u0000ALL' : uptoDate) + (ignoreReset?'\u0001R':'');
+  const mk = month && typeof month==='object' ? month.from+'~'+month.to : (month||'');
+  const key = mk + '\u0001' + ((uptoDate==null) ? '\u0000ALL' : uptoDate) + (ignoreReset?'\u0001R':'');
   const hit = _statsCache.get(key);
   if(hit) return hit;
   const st = _computeStats(uptoDate, month, !!ignoreReset);
@@ -319,7 +320,9 @@ function buildStats(uptoDate, month, ignoreReset){
 /* 모든 저장 근무표를 날짜순으로 훑어 각 근무자의
    분모(겪은 근무표 수)와 분자(배정 횟수)를 누적 → 배정률 산출 */
 function _computeStats(uptoDate, month, ignoreReset){
-  const dates = Object.keys(DB.schedules).filter(d=> (!uptoDate || d<uptoDate) && (!month || d.slice(0,7)===month)).sort();
+  // month: 'YYYY-MM'(그 달) 또는 {from,to}(기간, 양끝 포함) — 기간이어도 계산 규칙은 같고 표 범위만 달라진다
+  const inScope = !month ? ()=>true : typeof month==='object' ? d=> d>=month.from && d<=month.to : d=> d.slice(0,7)===month;
+  const dates = Object.keys(DB.schedules).filter(d=> (!uptoDate || d<uptoDate) && inScope(d)).sort();
   const st = {};
   DB.workers.forEach(w=>{
     st[w.id]={
@@ -1571,6 +1574,119 @@ function schedKeySet(s, k, id, orig){
   return s;
 }
 
+/* ============================================================
+   개인 일정 (내 근무) — 표 날짜와 실제 날짜를 구분한다.
+   한 근무표는 06:30~다음날 05:30이라 00:30~05:30 칸은 '표 날짜의 다음날 새벽'이다.
+   야간 번초 하나(N:b)는 두 시간(예 22:30·02:30)에 걸친 한 배정 — 키는 하나, 시간은 둘.
+   ============================================================ */
+/* 표의 한 시간이 실제로 속한 날짜 */
+function realDateOf(ds, t){ return t < '06:30' ? addDays(ds,1) : ds; }
+/* 그 표에서 wid의 배정 키 — D:hh:mm 주간, P 17:00 순찰, E:hh:mm 저녁 고정, N:b 번초, R:duty/R:sit/R:meal 역할 */
+function personalKeys(s, wid){
+  const k=[];
+  if(!s || !wid) return k;
+  DAY_SLOTS.forEach(sl=>{ if(((s.assign&&s.assign[sl])||(s.fixed&&s.fixed[sl]))===wid) k.push('D:'+sl); });
+  if(s.patrolExtra===wid) k.push('P');
+  EVENING.forEach(sl=>{ if(s.fixed&&s.fixed[sl]===wid) k.push('E:'+sl); });
+  NIGHT_BUNCHO.forEach(b=>{ if(s.night&&s.night[b.id]===wid) k.push('N:'+b.id); });
+  if(s.dutyId===wid) k.push('R:duty');
+  if(s.situationId===wid) k.push('R:sit');
+  if(s.mealId===wid) k.push('R:meal');
+  return k.sort();
+}
+/* 키 → 실제 근무 시각들 (역할 키는 시각 없음) */
+function keyTimes(key){
+  if(key==='P') return ['17:00'];
+  if(key[0]==='D' || key[0]==='E') return [key.slice(2)];
+  if(key[0]==='N'){ const b=NIGHT_BUNCHO.find(x=>String(x.id)===key.slice(2)); return b ? b.slots.slice() : []; }
+  return [];
+}
+/* 그 표에서 wid의 근무 항목(시각별) — 번초는 두 시각 각각 한 줄, 같은 key */
+function personalItems(ds, s, wid){
+  const out=[];
+  personalKeys(s, wid).forEach(key=>{
+    keyTimes(key).forEach(t=> out.push({key, ds, t, date:realDateOf(ds,t),
+      kind: key==='P'?'patrol' : key[0]==='N'?'night' : key[0]==='E'?'eve' : 'day'}));
+  });
+  return out.sort((a,b)=> SLOT_ORDER.indexOf(a.t)-SLOT_ORDER.indexOf(b.t) || (a.t<b.t?-1:1));
+}
+/* 한 표 안에서 시각 t를 맡은 칸(키)과 사람 — CCTV 교대 순서(06:30→05:30, 17:00 순찰 제외)용 */
+function holderAt(s, t){
+  if(DAY_SLOTS.includes(t)) return {key:'D:'+t, id:(s.assign&&s.assign[t])||(s.fixed&&s.fixed[t])||null};
+  if(EVENING.includes(t)) return {key:'E:'+t, id:(s.fixed&&s.fixed[t])||null};
+  const b=NIGHT_BUNCHO.find(x=>x.slots.includes(t));
+  return b ? {key:'N:'+b.id, id:(s.night&&s.night[b.id])||null} : {key:null, id:null};
+}
+/* ds 표의 시각 t 바로 앞·뒤 CCTV 근무자. 06:30의 앞은 전날 표 05:30, 05:30의 뒤는 다음날 표 06:30.
+   반환 {ds, t, state:'ok'|'empty'|'nosched', id} — 표가 없으면 nosched, 칸이 비었으면 empty */
+function cctvNeighbor(ds, t, dir){
+  let i=SLOT_ORDER.indexOf(t)+dir, d=ds;
+  if(i<0){ d=addDays(ds,-1); i=SLOT_ORDER.length-1; }
+  else if(i>=SLOT_ORDER.length){ d=addDays(ds,1); i=0; }
+  const nt=SLOT_ORDER[i], s=DB.schedules[d];
+  if(!s) return {ds:d, t:nt, state:'nosched', id:null};
+  const h=holderAt(s, nt);
+  return {ds:d, t:nt, state:h.id?'ok':'empty', id:h.id};
+}
+
+/* ---------- 지난 확인 이후 개인 변경 ----------
+   스냅샷: {v, wid, from, to, has:[표가 있던 날짜], days:{날짜:[키...]}} — 개인 키만 담아 작게 유지.
+   비교는 두 스냅샷 범위가 겹치는 날짜만: 날짜 경과·조회 범위 이동은 변경이 아니다. */
+function personalSnap(wid, from, to){
+  const has=[], days={};
+  for(let d=from; d<=to; d=addDays(d,1)){
+    const s=DB.schedules[d]; if(!s) continue;
+    has.push(d);
+    const k=personalKeys(s, wid); if(k.length) days[d]=k;
+  }
+  return {v:1, wid, from, to, has, days};
+}
+/* base(마지막 확인) → cur(지금) 개인 변경 목록.
+   type: add(새 배정) · remove(배정 해제) · new(확인 뒤 새로 생긴 표의 내 근무) · gone(확인 뒤 표가 사라짐 — fresh일 때만).
+   fresh=false(서버 최신 확인 안 됨)면 표가 안 보이는 날은 '없어짐'으로 판정하지 않는다(수신 실패를 해제로 오인 방지). */
+function diffPersonal(base, cur, fresh){
+  const out=[];
+  if(!base || !cur || base.wid!==cur.wid) return out;
+  const lo = base.from>cur.from ? base.from : cur.from, hi = base.to<cur.to ? base.to : cur.to;
+  const bh=new Set(base.has||[]), ch=new Set(cur.has||[]);
+  for(let d=lo; d<=hi; d=addDays(d,1)){
+    const b=(base.days||{})[d]||[], c=(cur.days||{})[d]||[];
+    if(bh.has(d) && ch.has(d)){
+      c.filter(k=>!b.includes(k)).forEach(key=>out.push({ds:d, type:'add', key}));
+      b.filter(k=>!c.includes(k)).forEach(key=>out.push({ds:d, type:'remove', key}));
+    }else if(!bh.has(d) && ch.has(d)){
+      c.forEach(key=>out.push({ds:d, type:'new', key}));
+    }else if(bh.has(d) && !ch.has(d) && fresh){
+      b.forEach(key=>out.push({ds:d, type:'gone', key}));
+    }
+  }
+  return out;
+}
+/* '확인했어요' — 사용자가 실제로 본 스냅샷(shown)을 새 기준으로. 확인 중 들어온 변경은 shown에 없으므로 다음 비교에 남는다.
+   서버 최신이 아니었으면(fresh=false) shown에서 안 보이던 표는 이전 기준을 유지한다. */
+function ackPersonal(base, shown, fresh){
+  const out={v:1, wid:shown.wid, from:shown.from, to:shown.to, has:shown.has.slice(), days:Object.assign({}, shown.days)};
+  if(base && base.wid===shown.wid && !fresh){
+    (base.has||[]).forEach(d=>{
+      if(d>=shown.from && d<=shown.to && !out.has.includes(d)){ out.has.push(d); if(base.days&&base.days[d]) out.days[d]=base.days[d]; }
+    });
+    out.has.sort();
+  }
+  return out;
+}
+/* 기준 범위 밖이었다가 새로 보이게 된 날짜(base.to 이후)를 기준에 조용히 넣고, 지난 날짜는 뺀다.
+   이미 기준에 있던 날짜는 건드리지 않으므로 미확인 변경은 그대로 남는다. 바뀐 게 없으면 base를 그대로 돌려준다. */
+function rollPersonal(base, cur){
+  if(!base || !cur || base.wid!==cur.wid) return base;
+  const ext = cur.to>base.to, cut = cur.from>base.from;
+  if(!ext && !cut) return base;
+  const out={v:1, wid:base.wid, from: cut?cur.from:base.from, to: ext?cur.to:base.to, has:[], days:{}};
+  (base.has||[]).forEach(d=>{ if(d>=out.from){ out.has.push(d); if(base.days[d]) out.days[d]=base.days[d]; } });
+  if(ext) (cur.has||[]).forEach(d=>{ if(d>base.to){ out.has.push(d); if(cur.days[d]) out.days[d]=cur.days[d]; } });
+  out.has.sort();
+  return out;
+}
+
 /* ---------- 배정 이유 설명 ----------
    완성된 표를 기준으로 엔진의 후보 조건(하드 제약)과 우선순위 정렬(solve·assignMeal·assignPatrol과
    같은 비교 순서)을 다시 계산해 '왜 이 사람인지'를 사람이 읽는 말로 돌려준다.
@@ -1658,7 +1774,7 @@ function explainAssignment(s, key){
   };
   if(key==='nextMeal' || key==='E:17:30'){
     const cur=key==='E:17:30' ? (s.fixed&&s.fixed['17:30'])||null : s.nextMealId;
-    if(key==='E:17:30' && cur!==s.nextMealId) return rule('17:30','다음날 밥교대('+nm(s.nextMealId)+')와 다른 사람입니다 — 이 시간만 직접 교체된 칸입니다.');
+    if(key==='E:17:30' && cur!==s.nextMealId) return rule('17:30','다음날 밥교대('+nm(s.nextMealId)+')와 다른 사람이 들어가 있습니다. 자동 배정에서는 17:30에 다음날 밥교대가 서므로, 생성 뒤 이 칸만 따로 바뀌었을 수 있습니다.');
     if(!s.nextMealAuto) return rule('다음날 밥교대','다음날 밥교대를 [근무표 생성]에서 직접 지정했습니다. 다음날 밥교대는 17:30(밥교대 근무+순찰)을 섭니다.');
     const nd=addDays(ds,1);
     const nctx={date:nd, workHoliday:ctx.nextWorkHoliday, dutyId:ctx.nextDutyId, situationId:ctx.nextSituationId,
@@ -1932,6 +2048,7 @@ if(typeof module!=='undefined' && module.exports){
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,
-    SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment
+    SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment,
+    realDateOf, personalKeys, keyTimes, personalItems, holderAt, cctvNeighbor, personalSnap, diffPersonal, ackPersonal, rollPersonal
   };
 }

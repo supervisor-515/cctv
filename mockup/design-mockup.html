@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCTV 근무표 디자인 목업</title>
+<style>
+:root{
+  --bg:#0f1217; --panel:#161a21; --panel2:#1c212a; --line:#272d38;
+  --ink:#e6e9ee; --dim:#9aa3af; --faint:#646d7a;
+  --acc:#34d399;
+  --duty:#5b9cff; --sit:#ff9f43; --meal:#a78bfa; --patrol:#2dd4bf;
+  --ok:#34d399; --warn:#fbbf24; --err:#f87171;
+  --kr:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"D2Coding",monospace;
+}
+:root[data-theme=light]{
+  --bg:#eef0f3; --panel:#ffffff; --panel2:#f5f6f8; --line:#dde1e7;
+  --ink:#1b1f26; --dim:#5b6472; --faint:#8a93a0;
+  --acc:#059669;
+  --duty:#2563eb; --sit:#d97706; --meal:#7c3aed; --patrol:#0d9488;
+  --ok:#059669; --warn:#b45309; --err:#dc2626;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--kr);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.page{max-width:1320px;margin:0 auto;padding:24px 16px 60px}
+.intro{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:22px}
+.intro h1{margin:0 0 4px;font-size:20px}
+.intro p{margin:0;color:var(--dim);font-size:13px;max-width:720px}
+.intro .sp{flex:1}
+.tbtn{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+
+/* 색 체계 범례 */
+.legend{display:flex;flex-wrap:wrap;gap:20px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:24px}
+.legend .g{display:flex;flex-direction:column;gap:7px}
+.legend .gl{font-size:11px;font-weight:700;color:var(--faint);letter-spacing:.06em}
+.legend .items{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+.frames{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;align-items:start}
+.frame-wrap h3{margin:0 0 3px;font-size:14px}
+.frame-wrap .note{margin:0 0 10px;font-size:12px;color:var(--dim)}
+.phone{position:relative;background:var(--bg);border:1px solid var(--line);border-radius:26px;overflow:hidden;height:760px;display:flex;flex-direction:column;box-shadow:0 20px 40px -24px rgba(0,0,0,.5)}
+.scroll{flex:1;overflow:auto;padding:0 14px 20px}
+
+/* 앱 헤더 */
+.apphdr{display:flex;align-items:center;gap:8px;padding:14px 14px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+.apphdr b{font-size:14.5px}
+.apphdr .sp{flex:1}
+.ver{font-family:var(--mono);font-size:10.5px;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:1px 7px}
+
+/* 하단 탭 */
+.bnav{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--panel);padding:6px 4px 10px}
+.bnav div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--faint);font-weight:600}
+.bnav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.bnav .on{color:var(--acc)}
+
+/* 공통 */
+.datebar{display:flex;align-items:center;gap:8px;padding:12px 0 8px}
+.datebar .d{font-family:var(--mono);font-size:17px;font-weight:700}
+.datebar .dw{color:var(--dim);font-size:13px}
+.datebar .sp{flex:1}
+.ib{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);display:grid;place-items:center;font-size:13px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pill{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:2px 8px;background:var(--panel)}
+
+.status{display:flex;align-items:center;gap:8px;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:12px}
+.status.ok{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok)}
+.status.warn{background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn)}
+.status .sp{flex:1}
+.status small{font-weight:500;color:var(--dim)}
+
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+.seg button{flex:1;font:inherit;font-size:12px;font-weight:600;color:var(--dim);background:none;border:0;border-radius:7px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+
+/* 태그 */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.duty{color:var(--duty);background:color-mix(in srgb,var(--duty) 14%,transparent)}
+.tag.sit{color:var(--sit);background:color-mix(in srgb,var(--sit) 14%,transparent)}
+.tag.meal{color:var(--meal);background:color-mix(in srgb,var(--meal) 14%,transparent)}
+.tag.patrol{color:var(--patrol);background:color-mix(in srgb,var(--patrol) 14%,transparent)}
+.tag.kind{color:var(--dim);border:1px solid var(--line);background:none}
+.tag.kind::before{display:none}
+.tag.ex{color:var(--dim);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--dim) 22%,transparent) 0 3px,transparent 3px 6px);border:1px solid var(--line)}
+.tag.ex::before{display:none}
+.tag.empty{color:var(--err);border:1px dashed var(--err);background:none}
+.tag.empty::before{display:none}
+.tag.warnt{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);background:none}
+.tag.warnt::before{display:none}
+
+/* 타임라인 */
+.band{margin-bottom:14px}
+.band-h{display:flex;align-items:baseline;gap:8px;font-size:11.5px;font-weight:700;color:var(--dim);letter-spacing:.04em;padding:4px 2px 6px}
+.band-h .r{font-family:var(--mono);font-weight:500;color:var(--faint)}
+.band-h .sp{flex:1}
+.rows{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.r1{display:flex;align-items:center;gap:10px;padding:0 12px;min-height:40px;border-bottom:1px solid var(--line)}
+.r1:last-child{border-bottom:0}
+.r1 .t{font-family:var(--mono);font-size:12.5px;color:var(--faint);width:44px;flex:none}
+.r1 .n{flex:1;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.r1 .h{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.r1 .bn{font-family:var(--mono);font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.r1.me{background:color-mix(in srgb,var(--acc) 10%,transparent);box-shadow:inset 3px 0 0 var(--acc)}
+.r1 select{display:none;flex:1;font:inherit;font-size:13px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+.editing .r1 .nm{display:none}
+.editing .r1 select{display:block}
+.empty-nm{color:var(--err);font-weight:500;font-style:italic}
+.who{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--dim)}
+.who select{flex:1;font:inherit;font-size:12.5px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+
+/* 생성 탭 */
+.step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.step-h{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:10px}
+.step-h .no{width:20px;height:20px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.step-h .sp{flex:1}
+.step-h small{font-weight:500;color:var(--faint);font-size:11px}
+.dfield{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dinput{font-family:var(--mono);font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ink)}
+.tgl{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.tgl i{width:28px;height:16px;border-radius:9px;background:var(--line);position:relative}
+.tgl i::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--ink)}
+.tgl.on i{background:var(--acc)}
+.tgl.on i::after{left:14px;background:#fff}
+.matrix{width:100%;border-collapse:separate;border-spacing:3px;font-size:11.5px;table-layout:fixed}
+.matrix th{font-weight:600;color:var(--faint);font-size:10.5px;padding:2px}
+.matrix th.rh{text-align:left;width:52px}
+.matrix td{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 5px;text-align:center;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.matrix td.auto{color:var(--faint);font-weight:500}
+.matrix td.na{background:none;border:1px dashed var(--line);color:var(--faint);font-weight:400}
+.matrix td.lock{color:var(--dim)}
+.matrix .rl{display:flex;align-items:center;gap:5px;font-weight:700}
+.matrix .rl i{width:7px;height:7px;border-radius:50%}
+.mnote{font-size:10.5px;color:var(--faint);margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;font-weight:600;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:6px 11px;display:inline-flex;align-items:center;gap:6px}
+.chip.full{color:var(--ink);border-color:var(--dim);background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--dim) 20%,transparent) 0 4px,transparent 4px 8px)}
+.chip.part{color:var(--ink);border-color:var(--dim)}
+.bars{display:inline-flex;gap:2px}
+.bars i{width:5px;height:11px;border-radius:1.5px;background:var(--line)}
+.bars i.f{background:var(--ink)}
+.check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.check li{display:flex;gap:8px;align-items:flex-start}
+.check .ic{flex:none;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;margin-top:2px}
+.check .ok .ic{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.check .wn .ic{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.check .k{color:var(--dim);min-width:74px}
+.runbar{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);background:var(--panel)}
+.btn{flex:1;font:inherit;font-weight:700;font-size:13.5px;border-radius:10px;padding:11px;border:1px solid var(--acc);background:var(--acc);color:#06140e}
+.btn.ghost{flex:none;background:none;color:var(--ink);border-color:var(--line);font-weight:600}
+
+/* 카운트 탭 */
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kpi .v{font-family:var(--mono);font-size:19px;font-weight:700}
+.kpi .l{font-size:11px;color:var(--dim)}
+.kpi .v.good{color:var(--ok)}
+.segscroll{overflow-x:auto;margin-bottom:10px}
+.segscroll .seg{width:max-content;min-width:100%}
+.tblw{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.tbl{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%}
+.tbl th,.tbl td{padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th{font-size:10.5px;color:var(--faint);font-weight:600;text-align:right;background:var(--panel2)}
+.tbl td{text-align:right;font-family:var(--mono)}
+.tbl .nm{position:sticky;left:0;background:var(--panel);text-align:left;font-family:var(--kr);font-weight:600;border-right:1px solid var(--line);z-index:1}
+.tbl th.nm{background:var(--panel2)}
+.tbl tr:last-child td{border-bottom:0}
+.rate{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.rate b{font-weight:600;width:34px;text-align:right}
+.rate .bar{width:38px;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.rate .bar i{display:block;height:100%;background:var(--acc)}
+.rate .n{color:var(--faint);font-size:10.5px}
+.hint{font-size:11px;color:var(--faint);margin-top:8px}
+
+.changes{margin-top:28px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;font-size:13px}
+.changes h2{margin:0 0 8px;font-size:15px}
+.changes ul{margin:0;padding-left:18px;color:var(--dim)}
+.changes li{margin:4px 0}
+.changes b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <div>
+      <h1>CCTV 근무표 · 디자인 목업</h1>
+      <p>정적 목업입니다. 데이터와 이름은 예시이고, 배정 로직(engine.js)과 동기화(sync.js)는 바꾸지 않는다는 전제입니다. 첫 화면의 [보기 / 편집]은 눌러볼 수 있습니다.</p>
+    </div>
+    <div class="sp"></div>
+    <button class="tbtn" id="themeBtn">☀ 밝은 테마</button>
+  </div>
+
+  <div class="legend">
+    <div class="g"><div class="gl">역할 색 — 역할에만 사용</div>
+      <div class="items"><span class="tag duty">당직</span><span class="tag sit">상황병</span><span class="tag meal">밥교대</span><span class="tag patrol">순찰</span></div></div>
+    <div class="g"><div class="gl">구분 — 색 없이 외곽선만</div>
+      <div class="items"><span class="tag kind">신병</span><span class="tag kind">말년</span><span class="tag kind">운항</span></div></div>
+    <div class="g"><div class="gl">열외 — 빗금 무늬</div>
+      <div class="items"><span class="tag ex">종일 열외</span><span class="tag ex">오후 열외</span></div></div>
+    <div class="g"><div class="gl">상태 색 — 상태에만 사용</div>
+      <div class="items"><span class="tag empty">미배정</span><span class="tag warnt">완화 tier 2</span><span style="color:var(--ok);font-size:12px;font-weight:600">✓ 정상</span></div></div>
+  </div>
+
+  <div class="frames">
+    <!-- ① 근무표 확인 -->
+    <div class="frame-wrap">
+      <h3>① 근무표 확인 — 보기 모드가 기본</h3>
+      <p class="note">시간순 타임라인입니다. 이름은 글자로 보이고, 편집을 누를 때만 드롭다운이 나옵니다. 열람 전용 계정은 보기 모드만 씁니다.</p>
+      <div class="phone">
+        <div class="apphdr"><b>CCTV 근무표</b><div class="sp"></div><span class="ver">v5.4</span></div>
+        <div class="scroll" id="viewScroll">
+          <div class="datebar">
+            <div class="ib">◀</div>
+            <div><span class="d">2026-10-02</span> <span class="dw">(금)</span></div>
+            <div class="ib">▶</div>
+            <div class="sp"></div>
+            <div class="seg" style="width:auto"><button class="on" data-mode="view">보기</button><button data-mode="edit">편집</button></div>
+          </div>
+          <div class="meta"><span class="pill">주간 · 금</span><span class="pill">야간 · 휴일전야</span><span class="pill">tier 1</span></div>
+          <div class="status ok">✓ 제약 위반 없음<div class="sp"></div><small>24칸 모두 배정</small></div>
+          <div class="who">내 근무 강조 <select><option>김도윤</option></select></div>
+          <div id="timeline"></div>
+        </div>
+        <div class="bnav">
+          <div class="on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>근무표</div>
+          <div><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>달력</div>
+          <div><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>생성</div>
+          <div><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>더보기</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 근무표 생성 -->
+    <div class="frame-wrap">
+      <h3>② 근무표 생성 — 역할 표 + 단계 구성</h3>
+      <p class="note">흩어져 있던 셀렉트 13개를 표 하나로 모았습니다. 칸을 누르면 지금과 같은 셀렉트가 열리고, 요소 ID는 그대로 씁니다.</p>
+      <div class="phone">
+        <div class="apphdr"><b>근무표 생성</b><div class="sp"></div><span class="ver">v5.4</span></div>
+        <div class="scroll">
+          <div style="height:12px"></div>
+          <div class="step">
+            <div class="step-h"><span class="no">1</span>날짜</div>
+            <div class="dfield"><span class="dinput">2026-10-03 (토)</span></div>
+            <div class="dfield" style="margin-top:10px;gap:14px"><span class="tgl on"><i></i>직장 휴무일</span><span class="tgl on"><i></i>다음날 휴무일</span></div>
+          </div>
+          <div class="step">
+            <div class="step-h"><span class="no">2</span>역할<div class="sp"></div><small>칸을 눌러 변경</small></div>
+            <table class="matrix">
+              <tr><th class="rh"></th><th>전날</th><th>당일</th><th>다음날</th><th>이틀 뒤</th></tr>
+              <tr><th class="rh"><span class="rl"><i style="background:var(--duty)"></i>당직</span></th><td class="lock">박서준</td><td>이하준</td><td>정우진</td><td class="auto">—</td></tr>
+              <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>상황</span></th><td class="lock">최민재</td><td>한지호</td><td>오승현</td><td class="auto">—</td></tr>
+              <tr><th class="rh"><span class="rl"><i style="background:var(--meal)"></i>밥교대</span></th><td class="na">·</td><td>윤태오</td><td class="auto">⚙ 자동</td><td class="na">·</td></tr>
+            </table>
+            <div class="mnote">전날 열은 전날 표에서 자동으로 가져옵니다(잠금). 이틀 뒤 열은 밥교대 후보에서 빼는 용도입니다.</div>
+          </div>
+          <div class="step">
+            <div class="step-h"><span class="no">3</span>열외<div class="sp"></div><small>2명</small></div>
+            <div class="chips">
+              <span class="chip">강시우</span>
+              <span class="chip full">김도윤 <span class="bars"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span></span>
+              <span class="chip">서은호</span>
+              <span class="chip part">임재윤 <span class="bars"><i></i><i></i><i class="f"></i><i></i></span></span>
+              <span class="chip">장현우</span>
+              <span class="chip">조민성 <span class="tag kind">신병</span></span>
+              <span class="chip">황준영</span>
+              <span class="chip">배건우 <span class="tag kind">신병</span></span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-h"><span class="no">4</span>미리보기</div>
+            <ul class="check">
+              <li class="ok"><span class="ic">✓</span><span class="k">적용 그룹</span><span>토일 · 휴일전야</span></li>
+              <li class="ok"><span class="ic">✓</span><span class="k">당일 밥교대</span><span>윤태오 · 수동/이전</span></li>
+              <li class="ok"><span class="ic">✓</span><span class="k">다음날 밥교대</span><span>서은호 · ⚙ 자동 예상</span></li>
+              <li class="ok"><span class="ic">✓</span><span class="k">주간 후보</span><span>아침 7 · 오전 7 · 오후 6명</span></li>
+              <li class="wn"><span class="ic">!</span><span class="k">야간 후보</span><span>3명 / 4번초 — 밥교대 인원 투입 예상</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="runbar"><button class="btn ghost">전날값</button><button class="btn">자동 배정 실행</button></div>
+        <div class="bnav">
+          <div><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>근무표</div>
+          <div><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>달력</div>
+          <div class="on"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>생성</div>
+          <div><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>더보기</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 근무 카운트 -->
+    <div class="frame-wrap">
+      <h3>③ 근무 카운트 — 표 하나씩 전환</h3>
+      <p class="note">세로로 쌓여 있던 표 6개를 세그먼트로 바꿔 봅니다. 가로로 스크롤해도 이름 열은 고정됩니다.</p>
+      <div class="phone">
+        <div class="apphdr"><b>근무 카운트</b><div class="sp"></div><span class="ver">v5.4</span></div>
+        <div class="scroll">
+          <div class="kpis">
+            <div class="kpi"><div class="v">142일</div><div class="l">생성된 근무표</div></div>
+            <div class="kpi"><div class="v">18명</div><div class="l">근무자</div></div>
+            <div class="kpi"><div class="v good">6.2%</div><div class="l">시간 CV (비신병)</div></div>
+            <div class="kpi"><div class="v good">0.034</div><div class="l">시간 지니 (비신병)</div></div>
+          </div>
+          <div class="segscroll"><div class="seg"><button>누적</button><button class="on">야간</button><button>밥교대</button><button>순찰</button><button>시간대</button><button>공정성</button></div></div>
+          <div class="tblw"><table class="tbl" id="nightTbl"></table></div>
+          <div class="hint">배정률 = 배정 횟수 ÷ 겪은 야간 근무표 수</div>
+        </div>
+        <div class="bnav">
+          <div><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>근무표</div>
+          <div><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>달력</div>
+          <div><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>생성</div>
+          <div class="on"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>더보기</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="changes">
+    <h2>바꾸지 않는 것</h2>
+    <ul>
+      <li><b>engine.js · sync.js · 저장 구조(cctv_roster_v2)</b>는 그대로 둡니다.</li>
+      <li><b>요소 ID와 이벤트 핸들러</b>는 유지합니다. 생성 탭의 역할 표도 기존 셀렉트(#gDuty 등)를 배치만 바꿔 넣습니다.</li>
+      <li><b>편집 모드의 렌더 순서</b>는 지금과 같습니다. test/ui.test.js가 DAY_SLOTS 순서로 드롭다운을 찾기 때문입니다.</li>
+      <li>데스크톱은 하단 탭 대신 상단 탭을 쓰고, 넓은 화면에서는 근무표를 2열로 보여줍니다.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const DAY=['06:30','07:30','08:30','09:30','10:30','11:30','12:30','13:30','14:30','15:30','16:30'];
+const dayNames=['조민성','강시우','배건우','운항병 서은호','장현우','김도윤','임재윤','한지호','운항병 서은호','황준영','배건우'];
+const dayTags={0:['kind:신병'],2:['kind:신병'],3:['kind:운항'],8:['kind:운항'],10:['kind:신병']};
+const EVE=[['17:00','윤태오','patrol:추가 순찰','0.5h'],['17:30','서은호','meal:다음날 밥교대','1.5h'],['18:30','오승현','sit:다음날 상황','1.0h'],['19:30','정우진','duty:다음날 당직','1.0h'],['20:30','최민재','sit:전날 상황','1.0h'],['21:30','박서준','duty:전날 당직','1.0h']];
+const NIGHT_T=['22:30','23:30','00:30','01:30','02:30','03:30','04:30','05:30'];
+const NIGHT_N={1:'김도윤',2:'강시우',3:'황준영',4:'장현우'};
+const ME='김도윤';
+const allNames=['조민성','강시우','배건우','서은호','장현우','김도윤','임재윤','한지호','황준영','윤태오','오승현','정우진','최민재','박서준'];
+
+function tagHtml(s){const[c,t]=s.split(':');return '<span class="tag '+c+'">'+t+'</span>';}
+function sel(cur){return '<select>'+['미배정',...allNames].map(n=>'<option'+(n===cur?' selected':'')+'>'+n+'</option>').join('')+'</select>';}
+function row(t,name,tags,h,extra){
+  const nm=name?name.replace('운항병 ',''):null;
+  const me=nm===ME?' me':'';
+  return '<div class="r1'+me+'"><div class="t">'+t+'</div>'+
+    '<div class="n"><span class="nm">'+(nm?nm:'<span class="empty-nm">미배정</span>')+'</span>'+sel(nm)+(tags||[]).map(tagHtml).join('')+(extra||'')+'</div>'+
+    '<div class="h">'+h+'</div></div>';
+}
+let html='';
+html+='<div class="band"><div class="band-h">주간<span class="r">06:30–16:30</span></div><div class="rows">';
+DAY.forEach((t,i)=>{ html+=row(t,dayNames[i],dayTags[i],'1.0h'); });
+html+='</div></div>';
+html+='<div class="band"><div class="band-h">저녁<span class="r">17:00–21:30</span><div class="sp"></div>역할 고정</div><div class="rows">';
+EVE.forEach(([t,n,tg,h])=>{ html+=row(t,n,[tg],h); });
+html+='</div></div>';
+html+='<div class="band"><div class="band-h">야간<span class="r">22:30–05:30</span><div class="sp"></div>번초당 4시간 간격 2칸</div><div class="rows">';
+NIGHT_T.forEach((t,i)=>{ const b=(i%4)+1; html+=row(t,NIGHT_N[b],[], '0.5h','<span class="bn">'+b+'번초</span>'); });
+html+='</div></div>';
+document.getElementById('timeline').innerHTML=html;
+
+document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));
+  document.getElementById('viewScroll').classList.toggle('editing',b.dataset.mode==='edit');
+}));
+
+const night=[['김도윤',14,40],['강시우',13,41],['황준영',15,42],['장현우',12,39],['임재윤',11,33],['한지호',13,40],['윤태오',9,38],['서은호',6,40]];
+let t='<tr><th class="nm">이름</th><th>야간</th><th>1번초</th><th>2번초</th><th>3번초</th><th>4번초</th></tr>';
+night.forEach(([n,c,d],i)=>{
+  const p=Math.round(100*c/d);
+  const cell=(a,b)=>{const q=Math.round(100*a/b);return '<td><div class="rate"><span class="n">'+a+'/'+b+'</span><b>'+q+'%</b><span class="bar"><i style="width:'+q+'%"></i></span></div></td>';};
+  t+='<tr><td class="nm">'+n+'</td>'+cell(c,d)+cell(Math.ceil(c/4),d)+cell(Math.floor(c/4)+(i%2),d)+cell(Math.round(c/4),d)+cell(Math.floor(c/4),d)+'</tr>';
+});
+document.getElementById('nightTbl').innerHTML=t;
+
+const tb=document.getElementById('themeBtn');
+tb.addEventListener('click',()=>{
+  const r=document.documentElement; const light=r.dataset.theme==='light';
+  r.dataset.theme=light?'dark':'light'; tb.textContent=light?'☀ 밝은 테마':'☾ 어두운 테마';
+});
+</script>
+</body>
+</html>

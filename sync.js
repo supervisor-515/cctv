@@ -16,8 +16,36 @@
   const qs=s=>document.querySelector(s);
   const S={ on:false, admin:false, readonly:false, user:null, dirty:false,
             lastUp:null, lastDown:null, timer:null, remote:{}, remoteAt:0, note:'',
-            member:null, legacy:false, denied:false, signingUp:false, unitCode:null, dirJson:'', pendingDir:null };
+            member:null, legacy:false, denied:false, signingUp:false, unitCode:null, dirJson:'', pendingDir:null,
+            authReady:false, memberLoading:false, live:false, liveErr:null, lastSig:'', lastPhase:null };
   window.SYNC=S; // 디버그용
+  /* 로그인 복원 힌트 — 지난번 이 기기에서 누구로 로그인했는지(구성원이면 앱을 열자마자 관리자 화면 대신 '확인 중'을 보여 줌).
+     권한과 무관한 표시용 값이며, 실제 권한은 인증·보안 규칙이 정한다. */
+  const HINT_KEY='cctv_role_hint_v1', RECV_KEY='cctv_last_recv_v1';
+  function readHint(){ try{ return JSON.parse(localStorage.getItem(HINT_KEY)||'null'); }catch(e){ return null; } }
+  function writeHint(h){ try{ if(h) localStorage.setItem(HINT_KEY, JSON.stringify(h)); else localStorage.removeItem(HINT_KEY); }catch(e){} }
+  /* 마지막으로 서버에서 근무표를 받은 시각(계정별) — 화면을 그린 시각이 아니라 실제 수신 시각 */
+  function setLastRecv(t){ S.lastRecv=t; try{ if(S.user) localStorage.setItem(RECV_KEY, JSON.stringify({uid:S.user.uid, at:t})); }catch(e){} }
+  function storedRecv(){ try{ const r=JSON.parse(localStorage.getItem(RECV_KEY)||'null'); return r && S.user && r.uid===S.user.uid ? r.at : null; }catch(e){ return null; } }
+  /* 로그인 단계 — index.html의 내 근무 화면이 이 값으로 로그인·가입·개인 홈을 고른다 */
+  function phase(){
+    if(!S.authReady) return 'auth';
+    if(!S.user) return 'guest';
+    if(S.admin) return 'admin';
+    if(S.memberLoading) return 'loading';
+    if(S.memberErr) return 'error';
+    if(S.member) return 'member';
+    if(S.legacy) return 'legacy';
+    if(S.signingUp || S.denied || S.pendingDir || !unsub) return 'join';
+    return 'loading';   // 등록 없이 구독 중 — 공용 계정인지(읽힘) 등록이 필요한지(거부) 곧 판정됨
+  }
+  function notifyPhase(){
+    const p=phase();
+    document.body.classList.toggle('guest', p==='guest');
+    if(window.onSyncPhase) window.onSyncPhase(p);
+  }
+  window.addEventListener('online', ()=>notifyPhase());
+  window.addEventListener('offline', ()=>{ S.live=false; notifyPhase(); });
 
   /* ---------- 설정 로드: localStorage > firebase-config.js ---------- */
   function loadCfg(){
@@ -63,11 +91,13 @@
     const box=qs('#sySetup'); if(box) box.style.display='none';
   }
   if(!cfg){
+    window.SYNC_UNAVAILABLE='nocfg';
     status('<div class="warn">동기화 미설정 — 이 브라우저에만 저장됩니다. 아래 [⚙ 연결 설정]에 Firebase 설정을 입력하세요 (FIREBASE_SETUP.md 참고).</div>');
     qs('#syLoginRow').style.display='none';
     return;
   }
   if(typeof firebase==='undefined'){
+    window.SYNC_UNAVAILABLE='sdk';
     status('<div class="err">Firebase SDK를 불러오지 못했습니다 (오프라인?). 이 브라우저의 로컬 저장으로만 동작합니다.</div>');
     qs('#syLoginRow').style.display='none';
     return;
@@ -81,6 +111,7 @@
     fs=firebase.firestore();
     col=fs.collection('roster');
   }catch(e){
+    window.SYNC_UNAVAILABLE='init';
     status('<div class="err">Firebase 초기화 실패: '+esc(e.message)+'</div>');
     return;
   }
@@ -196,7 +227,8 @@
   let unsub=null, adminBooted=false;
   function subscribe(){
     if(unsub){ unsub(); unsub=null; }
-    unsub=col.onSnapshot(snap=>{
+    // 구성원은 캐시/서버 전환도 받아 '최신 확인' 여부를 실제 수신 상태로 표시한다(관리자 흐름은 종전 그대로)
+    const onSnap = snap=>{
       if(snap.metadata.hasPendingWrites) return;    // 내 쓰기의 에코 (서버 확정 후 다시 옴)
       const remote={};
       let remoteAt=0;
@@ -206,6 +238,9 @@
         const t=(d.updatedAt&&d.updatedAt.toMillis)?d.updatedAt.toMillis():0;
         if(t>remoteAt) remoteAt=t;
       });
+      const fromCache=!!(snap.metadata && snap.metadata.fromCache);
+      // 구성원: 캐시에서 온 빈 결과(오프라인 등)는 '근무표 없음'이 아니라 '아직 못 받음' — 반영하지 않는다
+      if(!S.admin && fromCache && !Object.keys(remote).length){ S.live=false; notifyPhase(); return; }
       S.remote=remote; S.remoteAt=remoteAt;
       if(S.denied){ S.denied=false; renderJoin(); }
       if(!S.admin && !S.member && !S.legacy){ S.legacy=true; renderJoin(); refreshStatus(); }   // 등록 없이 읽힘 = 전환 기간 공용 계정
@@ -238,16 +273,25 @@
         refreshStatus();
         return;
       }
-      const r=buildRemoteDB(); if(r) adopt(r);      // 구성원: 항상 서버 데이터 수신
-    }, e=>{
+      // 구성원: 내용이 바뀐 경우에만 반영(캐시↔서버 전환만 온 경우엔 상태만 갱신)
+      const sig=JSON.stringify(remote);
+      if(!fromCache){ S.live=true; S.liveErr=null; setLastRecv(Date.now()); }
+      else S.live=false;
+      if(sig!==S.lastSig){ S.lastSig=sig; const r=buildRemoteDB(); if(r) adopt(r); }
+      notifyPhase();
+    };
+    const onErr = e=>{
+      S.live=false; S.liveErr=e && (e.code||e.message) || 'error';
       if(e && e.code==='permission-denied' && !S.admin && !S.member){
-        S.denied=true; renderJoin();
+        S.denied=true; renderJoin(); notifyPhase();
         status(S.pendingDir ? '<div class="ok">✓ 부대 코드 확인 — 아래에서 본인을 선택하면 근무표를 볼 수 있습니다.</div>'
                             : '<div class="warn">부대 코드로 본인 확인을 마쳐야 근무표를 볼 수 있습니다. 아래에서 부대 코드를 입력하세요.</div>');
         return;
       }
       status('<div class="err">실시간 수신 오류: '+esc(e.message)+' — 보안 규칙과 로그인 상태를 확인하세요.</div>');
-    });
+      notifyPhase();
+    };
+    unsub = S.admin ? col.onSnapshot(onSnap, onErr) : col.onSnapshot({includeMetadataChanges:true}, onSnap, onErr);
   }
 
   /* ---------- 로그인 UI ---------- */
@@ -288,29 +332,46 @@
     const em=(qs('#syEmail').value||'').trim(), pw=qs('#syPass').value;
     if(!em||!pw){ status('<div class="err">이메일과 비밀번호를 입력하세요.</div>'); return; }
     auth.signInWithEmailAndPassword(em,pw)
-      .catch(e=>status('<div class="err">로그인 실패: '+esc(e.message)+'</div>'));
+      .catch(e=>status('<div class="err">로그인 실패: '+esc(authMsg(e))+'</div>'));
   });
   qs('#syLogout').addEventListener('click',()=>auth.signOut());
   qs('#syUpload').addEventListener('click',()=>{ upload().then(ok=>{ if(ok) status('<div class="ok">✓ 업로드 완료</div>'); }); });
 
   auth.onAuthStateChanged(u=>{
-    S.user=u; S.member=null; S.legacy=false; S.denied=false; window.MY_WORKER=null;
+    const prevUid=S.user && S.user.uid;
+    S.user=u; S.member=null; S.legacy=false; S.denied=false; S.live=false; S.liveErr=null; S.lastSig='';
+    S.authReady=true;
+    // 로그인 상태를 복원하는 동안에는 지난번 본인 연결을 임시로 유지(같은 계정일 때만) — 빈 화면 대신 '확인 중'
+    const hint=readHint();
+    window.MY_WORKER = (u && hint && hint.role==='member' && hint.uid===u.uid) ? hint.wid : null;
     if(u){
       S.admin = !!cfg.adminEmail && (u.email||'').toLowerCase()===cfg.adminEmail.toLowerCase();
       S.readonly = !S.admin;
+      S.memberLoading = !S.admin;
       adminBooted=false;
+      if(S.admin) writeHint({role:'admin'});
       const ready = S.admin ? loadAdmin() : loadMember(u);
       // 가입 중에는 부대 코드 확인이 끝날 때까지 구독을 미룬다(권한 없음 안내가 결과 메시지를 덮지 않게)
-      ready.then(()=>{ if(S.user===u && !S.signingUp){ subscribe(); applyReadonly(); refreshStatus(); renderJoin(); bkRender(); } });
+      ready.then(()=>{
+        if(S.user!==u) return;
+        S.memberLoading=false;
+        if(S.member) writeHint({role:'member', uid:u.uid, wid:S.member.workerId});
+        if(!S.signingUp){ subscribe(); applyReadonly(); refreshStatus(); renderJoin(); bkRender(); }
+        notifyPhase();
+      });
     }else{
-      S.admin=false; S.readonly=false; S.unitCode=null; S.pendingDir=null;
+      S.admin=false; S.readonly=false; S.unitCode=null; S.pendingDir=null; S.memberLoading=false;
       if(unsub){ unsub(); unsub=null; }
+      writeHint(null);
+      try{ localStorage.removeItem(RECV_KEY); }catch(e){}
     }
+    if(prevUid && (!u || u.uid!==prevUid) && window.onSyncAccountChange) window.onSyncAccountChange();
     applyReadonly();
     toggleLoginUI();
     refreshStatus();
     renderJoin();
     bkRender();
+    notifyPhase();
   });
 
   /* ============================================================
@@ -322,9 +383,16 @@
     return JSON.stringify(DB.workers.filter(w=>w.active).map(w=>({id:w.id, name:w.name})));
   }
   function loadMember(u){
+    S.memberErr=false;
     return fs.collection('members').doc(u.uid).get()
-      .then(d=>{ if(d.exists){ S.member=d.data(); window.MY_WORKER=S.member.workerId||null; } })
-      .catch(()=>{});
+      .then(d=>{ if(d.exists){ S.member=d.data(); S.legacy=false; window.MY_WORKER=S.member.workerId||null; } })
+      .catch(()=>{
+        // 오프라인 등으로 본인 연결을 못 읽음 — 이 기기에서 같은 계정으로 연결했던 기록이 있으면 그대로 쓰고,
+        // 없으면 '가입 필요'로 오판하지 않도록 오류 단계로 둔다
+        const hint=readHint();
+        if(hint && hint.role==='member' && hint.uid===u.uid){ S.member={workerId:hint.wid, provisional:true}; window.MY_WORKER=hint.wid; }
+        else S.memberErr=true;
+      });
   }
   function loadAdmin(){
     return fs.collection('secrets').doc('unit').get()
@@ -346,49 +414,65 @@
     return fs.collection('directory').doc(code).get().then(d=> d.exists ? JSON.parse(d.data().json||'[]') : null);
   }
 
-  /* 가입 = 계정 생성 → 부대 코드 확인(틀리면 방금 만든 계정 삭제) → 본인 선택 */
+  /* 가입 = 계정 생성 → 부대 코드 확인(틀리면 방금 만든 계정 삭제) → 본인 선택.
+     부대 명단은 로그인한 사용자만 읽을 수 있어(보안 규칙) 계정을 먼저 만든다. */
+  function doSignup(em, pw, code){
+    S.signingUp=true; notifyPhase();
+    return auth.createUserWithEmailAndPassword(em,pw)
+      .then(cred=> fetchDir(code).catch(()=>null).then(list=>{
+        if(!list){
+          return cred.user.delete().catch(()=>auth.signOut()).then(()=>{
+            S.signingUp=false; notifyPhase();
+            throw Object.assign(new Error('부대 코드가 올바르지 않습니다'), {code:'app/bad-unit-code'});
+          });
+        }
+        S.signingUp=false; S.pendingDir={code, list};
+        subscribe(); renderJoin(); toggleLoginUI(); notifyPhase();
+        return list;
+      }))
+      .catch(e=>{ S.signingUp=false; notifyPhase(); throw e; });
+  }
+  function doCheckCode(code){
+    return fetchDir(code).then(list=>{
+      if(!list) throw Object.assign(new Error('부대 코드가 올바르지 않습니다'), {code:'app/bad-unit-code'});
+      S.pendingDir={code, list}; renderJoin(); notifyPhase(); return list;
+    });
+  }
+  function doClaim(wid){
+    const d=S.pendingDir, u=S.user;
+    if(!u||!d||!wid) return Promise.reject(Object.assign(new Error('본인 선택 전'),{code:'app/no-pending'}));
+    const w=d.list.find(x=>x.id===wid);
+    const batch=fs.batch();
+    const mem={email:u.email||'', workerId:wid, workerName:w?w.name:'', code:d.code, createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+    batch.set(fs.collection('members').doc(u.uid), mem);
+    batch.set(fs.collection('claims').doc(wid), {uid:u.uid, email:u.email||''});
+    return batch.commit().then(()=>{
+      S.member=mem; S.pendingDir=null; S.denied=false; S.legacy=false; window.MY_WORKER=wid;
+      writeHint({role:'member', uid:u.uid, wid});
+      renderJoin(); subscribe(); refreshStatus(); refreshAll(); notifyPhase();
+    }).catch(e=>{ throw Object.assign(new Error(e.message), {code: e.code==='permission-denied' ? 'app/claim-denied' : (e.code||'app/claim-failed')}); });
+  }
   qs('#sySignup').addEventListener('click',()=>{
     const em=(qs('#syEmail').value||'').trim(), pw=qs('#syPass').value, pw2=qs('#syPass2').value, code=(qs('#syJoinCode').value||'').trim();
     if(!em||!pw){ status('<div class="err">이메일과 비밀번호를 입력하세요.</div>'); return; }
     if(pw.length<6){ status('<div class="err">비밀번호는 6자 이상이어야 합니다.</div>'); return; }
     if(pw!==pw2){ status('<div class="err">비밀번호 확인이 일치하지 않습니다.</div>'); return; }
     if(!codeOk(code)){ status('<div class="err">부대 코드를 확인하세요.</div>'); return; }
-    S.signingUp=true;
-    auth.createUserWithEmailAndPassword(em,pw)
-      .then(cred=> fetchDir(code).catch(()=>null).then(list=>{
-        if(!list){
-          return cred.user.delete().catch(()=>auth.signOut()).then(()=>{ S.signingUp=false; status('<div class="err">부대 코드가 올바르지 않습니다. 행보관에게 코드를 확인하세요.</div>'); });
-        }
-        S.signingUp=false; S.pendingDir={code, list};
-        subscribe(); renderJoin(); toggleLoginUI();
-        status('<div class="ok">✓ 가입 완료 — 아래에서 본인을 선택하세요.</div>');
-      }))
-      .catch(e=>{ S.signingUp=false; status('<div class="err">가입 실패: '+esc(e.message)+'</div>'); });
+    doSignup(em,pw,code).then(()=>status('<div class="ok">✓ 가입 완료 — 아래에서 본인을 선택하세요.</div>'))
+      .catch(e=>status('<div class="err">가입 실패: '+esc(authMsg(e))+'</div>'));
   });
   /* 이미 계정은 있는데 등록 전인 경우: 부대 코드 → 명단 불러오기 */
   qs('#syCodeCheck').addEventListener('click',()=>{
     const code=(qs('#syCode').value||'').trim();
     if(!codeOk(code)){ status('<div class="err">부대 코드를 확인하세요.</div>'); return; }
-    fetchDir(code).then(list=>{
-      if(!list){ status('<div class="err">부대 코드가 올바르지 않습니다.</div>'); return; }
-      S.pendingDir={code, list}; renderJoin();
-    }).catch(e=>status('<div class="err">확인 실패: '+esc(e.message)+'</div>'));
+    doCheckCode(code).catch(e=>status('<div class="err">'+esc(authMsg(e))+'</div>'));
   });
   qs('#syClaim').addEventListener('click',()=>{
-    const wid=qs('#syWho').value, d=S.pendingDir, u=S.user;
-    if(!u||!d||!wid){ return; }
+    const wid=qs('#syWho').value, d=S.pendingDir;
+    if(!wid||!d) return;
     const w=d.list.find(x=>x.id===wid);
     if(!confirm((w?w.name:'')+' — 본인이 맞습니까?\n선택 후에는 행보관만 바꿀 수 있습니다.')) return;
-    const batch=fs.batch();
-    const mem={email:u.email||'', workerId:wid, workerName:w?w.name:'', code:d.code, createdAt:firebase.firestore.FieldValue.serverTimestamp()};
-    batch.set(fs.collection('members').doc(u.uid), mem);
-    batch.set(fs.collection('claims').doc(wid), {uid:u.uid, email:u.email||''});
-    batch.commit().then(()=>{
-      S.member=mem; S.pendingDir=null; window.MY_WORKER=wid;
-      renderJoin(); subscribe(); refreshStatus(); refreshAll();
-    }).catch(e=>{
-      status('<div class="err">선택 실패 — 이미 다른 계정이 이 근무자를 선택했거나 부대 코드가 바뀌었습니다. 행보관에게 문의하세요. ('+esc(e.code||e.message)+')</div>');
-    });
+    doClaim(wid).catch(e=>status('<div class="err">'+esc(authMsg(e))+'</div>'));
   });
   function renderJoin(){
     const box=qs('#syJoin'); if(!box) return;
@@ -564,4 +648,68 @@
   });
   window.SYNC_BACKUP=bkCreate;
   window.SYNC_BACKUP_LIST=bkRender;
+
+  /* ============================================================
+     구성원 API — 내 근무 화면(index.html)의 로그인·가입·개인 확인 상태가 쓴다.
+     개인 확인 상태는 personal/{uid}(본인만 읽고 쓰기)에 따로 저장한다 — 근무표(roster)와 save()는 건드리지 않는다.
+     ============================================================ */
+  function withTimeout(p, ms){
+    return new Promise((ok,no)=>{ const t=setTimeout(()=>no(Object.assign(new Error('timeout'),{code:'app/timeout'})), ms);
+      p.then(v=>{ clearTimeout(t); ok(v); }, e=>{ clearTimeout(t); no(e); }); });
+  }
+  function personalRef(){ return fs.collection('personal').doc(S.user.uid); }
+  window.MEMBER_API={
+    phase,
+    info(){ return {phase:phase(), uid:S.user?S.user.uid:null, email:S.user?(S.user.email||''):'', wid:S.member?S.member.workerId:null,
+      live:S.live && navigator.onLine!==false, liveErr:S.liveErr, lastRecv:S.lastRecv||storedRecv(),
+      pendingList:S.pendingDir?S.pendingDir.list.slice():null, legacy:S.legacy}; },
+    login(em,pw){ return auth.signInWithEmailAndPassword(em,pw); },
+    signup:doSignup, checkCode:doCheckCode, claim:doClaim, codeOk,
+    reset(em){ return auth.sendPasswordResetEmail(em); },
+    logout(){ return auth.signOut(); },
+    retry(){ const u=S.user; if(!u) return Promise.resolve(); S.memberLoading=true; notifyPhase();
+      return loadMember(u).then(()=>{ if(S.user!==u) return; S.memberLoading=false; if(S.member&&!S.member.provisional) writeHint({role:'member', uid:u.uid, wid:S.member.workerId}); subscribe(); applyReadonly(); notifyPhase(); }); },
+    msg:authMsg,
+    /* 개인 확인 상태 — 등록된 구성원만(공용·미등록 계정은 index가 이 기기 저장으로 처리) */
+    canStore(){ return !!(S.user && S.member); },
+    personalLoad(){
+      if(!S.user||!S.member) return Promise.reject(Object.assign(new Error('not member'),{code:'app/not-member'}));
+      return withTimeout(personalRef().get(), 8000).then(d=>{
+        if(!d.exists) return null;
+        const x=d.data(); let base=null; try{ base=JSON.parse(x.base||'null'); }catch(e){}
+        return {wid:x.wid, base};
+      });
+    },
+    personalSave(wid, base){
+      if(!S.user||!S.member) return Promise.reject(Object.assign(new Error('not member'),{code:'app/not-member'}));
+      return withTimeout(personalRef().set({wid, base:JSON.stringify(base), savedAt:firebase.firestore.FieldValue.serverTimestamp()}), 8000);
+    }
+  };
+  /* 인증·가입 오류를 다음 행동이 보이는 한국어로 */
+  function authMsg(e){
+    const c=(e&&e.code)||'', m=(e&&e.message)||'';
+    const k=c||(/auth\/[a-z-]+/.exec(m)||[''])[0];
+    const T={
+      'auth/invalid-email':'이메일 형식이 올바르지 않습니다. 예: name@example.com',
+      'auth/missing-email':'이메일을 입력하세요.',
+      'auth/missing-password':'비밀번호를 입력하세요.',
+      'auth/user-not-found':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
+      'auth/wrong-password':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
+      'auth/invalid-credential':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
+      'auth/invalid-login-credentials':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
+      'auth/too-many-requests':'시도가 너무 많아 잠시 막혔습니다. 몇 분 뒤 다시 시도하거나 비밀번호를 재설정하세요.',
+      'auth/network-request-failed':'인터넷에 연결되지 않았습니다. 연결을 확인한 뒤 다시 시도하세요.',
+      'auth/email-already-in-use':'이미 가입된 이메일입니다. [로그인]에서 이 이메일로 로그인하세요.',
+      'auth/weak-password':'비밀번호는 6자 이상으로 정하세요.',
+      'auth/user-disabled':'사용이 중지된 계정입니다. 행보관에게 문의하세요.',
+      'auth/operation-not-allowed':'이 앱에서 이메일 로그인이 꺼져 있습니다. 행보관에게 알려 주세요.',
+      'app/bad-unit-code':'부대 코드가 맞지 않습니다. 행보관에게 받은 코드를 다시 확인하세요. (방금 만든 계정은 지웠으니 다시 가입하면 됩니다)',
+      'app/claim-denied':'이미 다른 계정이 이 이름을 선택했거나 부대 코드가 바뀌었습니다. 행보관에게 문의하세요.',
+      'app/timeout':'서버 응답이 늦습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.',
+      'permission-denied':'권한이 없습니다. 행보관에게 보안 규칙 적용 여부를 확인해 달라고 하세요.',
+      'unavailable':'서버에 연결할 수 없습니다. 인터넷 연결을 확인하세요.'
+    };
+    return T[k] || ('문제가 생겼습니다'+(k?' ('+k+')':'')+'. 잠시 뒤 다시 시도하세요.');
+  }
+  notifyPhase();
 })();

@@ -220,7 +220,6 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .edsep{font-size:11.5px;color:var(--ink-faint);margin:12px 0 6px}
 .r1.why,.roles3>div.why{cursor:pointer}
 .r1.why:hover{background:color-mix(in srgb,var(--acc) 5%,transparent)}
-.mine .it.why,.its .it.why{cursor:pointer}
 .whyhd{font-size:12.5px;color:var(--ink-dim);margin:-2px 0 10px}
 .whyhd b{color:var(--ink);font-size:15px}
 .whylines{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
@@ -377,27 +376,94 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .kinds button.on{color:var(--ink);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
 
 /* ---------- 더보기 ---------- */
-.mine-h{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
-.mine-h .av{width:40px;height:40px;border-radius:50%;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc);display:grid;place-items:center;font-weight:700;flex:none}
-.mine-h b{font-size:16px}
-.mine-h .sub{font-size:12px;color:var(--ink-dim)}
-.next{background:color-mix(in srgb,var(--acc) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));border-radius:12px;padding:12px 14px;margin-bottom:14px}
-.next .l{font-size:11.5px;font-weight:700;color:var(--acc)}
-.next .v{font-size:18px;font-weight:700;margin-top:2px}
-.next .v .t{font-family:var(--mono)}
-.next .s{font-size:12px;color:var(--ink-dim)}
-.mday{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px}
-.mday.today{border-color:var(--acc)}
-.mday .dh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.mday .dh b{font-size:13.5px}
-.mday .dh .dw{font-size:12px;color:var(--ink-faint)}
-.mday .dh .hol{color:var(--err)}
-.mday .its{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-.mday .it{display:flex;gap:10px;align-items:center;font-size:13px;font-weight:600}
-.mday .it .t{font-family:var(--mono);font-size:12.5px;color:var(--ink-dim);width:44px;flex:none}
-.mday .it.past{opacity:.45}
-.mday .none{font-size:12px;color:var(--ink-faint)}
-.mday.empty{padding:6px 12px;background:none}
+/* 내 근무 — 개인 홈 */
+.mine-wait{display:flex;flex-direction:column;gap:4px;padding:28px 16px;text-align:center;background:var(--panel);border:1px dashed var(--line2);border-radius:12px}
+.mine-wait b{font-size:15px}
+.mine-wait span{font-size:12.5px;color:var(--ink-dim)}
+.mine-h2{display:flex;flex-direction:column;gap:2px;margin:0 0 10px}
+.mine-h2 .nm{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mine-h2 .st{font-size:12px;color:var(--ok)}
+.mine-h2 .st.warn{color:var(--warn)}
+.next2{background:color-mix(in srgb,var(--acc) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;flex-direction:column;gap:4px}
+.next2 .l{font-size:12px;font-weight:700;color:var(--acc)}
+.next2 .v{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:2px}
+.next2 .v .d{font-size:16px;font-weight:700}
+.next2 .v .t{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.1}
+.next2 .v.none{font-size:18px;font-weight:700}
+.next2 .k{font-size:13.5px;font-weight:600}
+.next2 .rem{font-size:14px;font-weight:700;color:var(--acc)}
+.next2 .nb{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--ink-dim);margin-top:4px;padding-top:8px;border-top:1px solid color-mix(in srgb,var(--acc) 25%,var(--line))}
+.next2 .nb .nbl{font-weight:700;color:var(--ink)}
+.next2 .nb .mono{font-family:var(--mono)}
+.next2 .pre{font-size:12.5px;color:var(--ink-dim)}
+.next2>.btn{align-self:flex-start;margin-top:6px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.mcard h3,.mwk-h h3{font-size:14px;margin:0 0 8px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.mcard h3 .muted,.mwk-h h3 .muted{font-weight:500;font-size:12.5px}
+.mits{display:flex;flex-direction:column;gap:4px}
+.mit{font:inherit;color:inherit;text-align:left;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);cursor:pointer}
+.mit .t{font-family:var(--mono);font-size:15px;font-weight:700;width:48px;flex:none}
+.mit .lb{flex:1;min-width:0;font-size:13.5px;font-weight:600;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.mit .lb .dt{font-size:11.5px;font-weight:600;color:var(--acc)}
+.mit .ps{flex:none;font-size:11.5px;color:var(--ink-faint)}
+.mit.past{background:none}
+.mit.past .t,.mit.past .lb{color:var(--ink-dim)}
+.mroles{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.mroles .l{font-size:12px;color:var(--ink-faint);font-weight:600}
+.mroles button.tag{font:inherit;font-size:12px;font-weight:700;border:0;cursor:pointer;padding:5px 10px;min-height:32px}
+.mpb{font-size:12.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mnone{font-size:13px;color:var(--ink-dim);padding:6px 2px}
+.msub{font-size:12px;font-weight:700;color:var(--ink-dim);margin:10px 0 6px}
+.mchg{border-color:color-mix(in srgb,var(--warn) 55%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
+.mchg h3 .cnt{font-size:12px;font-weight:700;color:var(--warn)}
+.mchg-g{margin-bottom:10px}
+.mchg-g .dh{font-size:12.5px;font-weight:700;margin-bottom:4px}
+.mchg .ci{display:flex;align-items:baseline;gap:8px;font-size:13px;padding:5px 0;border-top:1px solid var(--line)}
+.mchg .ci .sym{font-family:var(--mono);font-weight:700;width:14px;flex:none;text-align:center}
+.mchg .ci .lb{font-weight:700;flex:none;min-width:84px}
+.mchg .ci .tx{flex:1;min-width:0}
+.mchg .ci.plus .sym,.mchg .ci.plus .lb{color:var(--ok)}
+.mchg .ci.minus .sym,.mchg .ci.minus .lb{color:var(--err)}
+.mwk-h{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.mwk-h h3{margin:0}
+.mwk-h .sp{flex:1}
+.mwk .cal-cell{font:inherit;color:inherit;text-align:left;min-height:62px;align-items:flex-start}
+.mwk-d{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.mwk-d>.dh{font-size:13.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.mwk-d .flexgap{margin-top:10px}
+.mrange{padding:8px 0;border-bottom:1px solid var(--line)}
+.mrange:last-child{border-bottom:0}
+.mrange>.dh{font-size:13px;font-weight:700;margin-bottom:6px}
+.mine-d{margin-top:8px}
+.mine-db{padding-bottom:12px}
+.mstat-why{font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:12px}
+.mstat-why ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.mstat-sum{font-size:13px;margin:4px 0 10px;line-height:1.6}
+/* 로그인 · 가입 */
+.mlog{max-width:460px;margin:0 auto}
+.mlog-h h2{font-size:20px;margin:6px 0 8px}
+.mlog-b{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:6px}
+.mlog-b li{font-size:14px;font-weight:600;padding:9px 12px;border-radius:10px;background:color-mix(in srgb,var(--acc) 9%,var(--panel));border:1px solid color-mix(in srgb,var(--acc) 30%,var(--line))}
+.mlog-b li::before{content:"✓ ";color:var(--acc);font-weight:700}
+.mlog-seg{display:flex;width:100%;margin-bottom:12px}
+.mlog-seg button{flex:1;padding:10px 6px}
+.mlog-f{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.mlog-f .field{margin:0}
+.mlog-f input{font-size:16px;min-height:44px}
+.pwrow{display:flex;gap:6px;align-items:stretch}
+.pwrow input{flex:1;min-width:0}
+.pwt{flex:none;min-width:64px}
+.mlog-f .btn.full{min-height:46px;font-size:15px}
+.mlog-lk{font:inherit;font-size:13px;color:var(--acc);font-weight:600;background:none;border:0;cursor:pointer;padding:8px 0;align-self:flex-start;min-height:40px}
+.mlog-steps{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap}
+.mlog-steps li{font-size:12px;font-weight:600;color:var(--ink-faint);padding:4px 9px;border-radius:20px;border:1px solid var(--line)}
+.mlog-steps li.on{color:var(--acc);border-color:var(--acc)}
+.mlog-steps li.done{color:var(--ink-dim)}
+.mlog-steps li.done::after{content:" ✓"}
+.mlog-q{font-size:13px}
+.mlog-names button{min-height:46px}
+.mlog-msg{margin-top:10px}
+.mlog-foot{margin-top:12px}
 .cmp .row1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .cmp .row1 b{font-size:13px}
 .cmp .row1 .me{font-family:var(--mono);font-size:16px;font-weight:700}
@@ -573,10 +639,14 @@ body.ro nav.tabs button[data-v=gen],body.ro nav.tabs button[data-v=people]{displ
 /* 내 근무는 구성원(열람 전용) 계정에서만 — 관리자·로컬 모드에서는 숨김 */
 body:not(.ro) nav.tabs button[data-v=mine]{display:none!important}
 body:not(.ro) #mine{display:none!important}
+/* 로그인 전(서버 연결 설정된 앱): 내 근무 탭에서 로그인 — 관리자·로컬 화면은 그대로 */
+body.guest nav.tabs button[data-v=mine]{display:flex!important}
+body.guest #mine.view.on{display:block!important}
+body.ro .mi[data-go=sync]{display:none}
 body.ro #gen,body.ro #people,body.ro #settings,body.ro #backup{display:none!important}
 body.ro .btn.danger{display:none!important}
 body.ro .no-ro{display:none!important}
-@media(max-width:640px){ body.ro nav.tabs{grid-template-columns:repeat(4,1fr)} }
+@media(max-width:640px){ body.ro nav.tabs{grid-template-columns:repeat(4,1fr)} body.guest nav.tabs{grid-template-columns:repeat(5,1fr)} }
 #roBadge{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
 </style>
 </head>
@@ -585,7 +655,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.9.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.0.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1031,7 +1101,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.9.0"></script>
+<script src="engine.js?v=7.0.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1075,12 +1145,13 @@ function showView(v){
 }
 $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
   const v=b.dataset.v;
+  MINE.userNav=true;
   vResolveDraft();
   if(v==='view'){ const L=latestSchedDate(); $('#vDate').value = L||todayStr(); renderView(); }
   if(v==='gen'){ const L=latestSchedDate(); $('#gDate').value = L? addDays(L,1) : todayStr(); refreshGenSelectors(); }
   showView(v);
 }));
-$$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ vResolveDraft(); showView(b.dataset.go); }));
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ MINE.userNav=true; vResolveDraft(); showView(b.dataset.go); }));
 $$('[data-back]').forEach(b=>b.addEventListener('click',()=>showView('more')));
 
 /* 바텀 시트 열기/닫기 */
@@ -1652,22 +1723,31 @@ function openWhy(s, key){
   const b=$('#whyBody'); b.innerHTML='';
   const nx=addDays(s.date,1), when = key[0]==='N' ? calMd(s.date)+' 밤 ~ '+calMd(nx)+' 새벽' : calMd(s.date)+' ('+DOW_KR[dow(s.date)]+')';
   b.appendChild(el('div','whyhd','<b>'+(x.who?esc(nameOf(x.who)):'미배정')+'</b> · '+esc(x.title)+' · '+esc(when)));
-  const ls=el('div','whylines'); x.lines.forEach(t=>ls.appendChild(el('div',null,esc(t)))); b.appendChild(ls);
-  if(x.ranked.length){
-    b.appendChild(el('div','edsep','다른 후보 — 우선순위 순'));
-    const l=el('div','whylist');
-    x.ranked.slice(0,8).forEach(r=> l.appendChild(el('div', r.ahead?'ah':null, '<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>')));
-    if(x.ranked.length>8) l.appendChild(el('div',null,'<b></b><span>외 '+(x.ranked.length-8)+'명</span>'));
-    b.appendChild(l);
-  }
-  if(x.blocked.length){
+  // 핵심 한 줄 먼저 — 규칙 자리는 규칙 설명, 순위 자리는 '다음 후보보다 앞선 이유'(없으면 상황 설명)
+  const rank = x.kind==='rank';
+  const core = rank ? (x.lines.length>1 ? [x.lines[1]] : x.lines.slice(0,1)) : x.lines;
+  const detailLines = rank ? [x.lines[0]].concat(x.lines.slice(2)).filter((t,i)=>t && !(i===0 && core.includes(t))) : [];
+  const ls=el('div','whylines'); core.forEach(t=>ls.appendChild(el('div',null,esc(t)))); b.appendChild(ls);
+  b.appendChild(el('p','smallnote', rank ? '현재 기록을 기준으로 다시 계산한 참고 설명입니다. 생성 당시의 선택 과정은 저장되지 않아, 실제 생성 때와 다를 수 있습니다.'
+                                         : '역할·고정 규칙으로 정해지는 자리입니다.'));
+  if(detailLines.length || x.ranked.length || x.blocked.length){
     const d=el('details','adv'); d.style.marginTop='0';
-    d.appendChild(el('summary',null,'이 칸 후보가 아니었던 사람 '+x.blocked.length+'명'));
-    const l=el('div','whylist'); x.blocked.forEach(r=> l.appendChild(el('div',null,'<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>'))); d.appendChild(l);
+    d.appendChild(el('summary',null,'자세한 수치와 다른 후보'));
+    if(detailLines.length){ const dl=el('div','whylines'); detailLines.forEach(t=>dl.appendChild(el('div',null,esc(t)))); d.appendChild(dl); }
+    if(x.ranked.length){
+      d.appendChild(el('div','edsep','다른 후보 — 우선순위 순'));
+      const l=el('div','whylist');
+      x.ranked.slice(0,8).forEach(r=> l.appendChild(el('div', r.ahead?'ah':null, '<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>')));
+      if(x.ranked.length>8) l.appendChild(el('div',null,'<b></b><span>외 '+(x.ranked.length-8)+'명</span>'));
+      d.appendChild(l);
+    }
+    if(x.blocked.length){
+      d.appendChild(el('div','edsep','이 칸 후보가 아니었던 사람 '+x.blocked.length+'명'));
+      const l=el('div','whylist'); x.blocked.forEach(r=> l.appendChild(el('div',null,'<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>'))); d.appendChild(l);
+    }
+    d.appendChild(el('p','smallnote','비교 기준: 당일 칸 수 → 이 시간대 배정 → 신병 순서 → 배정률·하루 평균 근무시간 → 마지막으로 선 날 (06:30은 배정률 순번제).'));
     b.appendChild(d);
   }
-  b.appendChild(el('p','smallnote', x.kind==='rule' ? '역할·고정 규칙으로 정해지는 자리입니다.'
-    : '완성된 표와 그 날짜 이전 기록으로 엔진의 기준(당일 칸 수 → 시간대 공정성 → 신병 순서 → 배정률·평균시간 → 마지막으로 선 날)을 다시 계산한 설명입니다. 생성 뒤 직접 고친 칸이나 이후 기록이 바뀐 경우 실제 생성 때와 다를 수 있습니다.'));
   openSheet('whySheet');
 }
 
@@ -3007,170 +3087,641 @@ $('#bCsvAll').addEventListener('click',()=>{
 $('#bClear').addEventListener('click',()=>{ if(confirm('모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없습니다.')){ localStorage.removeItem(STORE_KEY); DB={version:2,lastBackupAt:null,workers:[],schedules:{},prebook:[],holidays:{},settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))}; invalidateStats(); refreshAll(); } });
 
 /* ---------- 초기화 ---------- */
-/* ---------- 내 근무 — 다가오는 근무 · 내 일정 · 부대 평균과 비교 ---------- */
-/* 그날 표에서 이 사람이 서는 칸을 시간 순으로 (at = 실제 시각, 새벽 칸은 다음날) */
-function myItems(ds, s, id){
-  const items=[];
-  const at=t=>{ const d=new Date(ds+'T'+t+':00'); if(Number(t.slice(0,2))<6) d.setDate(d.getDate()+1); return d; };
-  DAY_SLOTS.forEach(sl=>{
-    const fx=s.fixed&&s.fixed[sl];
-    if(((s.assign&&s.assign[sl])||fx)===id) items.push({key:'D:'+sl, t:sl, label: fx&&(sl==='14:30'||sl==='13:30')&&id===s.situationId ? '주간 · 당일 상황 고정' : '주간', cls:''});
-  });
-  if(s.patrolExtra===id) items.push({key:'P', t:'17:00', label:'추가 순찰', cls:'patrol'});
-  const evLabel={'17:30':['meal','다음날 밥교대(+순찰)'],'18:30':['sit','다음날 상황'],'19:30':['duty','다음날 당직'],'20:30':['sit','전날 상황'],'21:30':['duty','전날 당직']};
-  EVENING.forEach(sl=>{ if(s.fixed&&s.fixed[sl]===id) items.push({key:'E:'+sl, t:sl, label:evLabel[sl][1], cls:evLabel[sl][0]}); });
-  NIGHT_BUNCHO.forEach(b=>{ if(s.night&&s.night[b.id]===id) b.slots.forEach(t=>items.push({key:'N:'+b.id, t, label:b.id+'번초', cls:'night'})); });
-  items.forEach(x=>x.at=at(x.t));
-  items.sort((a,b)=>a.at-b.at);
-  return items;
-}
+/* ---------- 내 근무 — 구성원 개인 홈 ----------
+   로그인·가입(구성원) → 다음 CCTV 근무 → 오늘 → 지난 확인 이후 변경 → 내일·이번 주 → 이후·지난 → 통계·배정 기준.
+   표 날짜와 실제 날짜를 구분한다(00:30~05:30 칸은 표 날짜의 다음날 새벽). 근무표는 읽기만 하고,
+   개인 확인 상태는 sync.js의 personal/{uid}(본인 전용) 또는 이 기기 저장소에 따로 둔다. */
+const MINE={
+  phase:null, routed:false, userNav:false,
+  auth:{mode:'login', step:1, email:'', pass:'', pass2:'', code:'', showPw:false, err:'', ok:'', busy:false},
+  sel:null, weekOff:0, period:'4w', open:{},
+  key:null, base:undefined, baseSrc:null, loading:false, saveErr:'', saving:false, chain:Promise.resolve(),
+  nextAt:null, renderDay:null
+};
+const BASE_CACHE='cctv_mine_base_v1:';
+const HINT_KEY_UI='cctv_role_hint_v1';
+function roleHint(){ try{ return JSON.parse(localStorage.getItem(HINT_KEY_UI)||'null'); }catch(e){ return null; } }
+const mdw=d=>Number(d.slice(5,7))+'/'+Number(d.slice(8))+' ('+DOW_KR[dow(d)]+')';
+function atOf(date, t){ return new Date(date+'T'+t+':00'); }
 function relTime(ms){
-  const m=Math.round(ms/60000);
+  const m=Math.max(0,Math.round(ms/60000));
+  if(m<1) return '곧 시작';
   if(m<60) return m+'분 후';
   const h=Math.floor(m/60), r=m%60;
   if(h<24) return h+'시간'+(r?' '+r+'분':'')+' 후';
-  return Math.round(h/24)+'일 후';
+  const d=Math.floor(h/24), rh=h%24;
+  return d+'일'+(rh?' '+rh+'시간':'')+' 후';
+}
+function itemLabel(it, s){
+  if(it.kind==='night'){
+    const b=it.key.slice(2), ts=keyTimes(it.key), first=ts[0]===it.t;
+    return '야간 '+b+'번초 · '+(first ? ts[1]+'에 한 번 더' : '두 번째 (첫 근무 '+ts[0]+')');
+  }
+  if(it.kind==='patrol') return '추가 순찰';
+  if(it.kind==='eve') return '저녁 · '+EVENING_LABEL[it.t][1]+' 칸';
+  if((it.t==='14:30'||it.t==='13:30') && s && s.fixed && s.fixed[it.t] && s.situationId===s.fixed[it.t]) return '주간 · 당일 상황 고정';
+  return '주간';
+}
+const ROLE_KR={'R:duty':'당직','R:sit':'상황병','R:meal':'밥교대'};
+const ROLE_CLS={'R:duty':'duty','R:sit':'sit','R:meal':'meal'};
+function keyText(key){
+  if(ROLE_KR[key]) return ROLE_KR[key]+' 역할';
+  const ts=keyTimes(key);
+  if(key[0]==='N') return key.slice(2)+'번초 ('+ts.join('·')+')';
+  if(key==='P') return '17:00 추가 순찰';
+  return ts[0]+(key[0]==='E'?' '+EVENING_LABEL[ts[0]][1]+' 칸':' 근무');
+}
+/* 지금부터 앞으로의 CCTV 근무(순찰 제외)와 순찰 — 어제 표의 새벽 칸 포함 */
+function upcomingItems(wid, fromDs, days){
+  const now=new Date(), out=[];
+  for(let i=-1;i<days;i++){
+    const ds=addDays(fromDs,i), s=DB.schedules[ds]; if(!s) continue;
+    personalItems(ds, s, wid).forEach(it=>{ const at=atOf(it.date,it.t); if(at>now) out.push(Object.assign({at, s}, it)); });
+  }
+  return out.sort((a,b)=>a.at-b.at);
+}
+
+/* ----- 개인 확인 상태 저장 (계정별) ----- */
+function mineStoreKey(){
+  const api=window.MEMBER_API, info=api && api.info();
+  if(info && info.uid && (info.phase==='member' || info.phase==='auth' || info.phase==='loading')) return 'uid:'+info.uid;
+  const h=roleHint();
+  if(!api && h && h.role==='member' && h.uid) return 'uid:'+h.uid;       // SDK를 못 불러온 오프라인 — 읽기만
+  const w=meGet(); return w ? 'local:'+w : null;
+}
+function mineCacheGet(k){ try{ return JSON.parse(localStorage.getItem(BASE_CACHE+k)||'null'); }catch(e){ return null; } }
+function mineCacheSet(k, v){ localStorage.setItem(BASE_CACHE+k, JSON.stringify(v)); }
+/* 기준을 불러온다. 서버(personal/{uid})가 정답이고, 이 기기 사본은 오프라인 표시용 */
+function mineEnsureBase(wid){
+  const k=mineStoreKey();
+  if(k!==MINE.key){ MINE.key=k; MINE.base=undefined; MINE.baseSrc=null; MINE.saveErr=''; MINE.loading=false; }
+  const api=window.MEMBER_API;
+  if(!k || MINE.loading) return;
+  // 이미 서버·이 기기 기준을 가졌으면 끝. 캐시로만 보여 주던 중이면 서버에 다시 물어본다(30초에 한 번)
+  const retry = (MINE.baseSrc==='cache' || MINE.baseSrc==='unavailable') && api && api.canStore() && Date.now()-(MINE.lastTry||0)>30000;
+  if(MINE.base!==undefined && !retry) return;
+  if(MINE.base===undefined && MINE.baseSrc==='unavailable' && !retry) return;
+  if(k.startsWith('local:')){ const c=mineCacheGet(k); MINE.base=c&&c.base||null; MINE.baseSrc='local'; return; }
+  const c=mineCacheGet(k);
+  if(!api || !api.canStore()){ MINE.base=c?c.base:undefined; MINE.baseSrc=c?'cache':null; return; }
+  MINE.loading=true; MINE.lastTry=Date.now();
+  api.personalLoad().then(r=>{
+    if(MINE.key!==k) return;
+    MINE.loading=false; MINE.base=r&&r.base||null; MINE.baseSrc='server';
+    try{ mineCacheSet(k, {base:MINE.base}); }catch(e){}
+    renderMineIfShown();
+  }).catch(()=>{
+    if(MINE.key!==k) return;
+    MINE.loading=false;
+    // 서버에서 못 읽음 — 이 기기 사본이 있으면 그것으로 보여 주고, 없으면 '확인 불가'(최초 기준을 새로 만들지 않는다)
+    if(MINE.baseSrc!=='cache'){ MINE.base = c ? c.base : undefined; MINE.baseSrc = c ? 'cache' : 'unavailable'; }
+    renderMineIfShown();
+  });
+}
+/* 저장 — 성공해야만 기준을 바꾼다. 서버 저장은 순서대로(동시 저장 방지) */
+function mineSaveBase(base){
+  const k=MINE.key, api=window.MEMBER_API;
+  if(!k) return Promise.reject(new Error('no-key'));
+  if(k.startsWith('local:')){
+    try{ mineCacheSet(k, {base}); return Promise.resolve(); }catch(e){ return Promise.reject(Object.assign(e,{code:'app/local-save'})); }
+  }
+  if(!api || !api.canStore()) return Promise.reject(Object.assign(new Error('offline'),{code:'app/no-server'}));
+  const wid=base.wid;
+  const p=MINE.chain.then(()=>api.personalSave(wid, base)).then(()=>{ if(MINE.key===k){ try{ mineCacheSet(k,{base}); }catch(e){} } });
+  MINE.chain=p.catch(()=>{});
+  return p;
+}
+function mineSaveMsg(e){
+  const c=e&&e.code||'';
+  if(c==='app/no-server') return '서버에 연결되지 않아 확인 상태를 저장하지 못했습니다. 연결되면 다시 눌러 주세요.';
+  if(c==='app/local-save') return '이 기기에 저장하지 못했습니다(저장 공간 부족 등).';
+  if(c==='permission-denied') return '확인 상태를 저장할 권한이 없습니다. 행보관에게 보안 규칙(personal) 적용을 요청하세요.';
+  return (window.MEMBER_API ? MEMBER_API.msg(e) : '저장하지 못했습니다.')+' 변경 내역은 확인 전 상태로 남아 있습니다.';
+}
+
+function renderMineIfShown(){ if($('#mine') && $('#mine').classList.contains('on')) renderMine(); }
+window.onSyncPhase=function(p){
+  const prev=MINE.phase; MINE.phase=p;
+  const cur=($$('.view.on')[0]||{}).id;
+  if(p==='admin' && cur==='mine') showView('view');
+  // 로그인 상태 복원·가입 완료 후 최초 1회만 개인 홈으로 — 실시간 갱신이나 이후 단계 변화로 탭을 옮기지 않는다
+  if((p==='member'||p==='legacy'||p==='join') && !MINE.routed){
+    MINE.routed=true;
+    if(!MINE.userNav && cur!=='mine') showView('mine');
+  }
+  renderMore();
+  renderMineIfShown();
+};
+window.onSyncAccountChange=function(){
+  MINE.key=null; MINE.base=undefined; MINE.baseSrc=null; MINE.saveErr=''; MINE.sel=null; MINE.weekOff=0;
+  MINE.chain=Promise.resolve();
+  // 가입 입력값은 여기서 지우지 않는다 — 부대 코드가 틀리면 방금 만든 계정이 지워지며 로그아웃되는데, 입력은 그대로 다시 쓸 수 있어야 한다
+};
+/* 직접 로그아웃할 때만 입력값(비밀번호 포함)을 지운다 */
+function mineLogout(){
+  Object.assign(MINE.auth, {mode:'login', step:1, pass:'', pass2:'', code:'', err:'', ok:'', busy:false, showPw:false});
+  return window.MEMBER_API ? MEMBER_API.logout() : Promise.resolve();
+}
+
+/* ---------- 로그인 · 가입 (구성원) ---------- */
+function renderMineAuth(box, phase){
+  const A=MINE.auth, api=window.MEMBER_API;
+  const wrap=el('div','mlog');
+  const hero=el('div','mlog-h');
+  hero.appendChild(el('h2',null,'내 근무 보기'));
+  if(phase==='guest'){
+    const ul=el('ul','mlog-b');
+    ['내 다음 근무를 바로 확인','지난번 확인 이후 바뀐 내 근무 확인','내 일정과 배정 기준 확인'].forEach(t=>ul.appendChild(el('li',null,esc(t))));
+    hero.appendChild(ul);
+  }
+  wrap.appendChild(hero);
+  const msg=el('div','mlog-msg'); msg.setAttribute('role','status'); msg.setAttribute('aria-live','polite');
+  if(A.err) msg.appendChild(el('div','err',esc(A.err)));
+  if(A.ok) msg.appendChild(el('div','ok',esc(A.ok)));
+  const field=(label, key, type, ac, extra)=>{
+    const f=el('div','field');
+    const id='ml_'+key;
+    f.appendChild(el('label',null,esc(label))).setAttribute('for',id);
+    const row=el('div','pwrow');
+    const inp=el('input'); inp.id=id; inp.type=type; inp.autocomplete=ac; inp.value=A[key]||'';
+    if(type==='email'){ inp.inputMode='email'; inp.autocapitalize='off'; inp.spellcheck=false; }
+    if(key==='code'){ inp.autocapitalize='off'; inp.spellcheck=false; }
+    inp.addEventListener('input',()=>{ A[key]=inp.value; });
+    row.appendChild(inp);
+    if(extra) row.appendChild(extra);
+    f.appendChild(row);
+    return f;
+  };
+  const pwToggle=()=>{
+    const b=el('button','btn ghost sm pwt', A.showPw?'숨기기':'표시'); b.type='button';
+    b.setAttribute('aria-pressed', A.showPw?'true':'false'); b.setAttribute('aria-label', A.showPw?'비밀번호 숨기기':'비밀번호 표시');
+    b.addEventListener('click',()=>{ A.showPw=!A.showPw; renderMine(); const i=$('#ml_pass'); if(i) i.focus(); });
+    return b;
+  };
+  const busy=(b)=>{ if(A.busy){ b.disabled=true; } return b; };
+  const run=(p, onOk)=>{ A.busy=true; A.err=''; A.ok=''; renderMine();
+    return p.then(v=>{ A.busy=false; onOk&&onOk(v); renderMine(); }, e=>{ A.busy=false; A.err=api?api.msg(e):String(e&&e.message||e); renderMine(); }); };
+  const emailOk=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const form=el('form','mlog-f'); form.noValidate=true;
+  form.addEventListener('submit',e=>e.preventDefault());
+
+  if(!api){
+    form.appendChild(el('div','warn', window.SYNC_UNAVAILABLE==='nocfg' ? '이 앱에는 서버 연결이 설정되어 있지 않습니다. 행보관에게 문의하세요.'
+      : '서버에 연결할 수 없습니다(인터넷 연결 확인). 연결되면 새로고침하세요.'));
+    wrap.appendChild(form); box.appendChild(wrap); return;
+  }
+  if(phase==='error'){
+    form.appendChild(el('div','warn','본인 연결 정보를 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요.'));
+    const r=busy(el('button','btn full','다시 시도')); r.type='button'; r.addEventListener('click',()=>run(api.retry()));
+    form.appendChild(r);
+  }else if(phase==='guest'){
+    const seg=el('div','seg mlog-seg'); seg.setAttribute('role','tablist');
+    [['login','로그인'],['signup','처음이에요 · 가입']].forEach(([m,t])=>{
+      const b=el('button',A.mode===m?'on':'',t); b.type='button'; b.setAttribute('role','tab'); b.setAttribute('aria-selected',A.mode===m?'true':'false');
+      b.addEventListener('click',()=>{ A.mode=m; A.err=''; A.ok=''; renderMine(); }); seg.appendChild(b);
+    });
+    wrap.appendChild(seg);
+    if(A.mode==='login'){
+      form.appendChild(field('이메일','email','email','username'));
+      form.appendChild(field('비밀번호','pass',A.showPw?'text':'password','current-password', pwToggle()));
+      const go=busy(el('button','btn full',A.busy?'로그인 중…':'로그인')); go.type='submit';
+      go.addEventListener('click',()=>{
+        const em=A.email.trim();
+        if(!emailOk(em)){ A.err='이메일을 정확히 입력하세요. 예: name@example.com'; renderMine(); return; }
+        if(!A.pass){ A.err='비밀번호를 입력하세요.'; renderMine(); return; }
+        run(api.login(em, A.pass), ()=>{ A.pass=''; });
+      });
+      form.appendChild(go);
+      const fg=el('button','lk mlog-lk','비밀번호를 잊었어요'); fg.type='button';
+      fg.addEventListener('click',()=>{
+        const em=A.email.trim();
+        if(!emailOk(em)){ A.err='가입한 이메일을 위 칸에 입력한 뒤 다시 누르세요.'; renderMine(); return; }
+        run(api.reset(em), ()=>{ A.ok=em+'로 비밀번호 재설정 메일을 보냈습니다. 메일함(스팸함 포함)을 확인하세요.'; });
+      });
+      form.appendChild(fg);
+    }else{
+      const steps=el('ol','mlog-steps');
+      ['계정 만들기','부대 코드','본인 선택'].forEach((t,i)=>{ const li=el('li',(A.step===i+1?'on':A.step>i+1?'done':''),(i+1)+'. '+t); if(A.step===i+1) li.setAttribute('aria-current','step'); steps.appendChild(li); });
+      form.appendChild(steps);
+      if(A.step===1){
+        form.appendChild(field('이메일 (비밀번호 재설정 메일을 받을 주소)','email','email','username'));
+        form.appendChild(field('비밀번호 (6자 이상)','pass',A.showPw?'text':'password','new-password', pwToggle()));
+        form.appendChild(field('비밀번호 확인','pass2',A.showPw?'text':'password','new-password'));
+        const nx=el('button','btn full','다음'); nx.type='submit';
+        nx.addEventListener('click',()=>{
+          const em=A.email.trim();
+          if(!emailOk(em)) A.err='이메일을 정확히 입력하세요. 예: name@example.com';
+          else if(A.pass.length<6) A.err='비밀번호는 6자 이상으로 정하세요.';
+          else if(A.pass!==A.pass2) A.err='비밀번호 확인이 일치하지 않습니다. 두 칸을 같게 입력하세요.';
+          else { A.err=''; A.step=2; }
+          renderMine();
+        });
+        form.appendChild(nx);
+      }else{
+        form.appendChild(field('부대 코드 (행보관에게 받은 코드)','code','text','off'));
+        const two=el('div','two');
+        const bk=el('button','btn ghost full','이전'); bk.type='button'; bk.addEventListener('click',()=>{ A.step=1; A.err=''; renderMine(); });
+        const go=busy(el('button','btn full',A.busy?'가입 중…':'가입하고 본인 찾기')); go.type='submit';
+        go.addEventListener('click',()=>{
+          const code=A.code.trim();
+          if(!api.codeOk(code)){ A.err='부대 코드를 확인하세요(8자 이상).'; renderMine(); return; }
+          run(api.signup(A.email.trim(), A.pass, code), ()=>{ A.pass=''; A.pass2=''; A.step=3; });
+        });
+        two.appendChild(bk); two.appendChild(go); form.appendChild(two);
+      }
+    }
+  }else{
+    // 로그인했지만 본인 연결 전 — 부대 코드 → 본인 선택
+    const info=api.info();
+    form.appendChild(el('p','smallnote',esc(info.email)+' 계정으로 로그인했습니다. 본인 이름을 연결하면 내 근무를 볼 수 있습니다.'));
+    const list=info.pendingList;
+    if(!list){
+      form.appendChild(field('부대 코드 (행보관에게 받은 코드)','code','text','off'));
+      const go=busy(el('button','btn full',A.busy?'확인 중…':'확인')); go.type='submit';
+      go.addEventListener('click',()=>{
+        const code=A.code.trim();
+        if(!api.codeOk(code)){ A.err='부대 코드를 확인하세요(8자 이상).'; renderMine(); return; }
+        run(api.checkCode(code));
+      });
+      form.appendChild(go);
+    }else{
+      form.appendChild(el('div','mlog-q','본인 이름을 누르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 행보관만 바꿀 수 있습니다.'));
+      const pl=el('div','picklist mlog-names');
+      list.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(w=>{
+        const b=busy(el('button',null,esc(w.name))); b.type='button';
+        b.addEventListener('click',()=>{
+          if(!confirm(w.name+' — 본인이 맞습니까?\n선택 후에는 행보관만 바꿀 수 있습니다.')) return;
+          run(api.claim(w.id), ()=>{ A.step=1; A.code=''; MINE.routed=true; showView('mine'); });
+        });
+        pl.appendChild(b);
+      });
+      form.appendChild(pl);
+    }
+    const out=el('button','lk mlog-lk','다른 계정으로 로그인'); out.type='button';
+    out.addEventListener('click',()=>{ mineLogout(); });
+    form.appendChild(out);
+  }
+  wrap.appendChild(form);
+  wrap.appendChild(msg);
+  if(phase==='guest') wrap.appendChild(el('p','smallnote mlog-foot','근무표는 행보관만 수정하고, 구성원은 읽기만 합니다. 행보관·기기 설정은 [더보기 › 서버 동기화]에 있습니다.'));
+  box.appendChild(wrap);
+}
+
+/* ---------- 개인 홈 ---------- */
+function mineDataStatus(){
+  const api=window.MEMBER_API, info=api&&api.info();
+  const fmtT=t=>{ const d=new Date(t); const ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); return (ds===todayStr()?'오늘 ':mdw(ds)+' ')+pad(d.getHours())+':'+pad(d.getMinutes()); };
+  if(!info){
+    const r=(()=>{ try{ const x=JSON.parse(localStorage.getItem('cctv_last_recv_v1')||'null'); const hh=roleHint(); return x && hh && x.uid===hh.uid ? x.at : null; }catch(e){ return null; } })();
+    if(!window.SYNC_UNAVAILABLE) return {fresh:false, warn:false, text:'서버 확인 중…'+(r?' · 마지막으로 받은 근무표 '+fmtT(r):'')};
+    return {fresh:false, warn:true, text:'서버에 연결할 수 없음 · '+(r?'마지막으로 받은 근무표 '+fmtT(r)+' 수신':'이 기기에 저장된 근무표')};
+  }
+  if(info.live) return {fresh:true, text:'최신 근무표 · '+(info.lastRecv?fmtT(info.lastRecv)+' 수신':'실시간 수신 중')};
+  if(info.phase==='auth'||info.phase==='loading') return {fresh:false, text:'서버 확인 중…'+(info.lastRecv?' · 마지막으로 받은 근무표 '+fmtT(info.lastRecv):''), warn:false};
+  return {fresh:false, warn:true, text: info.lastRecv ? '마지막으로 받은 근무표 · '+fmtT(info.lastRecv)+' 수신 · 서버 최신 여부 확인 안 됨' : '서버 최신 여부 확인 안 됨 · 이 기기에 저장된 근무표'};
 }
 function renderMine(){
   const box=$('#mineBody'); if(!box) return; box.innerHTML='';
-  const linked=!!window.MY_WORKER;
-  const id=meGet();
-  const w=id && DB.workers.find(x=>x.id===id);
-  if(!linked){
-    const row=el('div','who'); row.appendChild(el('span',null,'근무자'));
-    const sel=el('select'); fillSelect(sel, activeWorkers(), {blank:'— 본인을 선택하세요 —', selected:w?id:null});
+  // 내 근무는 구성원(열람 전용)·로그인 전(guest) 화면에서만 보인다 — 관리자·로컬 모드에서는 그리지 않는다(개인 상태 저장도 안 함)
+  if(!document.body.classList.contains('ro') && !document.body.classList.contains('guest')) return;
+  const api=window.MEMBER_API, phase=api ? api.phase() : (roleHint()&&roleHint().role==='member' ? 'offline' : 'local');
+  MINE.renderDay=todayStr(); MINE.nextAt=null;
+  if(phase==='guest' || phase==='join' || phase==='error' || (!api && phase==='local' && window.SYNC_UNAVAILABLE && !meGet())){ renderMineAuth(box, phase); return; }
+  const legacy = phase==='legacy' || (api && api.info().legacy);
+  const w0=meGet(), w=w0 && DB.workers.find(x=>x.id===w0);
+  const hasData=Object.keys(DB.schedules).length>0;
+  if((phase==='auth'||phase==='loading') && (!w || !hasData)){
+    box.appendChild(el('div','mine-wait','<b>불러오는 중…</b><span>로그인 상태와 근무표를 확인하고 있습니다.</span>')); return;
+  }
+  if(phase==='member' && !hasData && !(api.info().live)){
+    box.appendChild(el('div','mine-wait','<b>근무표를 받는 중…</b><span>서버에서 근무표를 받으면 바로 표시됩니다.</span>')); return;
+  }
+  if(legacy || (!api && !window.MY_WORKER)){
+    const row=el('div','who'); row.appendChild(el('label',null,'근무자')).setAttribute('for','mineWho');
+    const sel=el('select'); sel.id='mineWho'; fillSelect(sel, activeWorkers(), {blank:'— 본인을 선택하세요 —', selected:w?w0:null});
     sel.addEventListener('change',()=>{ meSet(sel.value); renderMine(); renderView(); });
     row.appendChild(sel); box.appendChild(row);
-    box.appendChild(el('p','smallnote','구성원 계정으로 로그인하면 본인이 자동으로 선택됩니다. 여기서 고른 사람은 이 기기에만 기억됩니다.'));
+    if(legacy) box.appendChild(el('p','smallnote','공용 열람 계정입니다. 본인 계정으로 가입하면 이름을 매번 고를 필요가 없습니다. 여기서 고른 사람은 이 기기에만 기억됩니다.'));
   }
-  if(!w){ box.appendChild(el('div','muted','근무자를 선택하면 내 근무 요약이 나옵니다.')); return; }
-  const st=buildStats(null,null), r=st[w.id];
-  // 머리 카드
-  const v=roleValue(w), cls = v==='duty'?'duty' : v==='situation'?'sit' : 'kind';
-  const h=el('div','mine-h');
-  h.appendChild(el('div','av', esc(w.name.replace(/^(이병|일병|상병|병장)\s*/,'').slice(0,1)||'·')));
-  const hi=el('div');
-  hi.appendChild(el('b',null, esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'));
-  hi.appendChild(el('div','sub', '겪은 근무표 '+r.denom+'일 · 누적 '+r.hours.toFixed(1)+'h · 하루 평균 '+avgHours(r).toFixed(2)+'h'));
-  h.appendChild(hi); box.appendChild(h);
+  if(!w){ box.appendChild(el('div','muted',w0?'연결된 근무자를 명단에서 찾을 수 없습니다. 행보관에게 문의하세요.':'근무자를 선택하면 내 근무가 나옵니다.')); return; }
+  const today=todayStr(), now=new Date(), ST=mineDataStatus();
 
-  // 다가오는 근무 (오늘부터 2주)
-  const today=todayStr(), now=new Date(), days=[];
-  for(let i=-1;i<14;i++) days.push(addDays(today,i));   // 어제 표 = 오늘 새벽(00:30~05:30) 근무
-  let next=null;
-  const list=el('div');
-  let noSchedFrom=null;
-  const yday=addDays(today,-1);
-  days.forEach(ds=>{
-    const s=DB.schedules[ds];
-    if(ds===yday){
-      // 근무표는 06:30~다음날 05:30 — 자정이 지나도 어제 표의 새벽 번초는 아직 남아 있다
-      if(!s) return;
-      const left=myItems(ds,s,w.id).filter(x=>x.at>now);
-      if(!left.length) return;
-      left.forEach(x=>{ if(!next) next={ds, x}; });
-      const d=el('div','mday today');
-      const dh=el('div','dh'); dh.appendChild(el('b',null,'오늘 새벽')); dh.appendChild(el('span','dw', Number(ds.slice(5,7))+'/'+Number(ds.slice(8))+' 근무표'));
-      d.appendChild(dh);
-      const its=el('div','its');
-      left.forEach(x=>{ const it=el('div','it why'); it.addEventListener('click',()=>openWhy(s, x.key)); it.appendChild(el('span','t',x.t)); it.appendChild(el('span',null,esc(x.label))); its.appendChild(it); });
-      d.appendChild(its); list.appendChild(d);
-      return;
-    }
-    const pbs=prebookOn(ds).filter(p=>p.wid===w.id), hn=holidayName(ds);
-    if(!s && !pbs.length){ if(!noSchedFrom) noSchedFrom=ds; return; }
-    const items = s ? myItems(ds,s,w.id) : [];
-    items.forEach(x=>{ if(!next && x.at>now) next={ds, x}; });
-    const d=el('div','mday'+(ds===today?' today':''));
-    const dh=el('div','dh');
-    dh.appendChild(el('b',null, (ds===today?'오늘 ':ds===addDays(today,1)?'내일 ':'')+Number(ds.slice(5,7))+'/'+Number(ds.slice(8))));
-    dh.appendChild(el('span','dw'+(hn||dow(ds)===0?' hol':''), DOW_KR[dow(ds)]+(hn?' · '+esc(hn):'')));
-    if(s){
-      if(s.dutyId===w.id) dh.appendChild(el('span','tag duty','당직'));
-      if(s.situationId===w.id) dh.appendChild(el('span','tag sit','상황병'));
-      if(s.mealId===w.id) dh.appendChild(el('span','tag meal','밥교대'));
-    }
-    pbs.forEach(p=>{ const ret=p.kind==='vacation'&&ds===p.end&&p.end!==p.start; dh.appendChild(el('span','tag ex', esc(ret?'휴가 복귀':PREBOOK_KR[p.kind]))); });
-    d.appendChild(dh);
-    if(!s) d.appendChild(el('div','none','근무표 미생성'));
-    else if(!items.length) d.appendChild(el('div','none','CCTV 근무 없음'));
-    else{
-      const its=el('div','its');
-      items.forEach(x=>{
-        const it=el('div','it why'+(x.at<now?' past':''));
-        it.addEventListener('click',()=>openWhy(s, x.key));
-        it.appendChild(el('span','t',x.t));
-        it.appendChild(x.cls && x.cls!=='night' ? el('span','tag '+x.cls, esc(x.label)) : el('span',null, esc(x.label)));
-        its.appendChild(it);
-      });
-      d.appendChild(its);
-    }
-    list.appendChild(d);
-  });
-  const nx=el('div','next');
-  if(next){
-    // 표시는 실제 근무 시각 기준 날짜(새벽 칸은 표 날짜의 다음날)
-    const at=next.x.at, atDs=at.getFullYear()+'-'+pad(at.getMonth()+1)+'-'+pad(at.getDate());
-    const dl = atDs===today?'오늘' : atDs===addDays(today,1)?'내일' : Number(atDs.slice(5,7))+'/'+Number(atDs.slice(8))+'('+DOW_KR[dow(atDs)]+')';
-    nx.appendChild(el('div','l','다음 근무'));
-    nx.appendChild(el('div','v', esc(dl)+' <span class="t">'+esc(next.x.t)+'</span> · '+esc(next.x.label)));
-    nx.appendChild(el('div','s', relTime(next.x.at-now)+(next.ds!==atDs?' · '+Number(next.ds.slice(5,7))+'/'+Number(next.ds.slice(8))+' 근무표의 새벽 근무':'')));
+  // 1) 이름 · 데이터 상태 (작게)
+  const v=roleValue(w), cls = v==='duty'?'duty' : v==='situation'?'sit' : 'kind';
+  const h=el('div','mine-h2');
+  h.appendChild(el('div','nm', esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'));
+  h.appendChild(el('div','st'+(ST.warn?' warn':''), (ST.fresh?'● ':'○ ')+esc(ST.text)));
+  box.appendChild(h);
+
+  // 2) 다음 CCTV 근무
+  const up=upcomingItems(w.id, today, 45);
+  const nextC=up.find(x=>x.kind!=='patrol'), nextP=up.find(x=>x.kind==='patrol');
+  const nx=el('section','next2'); nx.setAttribute('aria-label','다음 CCTV 근무');
+  nx.appendChild(el('div','l','다음 CCTV 근무'));
+  if(nextC){
+    MINE.nextAt=nextC.at.getTime();
+    const dl = nextC.date===today?'오늘' : nextC.date===addDays(today,1)?'내일' : '';
+    nx.appendChild(el('div','v','<span class="d">'+(dl?dl+' · ':'')+esc(mdw(nextC.date))+'</span><span class="t">'+esc(nextC.t)+'</span>'));
+    nx.appendChild(el('div','k', esc(itemLabel(nextC, nextC.s))+(nextC.ds!==nextC.date?' · <span class="muted">'+esc(calMd(nextC.ds))+' 근무표의 새벽 근무</span>':'')));
+    const rem=el('div','rem'); rem.dataset.at=String(nextC.at.getTime()); rem.textContent=relTime(nextC.at-now); nx.appendChild(rem);
+    const nb=(dir)=>{ const n=cctvNeighbor(nextC.ds, nextC.t, dir);
+      const who = n.state==='ok' ? esc(nameOf(n.id)) : n.state==='empty' ? '<span class="muted">미배정</span>' : '<span class="muted">'+esc(calMd(n.ds))+' 근무표 미생성</span>';
+      return '<span class="nbl">'+(dir<0?'앞':'뒤')+'</span> <span class="mono">'+esc(n.t)+(realDateOf(n.ds,n.t)!==nextC.date?' ('+esc(calMd(realDateOf(n.ds,n.t)))+')':'')+'</span> '+who; };
+    nx.appendChild(el('div','nb', nb(-1)+'<span class="sep"></span>'+nb(1)));
+    if(nextP && nextP.at<nextC.at) nx.appendChild(el('div','pre','그 전에 '+esc(mdw(nextP.date))+' 17:00 추가 순찰이 있습니다.'));
+    const b=el('button','btn ghost sm','배정 이유'); b.type='button'; b.addEventListener('click',()=>openWhy(nextC.s, nextC.key));
+    nx.appendChild(b);
   }else{
-    nx.appendChild(el('div','l','다음 근무'));
-    nx.appendChild(el('div','v','예정된 근무 없음'));
-    nx.appendChild(el('div','s','생성된 근무표 기준 2주 안에 잡힌 CCTV 근무가 없습니다.'));
+    const ahead=Object.keys(DB.schedules).filter(d=>d>=today).sort();
+    nx.appendChild(el('div','v none', ahead.length ? '배정된 CCTV 근무 없음' : '근무표 미생성'));
+    nx.appendChild(el('div','k', ahead.length ? '생성된 근무표('+esc(calMd(ahead[ahead.length-1]))+'까지)에 앞으로 잡힌 CCTV 근무가 없습니다.'
+                                                : esc(calMd(today))+'부터 아직 근무표가 만들어지지 않았습니다.'));
+    if(nextP) nx.appendChild(el('div','pre',esc(mdw(nextP.date))+' 17:00 추가 순찰이 있습니다.'));
   }
   box.appendChild(nx);
-  box.appendChild(el('div','band-h','내 일정<span class="r">오늘부터 2주</span>'));
-  box.appendChild(list);
-  if(noSchedFrom && !list.children.length) box.appendChild(el('div','muted','앞으로 2주 안에 생성된 근무표가 없습니다.'));
-  else if(noSchedFrom) box.appendChild(el('div','hint', Number(noSchedFrom.slice(5,7))+'/'+Number(noSchedFrom.slice(8))+'부터는 근무표가 아직 생성되지 않았습니다.'));
 
-  // 부대 평균과 비교 — [카운트 › 공정성]과 같은 지표·같은 평균 대상(전체 기간, 각자 분모로 나눈 배정률)
-  const fair=activeWorkers().filter(x=>inAvgPool(x, st, minDaysFor(Object.keys(DB.schedules).length)));
-  const metrics=fairMetrics(st);
-  { const bh=el('div','band-h','부대 평균과 비교<span class="r">전체 기간</span>'); bh.style.marginTop='16px'; box.appendChild(bh); }
+  // 3) 오늘 — 실제 날짜 기준(어제 표의 새벽 칸 포함) + 오늘 밤~내일 새벽
+  box.appendChild(renderMineToday(w, today, now));
+
+  // 4) 지난 확인 이후 변경 (있을 때만)
+  const ch=renderMineChanges(w, today, ST.fresh);
+  if(ch) box.appendChild(ch);
+
+  // 5) 내일 · 이번 주
+  box.appendChild(renderMineTomorrow(w, today));
+  box.appendChild(renderMineWeek(w, today));
+
+  // 6) 이후 · 지난 · 통계 · 계정 (접어 둠)
+  box.appendChild(mineDetails('later','이후 일정 (다음 주부터)', ()=>renderMineRange(w, addDays(weekStartOf(today),7), addDays(today,27), false)));
+  box.appendChild(mineDetails('past','지나간 근무 (최근 7일)', ()=>renderMineRange(w, addDays(today,-7), addDays(today,-1), true)));
+  box.appendChild(mineDetails('stats','내 통계와 배정 기준', ()=>renderMineStats(w)));
+  box.appendChild(mineDetails('acct','계정', ()=>renderMineAcct(legacy)));
+}
+function weekStartOf(ds){ return addDays(ds, -dow(ds)); }
+function mineDetails(id, title, build){
+  const d=el('details','adv mine-d'); d.open=!!MINE.open[id];
+  d.appendChild(el('summary',null,esc(title)));
+  const body=el('div','mine-db'); d.appendChild(body);
+  const fill=()=>{ if(!body.dataset.done){ body.dataset.done='1'; body.appendChild(build()); } };
+  if(d.open) fill();
+  d.addEventListener('toggle',()=>{ MINE.open[id]=d.open; if(d.open) fill(); });
+  return d;
+}
+/* 항목 한 줄 — 누르면 배정 이유. 시각이 지났어도 '완료'라고 쓰지 않는다 */
+function mineItemRow(it, now){
+  const past = atOf(it.date,it.t) <= now;
+  const b=el('button','mit'+(past?' past':'')); b.type='button';
+  b.appendChild(el('span','t', esc(it.t)));
+  const lab=el('span','lb', esc(itemLabel(it, DB.schedules[it.ds])));
+  if(it.date!==it.ds) lab.appendChild(el('span','dt', esc(calMd(it.date))+' 새벽'));
+  b.appendChild(lab);
+  b.appendChild(el('span','ps', past?'시작 시각 지남':'›'));
+  b.setAttribute('aria-label', it.t+' '+itemLabel(it, DB.schedules[it.ds])+(past?' — 시작 시각 지남':'')+' — 배정 이유 보기');
+  b.addEventListener('click',()=>openWhy(DB.schedules[it.ds], it.key));
+  return b;
+}
+function mineRoleChips(s, wid){
+  const r=personalKeys(s, wid).filter(k=>ROLE_KR[k]);
+  if(!r.length) return null;
+  const d=el('div','mroles'); d.appendChild(el('span','l','역할'));
+  r.forEach(k=>{ const b=el('button','tag '+ROLE_CLS[k], esc(ROLE_KR[k])); b.type='button'; b.addEventListener('click',()=>openWhy(s, k==='R:duty'?'duty':k==='R:sit'?'sit':'meal')); d.appendChild(b); });
+  return d;
+}
+function minePbLines(wid, ds){
+  return prebookOn(ds).filter(p=>p.wid===wid).map(p=>{ const i=pbDayInfo(p,ds); return el('div','mpb','<span class="tag ex">'+esc(i.label)+'</span> '+esc(i.cond)); });
+}
+function renderMineToday(w, today, now){
+  const sec=el('section','mcard'); sec.setAttribute('aria-label','오늘');
+  sec.appendChild(el('h3',null,'오늘 <span class="muted">'+esc(mdw(today))+'</span>'));
+  const yd=addDays(today,-1), sY=DB.schedules[yd], sT=DB.schedules[today];
+  const early = sY ? personalItems(yd, sY, w.id).filter(it=>it.date===today) : [];
+  const todays = sT ? personalItems(today, sT, w.id) : [];
+  const dayItems = early.concat(todays.filter(it=>it.date===today));
+  const nightItems = todays.filter(it=>it.date!==today);
+  minePbLines(w.id, today).forEach(x=>sec.appendChild(x));
+  if(sT){ const rc=mineRoleChips(sT, w.id); if(rc) sec.appendChild(rc); }
+  if(!sT && !sY){ sec.appendChild(el('div','mnone','오늘 근무표 미생성')); return sec; }
+  const remain=dayItems.concat(nightItems).filter(it=>atOf(it.date,it.t)>now);
+  const list=el('div','mits');
+  dayItems.forEach(it=>list.appendChild(mineItemRow(it, now)));
+  if(dayItems.length) sec.appendChild(list);
+  if(!sT) sec.appendChild(el('div','mnone','오늘('+esc(calMd(today))+') 근무표 미생성 — 위는 어제 근무표의 오늘 새벽 근무입니다.'));
+  else if(!remain.length) sec.appendChild(el('div','mnone', todays.length||early.length ? '오늘 남은 CCTV 근무 없음' : '오늘 배정된 CCTV 근무 없음'));
+  if(nightItems.length){
+    sec.appendChild(el('div','msub','오늘 밤 ~ '+esc(mdw(addDays(today,1)))+' 새벽'));
+    const l2=el('div','mits'); nightItems.forEach(it=>l2.appendChild(mineItemRow(it, now))); sec.appendChild(l2);
+  }
+  return sec;
+}
+/* 지난 확인 이후 변경 — 기준이 준비되고 비교 가능할 때만 */
+function renderMineChanges(w, today, fresh){
+  mineEnsureBase(w.id);
+  const from=addDays(today,-1), to=addDays(today,13);
+  const cur=personalSnap(w.id, from, to);
+  let base=MINE.base;
+  if(base===undefined) return MINE.baseSrc==='unavailable' ? el('div','hint','지난 확인 이후 변경 내역을 지금은 확인할 수 없습니다(서버 연결 안 됨).') : null;
+  if(base && base.wid!==w.id) base=null;                       // 연결된 근무자가 바뀜 → 새 기준
+  if(!base){
+    // 최초 사용: 지금 일정을 기준으로(과거 배정 전체를 변경으로 만들지 않음). 서버 최신일 때만 만든다
+    if(fresh && MINE.baseSrc!=='cache'){ MINE.base=cur; mineSaveBase(cur).catch(()=>{}); }
+    return null;
+  }
+  if(fresh){ const r=rollPersonal(base, cur); if(r!==base){ MINE.base=base=r; if(!MINE.saving) mineSaveBase(r).catch(()=>{}); } }
+  const changes=diffPersonal(base, cur, fresh);
+  if(!changes.length) return MINE.saveErr ? el('div','err',esc(MINE.saveErr)) : null;
+  const shown=cur, shownFresh=fresh;                            // 사용자가 지금 보는 범위 — 확인은 이것까지만
+  const sec=el('section','mcard mchg'); sec.setAttribute('aria-label','지난 확인 이후 바뀐 내 근무');
+  const n=changes.length;
+  sec.appendChild(el('h3',null,'지난 확인 이후 바뀐 내 근무 <span class="cnt">'+n+'건</span>'));
+  sec.appendChild(el('p','smallnote','마지막으로 확인한 뒤 새로 발견된 변경입니다(수정된 정확한 시각은 기록되지 않습니다).'));
+  const T={add:['+','새로 배정'], remove:['−','배정 해제'], new:['+','새 근무표에 배정'], gone:['−','근무표가 없어짐']};
+  const byDs={};
+  changes.forEach(c=>(byDs[c.ds]=byDs[c.ds]||[]).push(c));
+  Object.keys(byDs).sort().forEach(ds=>{
+    const g=el('div','mchg-g');
+    g.appendChild(el('div','dh', esc(mdw(ds))+' 근무표'));
+    byDs[ds].sort((a,b)=>a.type<b.type?-1:1).forEach(c=>{
+      const [sym,lab]=T[c.type];
+      const role=!!ROLE_KR[c.key];
+      const txt = role ? (c.type==='add'||c.type==='new' ? ROLE_KR[c.key]+(c.key==='R:meal'?'로':'으로')+' 지정' : ROLE_KR[c.key]+' 지정 해제') : keyText(c.key);
+      // 번초는 한 건으로 세고, 연결된 두 시각을 실제 날짜와 함께 보여 준다(자정 이후는 다음날)
+      const shown = c.key[0]==='N' ? c.key.slice(2)+'번초 · '+keyTimes(c.key).map(t=>realDateOf(ds,t)!==ds?calMd(realDateOf(ds,t))+' '+t:t).join(', ') : txt;
+      g.appendChild(el('div','ci '+(c.type==='add'||c.type==='new'?'plus':'minus'),'<span class="sym" aria-hidden="true">'+sym+'</span><span class="lb">'+esc(role?'역할 변경':lab)+'</span><span class="tx">'+esc(shown)+'</span>'));
+    });
+    sec.appendChild(g);
+  });
+  if(MINE.saveErr) sec.appendChild(el('div','err',esc(MINE.saveErr)));
+  const ok=el('button','btn full', MINE.saving?'저장 중…':'확인했어요'); ok.type='button'; ok.disabled=MINE.saving;
+  ok.addEventListener('click',()=>{
+    const nb=ackPersonal(base, shown, shownFresh);
+    MINE.saving=true; MINE.saveErr=''; renderMine();
+    mineSaveBase(nb).then(()=>{ MINE.saving=false; MINE.base=nb; renderMineIfShown(); },
+                          e=>{ MINE.saving=false; MINE.saveErr=mineSaveMsg(e); renderMineIfShown(); });
+  });
+  sec.appendChild(ok);
+  return sec;
+}
+function mineDaySummary(w, ds){
+  const s=DB.schedules[ds];
+  const pbs=prebookOn(ds).filter(p=>p.wid===w.id);
+  const box=el('div','mday2');
+  pbs.forEach(p=>{ const i=pbDayInfo(p,ds); box.appendChild(el('div','mpb','<span class="tag ex">'+esc(i.label)+'</span> '+esc(i.cond))); });
+  if(!s){ box.appendChild(el('div','mnone','근무표 미생성')); return box; }
+  const rc=mineRoleChips(s, w.id); if(rc) box.appendChild(rc);
+  const its=personalItems(ds, s, w.id);
+  if(!its.length){ box.appendChild(el('div','mnone', pbs.length?'배정된 CCTV 근무 없음 (위 일정 참고)':'배정된 CCTV 근무 없음')); return box; }
+  const l=el('div','mits'); its.forEach(it=>l.appendChild(mineItemRow(it, new Date()))); box.appendChild(l);
+  return box;
+}
+function renderMineTomorrow(w, today){
+  const t=addDays(today,1);
+  const sec=el('section','mcard'); sec.setAttribute('aria-label','내일');
+  sec.appendChild(el('h3',null,'내일 <span class="muted">'+esc(mdw(t))+'</span>'));
+  sec.appendChild(mineDaySummary(w, t));
+  return sec;
+}
+/* 이번 주 — 개인 달력(공용 달력과 같은 표시 규칙) + 선택한 날 상세. 공용 달력 선택 상태는 건드리지 않는다 */
+function renderMineWeek(w, today){
+  const sec=el('section','mcard'); sec.setAttribute('aria-label','이번 주');
+  const ws=addDays(weekStartOf(today), 7*MINE.weekOff), we=addDays(ws,6);
+  if(!MINE.sel || MINE.sel<ws || MINE.sel>we) MINE.sel = (today>=ws && today<=we) ? today : ws;
+  const hd=el('div','mwk-h');
+  const pv=el('button','btn ghost sm','◀'); pv.type='button'; pv.setAttribute('aria-label','이전 주'); pv.addEventListener('click',()=>{ MINE.weekOff--; MINE.sel=null; renderMine(); });
+  const nxb=el('button','btn ghost sm','▶'); nxb.type='button'; nxb.setAttribute('aria-label','다음 주'); nxb.addEventListener('click',()=>{ MINE.weekOff++; MINE.sel=null; renderMine(); });
+  hd.appendChild(el('h3',null,(MINE.weekOff===0?'이번 주':MINE.weekOff===1?'다음 주':MINE.weekOff===-1?'지난주':'')+' <span class="muted">'+esc(calMd(ws)+' – '+calMd(we))+'</span>'));
+  hd.appendChild(el('span','sp')); hd.appendChild(pv);
+  if(MINE.weekOff!==0){ const tb=el('button','btn ghost sm','이번 주'); tb.type='button'; tb.addEventListener('click',()=>{ MINE.weekOff=0; MINE.sel=null; renderMine(); }); hd.appendChild(tb); }
+  hd.appendChild(nxb);
+  sec.appendChild(hd);
+  const grid=el('div','cal-grid mwk');
+  DOW_KR.forEach(d=>grid.appendChild(el('div','cal-dow',d)));
+  for(let i=0;i<7;i++){
+    const ds=addDays(ws,i), wd=dow(ds), hn=holidayName(ds);
+    const c=el('button','cal-cell'+(ds===today?' today':'')+(ds===MINE.sel?' sel':'')); c.type='button';
+    c.setAttribute('aria-pressed', ds===MINE.sel?'true':'false');
+    const dn=el('div','cal-d'+(wd===0?' sun':wd===6?' sat':'')+(hn?' hd':'')); dn.appendChild(el('span',null,String(Number(ds.slice(8))))); c.appendChild(dn);
+    calCellWords(ds,'person',w.id).slice(0,3).forEach(x=>c.appendChild(el('div','cw '+x.cls, esc(x.t))));
+    c.setAttribute('aria-label', mdw(ds)+' — '+calCellWords(ds,'person',w.id).map(x=>x.t).join(', '));
+    c.addEventListener('click',()=>{ MINE.sel=ds; renderMine(); });
+    grid.appendChild(c);
+  }
+  sec.appendChild(grid);
+  const ds=MINE.sel;
+  const det=el('div','mwk-d');
+  det.appendChild(el('div','dh','<b>'+esc(mdw(ds))+'</b>'+(holidayName(ds)?' <span class="pill">'+esc(holidayName(ds))+'</span>':'')));
+  det.appendChild(mineDaySummary(w, ds));
+  const acts=el('div','flexgap');
+  const gv=el('button','btn ghost sm','이 날 근무표 전체'); gv.type='button';
+  gv.addEventListener('click',()=>{ MINE.userNav=true; $('#vDate').value=ds; renderView(); showView('view'); });
+  const gc=el('button','btn ghost sm','달력에서 보기'); gc.type='button';
+  gc.addEventListener('click',()=>{ MINE.userNav=true; calYM=ds.slice(0,7); calSelDate=ds; showView('cal'); });
+  acts.appendChild(gv); acts.appendChild(gc); det.appendChild(acts);
+  sec.appendChild(det);
+  return sec;
+}
+/* 날짜 범위의 내 근무 (이후 일정 · 지나간 근무) */
+function renderMineRange(w, from, to, past){
+  const box=el('div');
+  if(past) box.appendChild(el('p','smallnote','근무표 기록상 배정입니다. 실제로 근무를 섰는지는 이 앱이 기록하지 않습니다.'));
+  let any=false;
+  for(let d=from; d<=to; d=addDays(d,1)){
+    const s=DB.schedules[d], pbs=prebookOn(d).filter(p=>p.wid===w.id);
+    if(!s && !pbs.length) continue;
+    const its=s?personalKeys(s,w.id):[];
+    if(s && !its.length && !pbs.length) continue;
+    any=true;
+    const r=el('div','mrange');
+    r.appendChild(el('div','dh',esc(mdw(d))));
+    r.appendChild(mineDaySummary(w, d));
+    box.appendChild(r);
+  }
+  if(!any){
+    const tables=Object.keys(DB.schedules).filter(d=>d>=from&&d<=to).length;
+    box.appendChild(el('div','mnone', tables ? '이 기간에 배정된 CCTV 근무 없음' : '이 기간 근무표 미생성'));
+  }
+  return box;
+}
+/* 통계 — 최근 4주/전체 기간. 분자·분모를 그 기간 근무표로 함께 계산(공정성 탭과 같은 기준) */
+function renderMineStats(w){
+  const box=el('div');
+  box.appendChild(el('div','mstat-why','<b>배정 기준</b><ul>'
+    +'<li>당직·상황병·18:30~21:30 등은 역할에 따라 고정으로 정해집니다.</li>'
+    +'<li>06:30은 배정률이 낮은 순서로 도는 순번제입니다.</li>'
+    +'<li>나머지 칸은 그날 칸 수를 고르게 한 뒤, 이 시간대·야간·밥교대·순찰 배정률과 하루 평균 근무시간이 낮은 사람부터 들어갑니다.</li>'
+    +'<li>각 근무 항목을 누르면 그 칸의 배정 이유(현재 기록 기준 참고 설명)를 볼 수 있습니다.</li></ul>'));
+  const seg=el('div','seg'); seg.setAttribute('role','tablist');
+  [['4w','최근 4주'],['all','전체 기간']].forEach(([k,t])=>{ const b=el('button',MINE.period===k?'on':'',t); b.type='button'; b.setAttribute('aria-selected',MINE.period===k?'true':'false');
+    b.addEventListener('click',()=>{ MINE.period=k; const d=b.closest('.mine-db'); d.innerHTML=''; d.appendChild(renderMineStats(w)); }); seg.appendChild(b); });
+  box.appendChild(seg);
+  const today=todayStr();
+  const range = MINE.period==='4w' ? {from:addDays(today,-27), to:today} : null;
+  const dates=Object.keys(DB.schedules).filter(d=>!range || (d>=range.from && d<=range.to)).sort();
+  const st=buildStats(null, range), r=st[w.id];
+  const minD=minDaysFor(dates.length);
+  const pool=activeWorkers().filter(x=>inAvgPool(x, st, minD));
+  const rangeTxt = dates.length ? calMd(range?range.from:dates[0])+' ~ '+calMd(range?range.to:dates[dates.length-1])+' (근무표 '+dates.length+'일)' : '근무표 없음';
+  box.appendChild(el('p','smallnote','비교 기간: '+esc(rangeTxt)+' · 비교 대상: 신병·운항병을 뺀 활성 근무자 중 그 기간 근무일 '+minD+'일 이상인 '+pool.length+'명 · 계산: 각자 근무표에 포함된 날(분모) 대비 배정 횟수(분자) — [카운트 › 공정성]과 같은 기준'));
+  if(!r || !r.denom){ box.appendChild(el('div','mnone','이 기간에 내가 포함된 근무표가 없어 계산할 수 없습니다.')); return box; }
+  box.appendChild(el('div','mstat-sum','근무표에 포함된 날 <b>'+r.denom+'일</b> · 집계 근무시간 <b>'+r.hours.toFixed(1)+'h</b> · 하루 평균 <b>'+avgHours(r).toFixed(2)+'h</b>'
+    +'<span class="muted"> (집계 시간은 07:30·17:30의 순찰 가중을 포함한 공정성 계산용 값)</span>'));
   if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+'은(는) 배정 방식이 달라 평균 계산에서 빠져 있습니다. 평균보다 높거나 낮게 나오는 게 정상일 수 있습니다.'));
-  else if(!inAvgPool(w, st, minDaysFor(Object.keys(DB.schedules).length))) box.appendChild(el('p','smallnote','근무표에 포함된 날이 '+r.denom+'일로 적어(최소 '+minDaysFor(Object.keys(DB.schedules).length)+'일) 부대 평균 계산에서는 빠져 있습니다. 내 값은 그대로 보여줍니다.'));
-  metrics.forEach(([label,unit,dec,f])=>{
+  else if(!inAvgPool(w, st, minD)) box.appendChild(el('p','smallnote','이 기간 근무일이 '+r.denom+'일로 적어(최소 '+minD+'일) 평균 계산에서는 빠져 있습니다. 내 값은 그대로 보여 줍니다.'));
+  const guard=f=> x=> (st[x.id] && st[x.id].denom>0) ? f(x) : null;
+  fairMetrics(st).forEach(([label,unit,dec,f0])=>{
+    const f=guard(f0);
     if(label.startsWith('밥교대') && !w.canMeal && !r.mealNum) return;
-    const mine=f(w);
-    const vals=fair.map(f).filter(x=>x!=null);                             // 평균은 나를 포함(카운트 탭과 같게)
-    const others=fair.filter(x=>x.id!==w.id).map(f).filter(x=>x!=null);    // 회색 점은 다른 근무자만
-    if(!vals.length && mine==null) return;
-    const all=mine==null?vals:vals.concat([mine]);
-    const mn=Math.min(...all), mx=Math.max(...all), avg=vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-    const pos=x=> mx===mn ? 50 : (x-mn)/(mx-mn)*100;
+    const mine=f(w), vals=pool.map(f).filter(x=>x!=null), others=pool.filter(x=>x.id!==w.id).map(f).filter(x=>x!=null);
     const fmt=x=> dec? x.toFixed(dec) : String(Math.round(x));
     const card=el('div','strip cmp');
     const row1=el('div','row1');
     row1.appendChild(el('b',null,esc(label)));
-    row1.appendChild(el('span','me', mine==null?'–':fmt(mine)+unit));
+    row1.appendChild(el('span','me', mine==null?'기록 없음':fmt(mine)+unit));
     row1.appendChild(el('span','sp'));
-    if(avg!=null){
-      const df=mine==null?null:mine-avg;
-      row1.appendChild(el('span','avg','부대 평균 '+fmt(avg)+unit+(df==null?'':' · '+(df>=0?'+':'')+(dec?df.toFixed(dec):Math.round(df))+(unit==='%'?'%p':unit))));
-    }
+    const avg=vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    row1.appendChild(el('span','avg', avg==null ? '비교 대상 없음' : '평균 '+fmt(avg)+unit+(mine==null?'':' · '+(mine-avg>=0?'+':'')+(dec?(mine-avg).toFixed(dec):Math.round(mine-avg))+(unit==='%'?'%p':unit))));
     card.appendChild(row1);
+    if(mine==null && !vals.length){ box.appendChild(card); return; }
+    const all=mine==null?vals:vals.concat([mine]);
+    const mn=Math.min(...all), mx=Math.max(...all), pos=x=> mx===mn ? 50 : (x-mn)/(mx-mn)*100;
     const seen={}, lvl=others.map(x=>{ const k=fmt(x); return (seen[k]=(seen[k]||0)+1)-1; });
     const H=22+Math.max(0,...lvl)*13;
-    const ax=el('div','ax'); ax.style.height=H+'px';
+    const ax=el('div','ax'); ax.style.height=H+'px'; ax.setAttribute('aria-hidden','true');
     if(avg!=null) ax.appendChild(el('span','m')).style.left=pos(avg)+'%';
     others.forEach((x,i)=>{ const d=el('span','d o'); d.style.left=pos(x)+'%'; d.style.top=(H-17-lvl[i]*13)+'px'; ax.appendChild(d); });
-    if(mine!=null){ const d=el('span','d me'); d.style.left=pos(mine)+'%'; d.style.top=(H-18)+'px'; d.title='나'; ax.appendChild(d); }
+    if(mine!=null){ const d=el('span','d me'); d.style.left=pos(mine)+'%'; d.style.top=(H-18)+'px'; ax.appendChild(d); }
     card.appendChild(ax);
     card.appendChild(el('div','ends','<span>'+fmt(mn)+unit+'</span><span>● 나 · 회색 = 다른 근무자</span><span>'+fmt(mx)+unit+'</span>'));
     box.appendChild(card);
   });
+  return box;
 }
+function renderMineAcct(legacy){
+  const box=el('div');
+  const api=window.MEMBER_API, info=api&&api.info();
+  if(info && info.email) box.appendChild(el('p','smallnote','로그인: '+esc(info.email)+(legacy?' (공용 열람 계정)':'')));
+  if(api){ const b=el('button','btn ghost','로그아웃'); b.type='button'; b.addEventListener('click',()=>{ if(confirm('로그아웃할까요?')) mineLogout(); }); box.appendChild(b); }
+  else box.appendChild(el('p','smallnote','서버에 연결되지 않아 계정 정보를 확인할 수 없습니다.'));
+  return box;
+}
+/* 남은 시간 — 화면을 켜 둔 동안 30초마다 글자만 갱신(통계는 다시 계산하지 않음), 다음 근무 시각이 지나거나 날짜가 바뀌면 다시 그림 */
+function tickMine(){
+  if(!$('#mine') || !$('#mine').classList.contains('on') || document.hidden) return;
+  if(MINE.renderDay!==todayStr() || (MINE.nextAt && Date.now()>=MINE.nextAt)){ renderMine(); return; }
+  const now=Date.now();
+  $$('#mineBody [data-at]').forEach(e=>{ e.textContent=relTime(Number(e.dataset.at)-now); });
+}
+setInterval(tickMine, 30000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) tickMine(); });
 
 /* 더보기 메뉴 — 항목 옆에 현재 상태 표시 */
 function renderMore(){
   const ro=document.body.classList.contains('ro');
   const logged=$('#syLogout') && $('#syLogout').style.display!=='none';
   $('#mAvatar').textContent = ro?'열': logged?'관':'로';
-  $('#mAcct').textContent = ro ? (window.MY_WORKER ? nameOf(window.MY_WORKER) : '구성원 로그인') : logged?'관리자 로그인':'로컬 모드';
-  $('#mAcctSub').textContent = ro?'열람 전용 · 실시간 갱신': logged?'동기화 연결됨 · 저장 시 자동 업로드':'이 기기에만 저장 중 · 눌러서 로그인';
+  const guest=document.body.classList.contains('guest');
+  $('.acct').dataset.go = (ro||guest) ? 'mine' : 'sync';
+  $('#mAcct').textContent = ro ? (window.MY_WORKER ? nameOf(window.MY_WORKER) : '구성원 로그인') : logged?'관리자 로그인': guest?'내 근무 보기':'로컬 모드';
+  $('#mAcctSub').textContent = ro?'열람 전용 · 내 근무·계정': logged?'동기화 연결됨 · 저장 시 자동 업로드': guest?'구성원 로그인 · 가입':'이 기기에만 저장 중 · 눌러서 로그인';
   $('#mAcctSub').classList.toggle('cta', !ro && !logged);
   const sy=$('#mSync'); sy.textContent = ro?'열람 전용': logged?'연결됨':'미연결'; sy.className='mv'+(logged||ro?' okv':'');
   const st=buildStats(null,null);
@@ -3194,17 +3745,28 @@ function init(){
   $('#vDate').value = L||todayStr();
   $('#gDate').value = L? addDays(L,1) : todayStr();
   applyTheme(themePref());
+  // 지난번 이 기기에서 구성원으로 로그인했다면: 인증을 확인하는 동안 관리자 화면 대신 내 근무('확인 중')를 먼저 보여 준다
+  const hint=roleHint();
+  if(hint && hint.role==='member' && hint.wid){ document.body.classList.add('ro'); window.MY_WORKER=hint.wid; MINE.routed=true; showView('mine'); }
   refreshAll();
 }
 init();
+/* 서버 연결 스크립트까지 다 읽은 뒤: 연결 설정이 없어졌으면 구성원 임시 화면을 되돌린다 */
+window.addEventListener('load',()=>{
+  if(window.SYNC_UNAVAILABLE==='nocfg' && document.body.classList.contains('ro')){
+    document.body.classList.remove('ro'); window.MY_WORKER=null;
+    try{ localStorage.removeItem(HINT_KEY_UI); }catch(e){}
+    showView('view'); refreshAll();
+  }else if(window.SYNC_UNAVAILABLE) renderMineIfShown();
+});
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.9.0"></script>
+<script src="firebase-config.js?v=7.0.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.9.0"></script>
+<script src="sync.js?v=7.0.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

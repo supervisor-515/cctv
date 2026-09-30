@@ -94,6 +94,18 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/members/$(request.auth.uid)).data.workerId == workerId);
       allow update, delete: if isAdmin();
     }
+    // 구성원 개인 확인 상태(내 근무의 '지난 확인 이후 변경' 기준) — 본인만 읽고 쓴다.
+    // 본인 연결(members)의 근무자와 같은 wid만, 정해진 필드만 허용. 근무표(roster) 쓰기 권한과는 무관
+    match /personal/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['wid', 'base', 'savedAt'])
+        && request.resource.data.wid is string
+        && request.resource.data.base is string && request.resource.data.base.size() <= 20000
+        && request.resource.data.savedAt == request.time
+        && get(/databases/$(database)/documents/members/$(uid)).data.workerId == request.resource.data.wid;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
     // 서버 백업(최근 10회) — 관리자만. 본문은 parts 하위 문서에 나눠 저장
     match /backups/{id} {
       allow read, write: if isAdmin();
@@ -138,9 +150,10 @@ service cloud.firestore {
   - 처음 한 번 같은 화면의 **부대 코드**를 정해 저장하세요(8자 이상). 이 코드를 구성원에게 알려줍니다.
   - **가입자 관리**에서 잘못 고른 사람은 [연결 변경], 전역·전출자는 [해제]합니다.
     로그인 계정 자체의 삭제는 Firebase 콘솔 → Authentication에서 합니다.
-- **구성원**: 같은 화면에서 [회원가입] → 이메일·비밀번호·부대 코드 입력 → 본인 선택.
-  이후 화면 상단에 "열람 전용" 배지가 뜨고 실시간으로 갱신되며, [내 근무] 탭에서
-  다가오는 근무와 부대 평균 대비 내 배정률을 볼 수 있습니다.
+- **구성원**: 앱 하단의 **[내 근무]** 탭 → [처음이에요 · 가입] → ① 이메일·비밀번호 → ② 부대 코드 →
+  ③ 본인 이름 선택. 이미 가입했다면 같은 화면에서 로그인(비밀번호 표시·재설정 메일 지원).
+  이후에는 앱을 열면 로그인 상태를 확인하고 곧바로 내 근무(다음 근무·오늘·바뀐 근무·이번 주)로 들어갑니다.
+  바뀐 근무의 '확인했어요' 상태는 `personal/{uid}`에 본인만 저장합니다(4번 규칙).
 - **전환 순서**: ① 새 규칙 게시(공용 계정은 `isLegacyViewer`에 남겨 둠) → ② 행보관이 부대 코드
   저장 → ③ 구성원 가입 → ④ 모두 가입하면 `isLegacyViewer` 목록을 `[]`로 비우고 다시 게시.
 - 로그인 상태는 브라우저에 유지되므로 매번 로그인할 필요는 없습니다.
@@ -164,6 +177,7 @@ service cloud.firestore {
 | 가입 시 "부대 코드가 올바르지 않습니다" | 코드 오타 또는 행보관이 코드를 바꿈. [더보기 › 서버 동기화]의 현재 코드 확인 |
 | 본인 선택 시 "선택 실패" | 그 근무자에 이미 다른 계정이 연결됨. 행보관이 가입자 관리에서 해제 후 다시 선택 |
 | 관리자 화면에 "부대 코드 불러오기 실패" | 새 보안 규칙(4번)이 아직 게시되지 않음 |
+| 내 근무에서 [확인했어요]가 "권한이 없습니다" | 4번 규칙에 `personal` 부분이 없음(v7.0.0 이전 규칙). 4번 규칙을 다시 붙여넣고 게시 |
 | 생성 후 "서버 백업 실패: 권한 없음" | 4번 규칙에 `backups` 부분이 없음(v6.8.0 이전 규칙). 4번 규칙을 다시 붙여넣고 게시 |
 | 가입자 관리 [연결 변경]이 "Missing or insufficient permissions" | 예전 규칙(claims 생성에 관리자 경로 없음)을 쓰는 중. 4번 규칙을 다시 붙여넣고 게시 |
 | 구성원인데 편집 화면이 보임 | [연결 설정]의 관리자 이메일이 비어 있거나 본인 이메일로 되어 있음 |

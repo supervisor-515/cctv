@@ -1231,11 +1231,13 @@ function generateDay(input){
     .filter(id=> id!==ctx.mealId); // 밥교대는 기본 야간 제외 (부족 시에만 폴백 투입)
   const vars = dayVars.concat(nightVars);
   // 시간대 열외는 칸마다 다르므로 도메인을 변수별로 거른다.
-  // solve()·1-opt는 domains[i]를 그대로 돌고 2-opt도 domains 포함 여부를 검사하므로 여기 한 곳이면 된다.
-  const domains = vars.map(v=>{
+  // solve()·1-opt는 domains[i]를 그대로 돌고 2-opt도 domains 포함 여부를 검사한다.
+  // 도메인은 반드시 이 함수로만 만든다 — 폴백(밥교대 야간 투입) 재시도에서도 같은 필터가 적용돼야 한다.
+  const buildDomains = (nightExtra=[]) => vars.map(v=>{
     const unit = exUnitOf(v);
-    return (v.type==='day'? dayCand : nightCand).filter(id=> !slotExcluded(ctx, id, unit));
+    return (v.type==='day'? dayCand : nightCand.concat(nightExtra)).filter(id=> !slotExcluded(ctx, id, unit));
   });
+  const domains = buildDomains();
 
   // 당일 부하 사전 반영: 고정 역할 슬롯(14:30·17:30·18:30·19:30·20:30·21:30).
   // 이렇게 해야 '고정까지 포함해 하루 균등'이 되고, 다음날 상황/당직병(주간 후보엔 들어감)이 주간을 덧받지 않음.
@@ -1271,7 +1273,7 @@ function generateDay(input){
   const filledCnt = a => Object.values(a).filter(Boolean).length;
   const nightUnfilled = a => nightVars.some(v=> !a['N'+v.bunchoId]);
   if(ctx.mealId && !mealNightExcluded && nightUnfilled(run.assign)){
-    const domains2 = vars.map(v=> v.type==='day'? dayCand.slice() : nightCand.concat([ctx.mealId]));
+    const domains2 = buildDomains([ctx.mealId]);
     const run2 = runLadder(domains2);
     if(run2.tier<5 || filledCnt(run2.assign) > filledCnt(run.assign)){
       run = run2; usedDomains = domains2;

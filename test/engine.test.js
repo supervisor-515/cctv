@@ -179,6 +179,34 @@ test('순찰 후보: 16:30 열외자만 빠진다', () => {
   assert.ok(ids.includes(ws[1].id), '순찰과 무관한 열외자가 순찰 후보에서 빠짐');
 });
 
+test('시간대 열외: 야간 부족 폴백(밥교대 야간 투입) 재시도에서도 열외 칸에 배정하지 않는다', () => {
+  // 회귀: 폴백 재시도용 도메인을 다시 만들면서 시간대 열외 필터가 빠져, 열외 칸에 사람이 들어갔다.
+  let a = 12345;   // 테스트 안에서만 쓰는 고정 시드 난수(부대 구성·열외를 다양하게 만들기 위함)
+  const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const units = [...E.DAY_SLOTS, 'N1', 'N2', 'N3', 'N4'];
+  let fallbacks = 0;
+  for (let k = 0; k < 60; k++) {
+    const n = 5 + Math.floor(rnd() * 5);
+    const ws = roster(n, 0, 'f' + k + '_');
+    E.setDB(freshDB({ workers: ws }));
+    // 전날 야간자를 둬서 오늘 야간 후보를 줄인다 → 폴백이 자주 일어나게
+    const prev = { date: '2026-06-02', assign: {}, fixed: {}, night: {}, activeIds: ws.map(w => w.id), dayEx: [], nightEx: [], bothEx: [], mealId: null };
+    [1, 2, 3, 4].forEach(b => { if (rnd() < 0.7) prev.night[b] = ws[Math.floor(rnd() * n)].id; });
+    E.getDB().schedules['2026-06-02'] = prev; E.invalidateStats();
+    const inp = E.autoInputFor('2026-06-03');
+    inp.mealId = ws[Math.floor(rnd() * n)].id;
+    const slotEx = {};
+    ws.forEach(w => { if (rnd() < 0.5) slotEx[w.id] = units.filter(() => rnd() < 0.4); });
+    inp.slotEx = slotEx;
+    const s = E.generateDay(inp);
+    if ((s.warnings || []).some(w => /밥교대 인원을 야간/.test(w))) fallbacks++;
+    const ctx = { slotEx: E.normSlotEx(slotEx) };
+    E.DAY_SLOTS.forEach(sl => { const id = s.assign[sl]; assert.ok(!(id && E.slotExcluded(ctx, id, sl)), `#${k} ${id}가 열외한 ${sl}에 배정됨`); });
+    [1, 2, 3, 4].forEach(b => { const id = s.night[b]; assert.ok(!(id && E.slotExcluded(ctx, id, 'N' + b)), `#${k} ${id}가 열외한 ${b}번초에 배정됨`); });
+  }
+  assert.ok(fallbacks > 0, '폴백 경로가 한 번도 실행되지 않아 검증이 안 됨');
+});
+
 test('validateSchedule: 시간대 열외 위반을 잡아낸다', () => {
   const ws = roster(14);
   E.setDB(freshDB({ workers: ws }));

@@ -973,6 +973,38 @@ test('유조차 운전병: 월~목 완전 열외, 금 야간 1번초·토/일 12
   assert.ok(worked > 0, '유조차 부분근무가 한 번도 안 잡힘');
 });
 
+test('유조차 부분근무도 사용자가 지정한 시간대 열외는 지킨다 (전체 열외 예외와 구분)', () => {
+  // 회귀: 유조차 사전배정이 slotEx를 보지 않았고, 검증도 '유조차 허용 칸'이라며 시간대 열외 검사를 건너뛰었다.
+  const ws = roster(14);
+  const fuel = ws[0];
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' }));
+  E.invalidateStats();
+  // 토요일(6/20): 12:30~16:30 전부 시간대 열외 → 유조차 주간칸을 설 자리가 없다
+  const sat = E.autoInputFor('2026-06-20');
+  sat.slotEx = { [fuel.id]: ['12:30', '13:30', '14:30', '15:30', '16:30'] };
+  const s = E.generateDay(sat);
+  assert.deepEqual(daySlotsOf(s, fuel.id), [], '시간대 열외한 오후 칸에 유조차 근무가 배정됨');
+  // 일부만 열외(12:30·13:30) → 나머지 오후 칸 중 하나에만
+  const sun = E.autoInputFor('2026-06-21');
+  sun.slotEx = { [fuel.id]: ['12:30', '13:30'] };
+  const s2 = E.generateDay(sun);
+  const got = daySlotsOf(s2, fuel.id);
+  assert.equal(got.length, 1);
+  assert.ok(!['12:30', '13:30'].includes(got[0]), '열외한 칸에 배정됨: ' + got[0]);
+  // 금요일 야간: 1번초만 남기고 나머지 번초 열외 → 그 번초에만
+  const fri = E.autoInputFor('2026-06-19');
+  fri.slotEx = { [fuel.id]: ['N2', 'N3', 'N4'] };
+  const s3 = E.generateDay(fri);
+  const nights = E.NIGHT_BUNCHO.filter(b => s3.night[b.id] === fuel.id).map(b => b.id);
+  assert.ok(nights.every(b => b === 1), '열외한 번초에 배정됨: ' + nights.join(','));
+  // 검증: 억지로 열외 칸에 넣으면 유조차여도 잡아야 한다
+  const forced = JSON.parse(JSON.stringify(s));
+  forced.assign['14:30'] = fuel.id; delete forced.fixed['14:30'];
+  forced.fuelId = fuel.id;
+  assert.ok(E.validateSchedule(forced).some(m => m.includes('14:30 시간대 열외인데 배정됨')), '검증이 유조차 칸의 시간대 열외 위반을 놓침');
+});
+
 test('fuelAllowedOn: 금=야간만, 토·일=12:30 이후 주간만, 월~목=없음', () => {
   assert.deepEqual(E.fuelAllowedOn('2026-06-19'), { day: [], night: true });            // 금
   assert.deepEqual(E.fuelAllowedOn('2026-06-20'), { day: E.FUEL_DAY_SLOTS, night: false }); // 토

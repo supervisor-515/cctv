@@ -1537,6 +1537,40 @@ function repairRoleChange(sched, kind, newId){
 /* 칸 키를 사람이 읽는 이름으로 */
 function repairKeyLabel(k){ return k==='P' ? '17:00 순찰' : k[0]==='D' ? k.slice(2) : k.slice(2)+'번초'; }
 
+/* 근무표 편집용 칸 키 — 'D:hh:mm' 주간, 'P' 17:00 순찰, 'E:hh:mm' 저녁 고정, 'N:b' 번초,
+   'duty'·'sit' 역할 지정. (밥교대는 연쇄 조정이 필요해 repairRoleChange로 바꾼다) */
+const SCHED_KEYS = [...DAY_SLOTS.map(sl=>'D:'+sl), 'P', ...EVENING.map(sl=>'E:'+sl),
+                    ...NIGHT_BUNCHO.map(b=>'N:'+b.id), 'duty', 'sit', 'meal', 'nextMeal'];
+function schedKeyGet(s, k){
+  if(k==='P') return s.patrolExtra||null;
+  if(k==='duty') return s.dutyId||null;
+  if(k==='sit') return s.situationId||null;
+  if(k==='meal') return s.mealId||null;
+  if(k==='nextMeal') return s.nextMealId||null;
+  const x=k.slice(2);
+  if(k[0]==='D') return (s.assign&&s.assign[x]) || (s.fixed&&s.fixed[x]) || null;
+  if(k[0]==='E') return (s.fixed&&s.fixed[x]) || null;
+  return (s.night&&s.night[x]) || null;
+}
+/* 칸 하나만 바꾼다(s를 직접 수정). 주간 고정칸(당일 상황 14:30, 금 13:30)은 orig(편집 전 표)
+   기준으로 고정칸이면 fixed에만 두고 assign은 지워 한 사람만 집계되게 한다. */
+function schedKeySet(s, k, id, orig){
+  id = id || null;
+  s.assign=s.assign||{}; s.fixed=s.fixed||{}; s.night=s.night||{};
+  const put=(o,x)=>{ if(id) o[x]=id; else delete o[x]; };
+  if(k==='P'){ s.patrolExtra=id; return s; }
+  if(k==='duty'){ s.dutyId=id; return s; }
+  if(k==='sit'){ s.situationId=id; return s; }
+  const x=k.slice(2);
+  if(k[0]==='D'){
+    const fixedHere = !!(s.fixed[x] || (orig && orig.fixed && orig.fixed[x]));
+    if(fixedHere){ put(s.fixed,x); delete s.assign[x]; }
+    else put(s.assign,x);
+  }else if(k[0]==='E') put(s.fixed,x);
+  else if(k[0]==='N') put(s.night,x);
+  return s;
+}
+
 function prebookConflictsFor(p, s){
   const out=[];
   const who=nameOf(p.wid);
@@ -1664,6 +1698,7 @@ if(typeof module!=='undefined' && module.exports){
     // 배정
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
-    validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel
+    validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,
+    SCHED_KEYS, schedKeyGet, schedKeySet
   };
 }

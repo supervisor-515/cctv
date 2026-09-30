@@ -1,43 +1,16 @@
 "use strict";
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
 const E = require('../engine.js');
 
-// DOM 라이브러리 없이 실제 화면의 change 핸들러를 실행한다.
-const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
-const source = html.slice(html.indexOf('function renderSchedTable('), html.indexOf('function schedToInput('));
+// [근무표 확인] 편집이 칸을 바꿀 때 쓰는 schedKeySet — 화면과 같은 함수를 그대로 실행한다.
 function fixture() {
   return E.migrate({workers: ['old', 'new'].map(id => ({id, name:id, roleReady:true}))});
 }
 function editor(db, schedule) {
   E.setDB(db);
-  const selects = [];
-  function element() {
-    return {
-      children: [], handlers: {},
-      appendChild(child) { this.children.push(child); return child; },
-      addEventListener(event, handler) { this.handlers[event] = handler; }
-    };
-  }
-  const context = {
-    ...E, DB:db, el:element, esc:String, roleTag:()=>null,
-    DAYGROUP_KR:{mtth:'월화목', fri:'금'},
-    workerSelect(id) {
-      const node = element(); node.value=id; selects.push(node); return node;
-    },
-    save:E.invalidateStats, renderView(){}
-  };
-  vm.createContext(context);
-  vm.runInContext(source, context);
-  context.renderSchedTable(schedule, false);
-  return (slot, id) => {
-    const select = selects[E.DAY_SLOTS.indexOf(slot)];
-    select.value = id;
-    select.handlers.change();
-  };
+  const orig = JSON.parse(JSON.stringify(schedule));   // 편집 시작 시점의 표
+  return (slot, id) => { E.schedKeySet(schedule, 'D:'+slot, id, orig); E.invalidateStats(); };
 }
 for (const [date, slot] of [['2026-09-04','13:30'], ['2026-09-07','14:30']]) {
   test('고정칸 교체·미배정은 한 사람만 집계한다: '+slot, () => {
@@ -88,3 +61,18 @@ test('구버전 고정칸 중복은 화면 배정자를 유지하고 한 번만 
   }
 });
 
+test('편집: 고정칸을 비웠다가 다시 채워도 고정칸으로 남는다', () => {
+  const db=fixture(), date='2026-09-07', s=E.normSched({date, fixed:{'14:30':'old'}});
+  db.schedules[date]=s;
+  const change=editor(db,s);
+  change('14:30',''); change('14:30','new');
+  assert.equal(s.fixed['14:30'],'new');
+  assert.equal(s.assign['14:30'],undefined);
+});
+test('편집: 번초 키는 두 시간을 한 번에 바꾼다', () => {
+  const db=fixture(); E.setDB(db);
+  const s=E.normSched({date:'2026-09-07', night:{1:'old'}});
+  E.schedKeySet(s,'N:1','new');
+  assert.equal(E.schedKeyGet(s,'N:1'),'new');
+  assert.equal(s.night[1],'new');
+});

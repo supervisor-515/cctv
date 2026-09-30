@@ -453,6 +453,8 @@ details.arch[open] summary{margin-bottom:8px}
 .hm .c{height:28px;border-radius:4px;display:grid;place-items:center;font-size:10.5px;color:var(--ink);cursor:pointer;background:var(--dv-mid)}
 .hm .c.x{background:var(--panel2);color:var(--ink-faint)}
 .hm .c.sel{outline:2px solid var(--ink);outline-offset:-1px}
+.hm .hmtip{grid-column:1/-1;margin:2px 0 4px;font-family:var(--kr)}
+.strip .tipline{margin-top:10px}
 .hm .gap{grid-column:1/-1;font-family:var(--kr);font-size:11px;font-weight:700;color:var(--ink-faint);padding:10px 2px 2px}
 .hmleg{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--ink-faint);margin-top:10px;flex-wrap:wrap}
 .hmleg i{width:18px;height:10px;border-radius:2px;display:block}
@@ -486,7 +488,7 @@ details.arch[open] summary{margin-bottom:8px}
 @media(max-width:640px){
   .wrap{padding:0 14px calc(84px + env(safe-area-inset-bottom))}
   header.top{padding:12px 0 10px}
-  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:50;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:6px 4px calc(8px + env(safe-area-inset-bottom))}
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:50;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:6px 4px calc(8px + env(safe-area-inset-bottom))}
   nav.tabs button{flex-direction:column;gap:2px;font-size:10.5px;padding:4px 0;border:0;background:none;justify-content:center}
   nav.tabs button svg{width:22px;height:22px}
   nav.tabs button.on,nav.tabs button.on-sub{color:var(--acc);background:none}
@@ -535,6 +537,9 @@ details.arch[open] summary{margin-bottom:8px}
 }
 /* 열람 전용(동기화 뷰어) 모드 — 관리자 아닌 계정으로 로그인 시 sync.js가 body.ro 부여 */
 body.ro nav.tabs button[data-v=gen],body.ro nav.tabs button[data-v=people]{display:none}
+/* 내 근무는 구성원(열람 전용) 계정에서만 — 관리자·로컬 모드에서는 숨김 */
+body:not(.ro) nav.tabs button[data-v=mine]{display:none!important}
+body:not(.ro) #mine{display:none!important}
 body.ro #gen,body.ro #people,body.ro #settings,body.ro #backup{display:none!important}
 body.ro .btn.danger{display:none!important}
 body.ro .no-ro{display:none!important}
@@ -547,7 +552,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.1.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.1.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -948,7 +953,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.1.0"></script>
+<script src="engine.js?v=6.1.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2220,7 +2225,7 @@ function renderRank(box, ws, numOf, denOf, label){
     sum.appendChild(el('span',null,'가장 적게<b>'+esc(fp[fp.length-1].w.name)+' '+Math.round(fp[fp.length-1].p)+'%</b>'));
     box.appendChild(sum);
   }
-  const tip=el('div','tipline','행을 누르면 횟수/분모를 보여줍니다.');
+  const tip=el('div','tipline'); tip.style.display='none';   // 누른 행 바로 아래로 옮겨 붙인다
   const list=(rs, muted)=>{
     const wrap=el('div','rank'+(muted?' muted-rank':''));
     rs.forEach(r=>{
@@ -2238,7 +2243,7 @@ function renderRank(box, ws, numOf, denOf, label){
         let t='<b>'+esc(r.w.name)+'</b> · '+esc(label)+' '+r.num+'회 / 분모 '+r.den+(r.p!=null?' = '+Math.round(r.p)+'%':'');
         if(!muted && d!=null) t+=' · 평균보다 '+Math.abs(d)+'%p '+(d>=0?'많음':'적음');
         if(muted) t+=' · 평균 계산 제외';
-        tip.innerHTML=t;
+        tip.innerHTML=t; tip.style.display=''; row.after(tip);
       });
       wrap.appendChild(row);
     });
@@ -2250,7 +2255,7 @@ function renderRank(box, ws, numOf, denOf, label){
     box.appendChild(list(other,true));
   }
   if(!rows.length) box.appendChild(el('div','muted','표시할 근무자가 없습니다.'));
-  box.appendChild(tip);
+  else box.appendChild(el('div','hint','행을 누르면 그 아래에 횟수/분모가 나옵니다.'));
 }
 function renderNightRates(st){
   const opts=[['all','야간 전체'],['weekday','평일전야'],['holiday','휴일전야'],['b1','1번초'],['b2','2번초'],['b3','3번초'],['b4','4번초']];
@@ -2288,8 +2293,9 @@ function renderSlotRates(st){
   const wrap=el('div','hm-wrap'), hm=el('div','hm');
   hm.appendChild(el('div'));
   DAY_SLOTS.forEach(sl=>hm.appendChild(el('div','hh',sl)));
-  const tip=el('div','tipline','칸을 누르면 횟수/분모와 그 시간대 평균을 보여줍니다.');
+  const tip=el('div','tipline hmtip'); tip.style.display='none';   // 누른 칸의 행 끝에 끼워 넣는다
   const addRow=(w, muted)=>{
+    let last=null;
     const hn=el('div','hn'+(w.active?'':' inactive-row'), esc(w.name)); hm.appendChild(hn);
     DAY_SLOTS.forEach(sl=>{
       const v=val(w,sl), av=colAvg[sl];
@@ -2303,21 +2309,22 @@ function renderSlotRates(st){
         hm.querySelectorAll('.c').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
         tip.innerHTML='<b>'+esc(w.name)+' · '+sl+'</b> ('+esc(grp==='all'?'전체':DAYGROUP_KR[grp])+') · '+v.num+'/'+v.den+(v.p!=null?' = '+Math.round(v.p)+'%':'')
           +(av!=null?' · 이 시간대 평균 '+Math.round(av)+'%':'')+(muted?' · 평균 계산 제외':'');
+        tip.style.display=''; rowEnd.after(tip);
       });
-      hm.appendChild(c);
+      hm.appendChild(c); last=c;
     });
+    const rowEnd=last;
   };
   fair.forEach(w=>addRow(w,false));
   if(other.length){ hm.appendChild(el('div','gap','평균 계산 제외 — 신병·말년·운항병'+($('#cShowArchived').checked?'·보관':''))); other.forEach(w=>addRow(w,true)); }
   wrap.appendChild(hm); box.appendChild(wrap);
   box.appendChild(el('div','hmleg','<span>적게</span><i class="lo2"></i><i class="lo1"></i><i class="mid"></i><i class="hi1"></i><i class="hi2"></i><span>많이</span><span class="sp"></span><span>칸 숫자 = 배정률(%) · 색 = 시간대 평균 대비</span>'));
-  box.appendChild(tip);
+  box.appendChild(el('div','hint','칸을 누르면 그 행 아래에 횟수/분모와 그 시간대 평균이 나옵니다.'));
 }
 /* 공정성 — 지표마다 사람을 점으로 찍는다. 같은 값은 위로 쌓는다 */
 function renderFairness(st){
   const ws=activeWorkers().filter(w=>!isRecruit(w)&&!isNavigator(w));
   const box=$('#cFair'); box.innerHTML='';
-  const tip=el('div','tipline','점을 누르면 이름과 값을 보여줍니다.');
   // 사람마다 분모(겪은 근무표 수)가 달라 횟수로는 비교가 안 되므로 배정률로 본다. 분모 0인 사람은 그 지표에서 뺀다
   const R=st=>(num,den)=> den>0 ? 100*num/den : null;
   const pr=R(st);
@@ -2338,6 +2345,7 @@ function renderFairness(st){
     const seen={}, lvl=vals.map(v=>{ const k=fmt(v); return (seen[k]=(seen[k]||0)+1)-1; });
     const H=22+Math.max(0,...lvl)*13;
     const card=el('div','strip');
+    const tip=el('div','tipline'); tip.style.display='none';   // 이 카드 안에서만 보여준다
     card.appendChild(el('div','sh','<b>'+esc(label)+'</b><span class="sp"></span><span>CV '+(S.cv*100).toFixed(1)+'% · 지니 '+S.gini.toFixed(3)+'</span>'));
     const ax=el('div','ax'); ax.style.height=H+'px';
     ax.appendChild(el('span','m')).style.left=pos(S.mean)+'%';
@@ -2345,17 +2353,19 @@ function renderFairness(st){
       const d=el('span','d'); d.style.left=pos(v)+'%'; d.style.top=(H-17-lvl[i]*13)+'px';
       d.addEventListener('click',()=>{
         box.querySelectorAll('.d').forEach(x=>x.classList.remove('sel')); d.classList.add('sel');
+        box.querySelectorAll('.strip .tipline').forEach(x=>{ if(x!==tip) x.style.display='none'; });
         const same=mw.filter((w,j)=>fmt(vals[j])===fmt(v)).map(w=>w.name);
+        tip.style.display='';
         tip.innerHTML='<b>'+esc(mw[i].name)+'</b> · '+esc(label)+' '+fmt(v)+unit+(same.length>1?' · 같은 값: '+esc(same.join(', ')):'')+' · 평균 '+S.mean.toFixed(dec?2:1)+unit;
       });
       ax.appendChild(d);
     });
     card.appendChild(ax);
     card.appendChild(el('div','ends','<span>'+fmt(S.min)+unit+'</span><span>평균 '+S.mean.toFixed(dec?2:1)+unit+'</span><span>'+fmt(S.max)+unit+'</span>'));
+    card.appendChild(tip);
     box.appendChild(card);
   });
-  box.appendChild(el('div','hint', ws.length+'명 기준 · 세로 점선 = 평균 · 가로 축은 지표마다 최소~최대'));
-  box.appendChild(tip);
+  box.appendChild(el('div','hint', ws.length+'명 기준 · 세로 점선 = 평균 · 가로 축은 지표마다 최소~최대 · 점을 누르면 그 카드 안에 이름이 나옵니다'));
 }
 function addKpi(c,l,v){const d=el('div','c');d.appendChild(el('div','v',v));d.appendChild(el('div','l',l));c.appendChild(d);}
 /* 숫자 + 미니 막대 셀 — 분포 불균형을 한눈에 보이게 */
@@ -2820,11 +2830,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.1.0"></script>
+<script src="firebase-config.js?v=6.1.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.1.0"></script>
+<script src="sync.js?v=6.1.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

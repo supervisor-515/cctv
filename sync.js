@@ -301,7 +301,7 @@
       adminBooted=false;
       const ready = S.admin ? loadAdmin() : loadMember(u);
       // 가입 중에는 부대 코드 확인이 끝날 때까지 구독을 미룬다(권한 없음 안내가 결과 메시지를 덮지 않게)
-      ready.then(()=>{ if(S.user===u && !S.signingUp){ subscribe(); applyReadonly(); refreshStatus(); renderJoin(); } });
+      ready.then(()=>{ if(S.user===u && !S.signingUp){ subscribe(); applyReadonly(); refreshStatus(); renderJoin(); bkRender(); } });
     }else{
       S.admin=false; S.readonly=false; S.unitCode=null; S.pendingDir=null;
       if(unsub){ unsub(); unsub=null; }
@@ -310,6 +310,7 @@
     toggleLoginUI();
     refreshStatus();
     renderJoin();
+    bkRender();
   });
 
   /* ============================================================
@@ -462,4 +463,95 @@
     row.appendChild(act);
     return row;
   }
+
+  /* ============================================================
+     서버 자동 백업 (관리자) — 근무표를 생성할 때마다 전체 데이터(JSON 내보내기와 같은 내용)를
+     backups/{id}에 올리고 최근 BK_KEEP개만 남긴다. 문서 한도(1MB)를 넘지 않게 본문은
+     backups/{id}/parts/{n}에 나눠 담는다. roster와 따로 두는 이유: 구성원 화면은 roster 전체를
+     실시간 수신하므로 거기에 두면 백업까지 매번 내려받게 된다.
+     ============================================================ */
+  const BK_KEEP=10, BK_CHUNK=250000;   // 한글 3바이트 기준으로도 1MB 미만
+  const bkCol=()=>fs.collection('backups');
+  function bkTime(d){ const p=n=>String(n).padStart(2,'0');
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
+  function bkErr(e){ return /permission|insufficient/i.test(e&&e.message||'') ? '권한 없음 — FIREBASE_SETUP.md 4번 보안 규칙(backups 포함)을 다시 게시하세요' : (e&&e.message||String(e)); }
+  function bkDelete(id, parts){
+    const b=fs.batch();
+    for(let i=0;i<(parts||0);i++) b.delete(bkCol().doc(id).collection('parts').doc(String(i)));
+    b.delete(bkCol().doc(id));
+    return b.commit();
+  }
+  /* 최근 BK_KEEP개를 넘는 오래된 백업 삭제 */
+  function bkPrune(){
+    return bkCol().orderBy('savedAtMs','desc').get().then(snap=>{
+      const old=snap.docs.slice(BK_KEEP);
+      return Promise.all(old.map(d=>bkDelete(d.id, d.data().parts)));
+    });
+  }
+  function bkCreate(reason){
+    if(!S.on || !S.admin) return Promise.resolve({ok:false, skipped:true});
+    const now=new Date(), json=JSON.stringify(DB);
+    const id='b'+now.getTime();
+    const chunks=[]; for(let i=0;i<json.length;i+=BK_CHUNK) chunks.push(json.slice(i,i+BK_CHUNK));
+    const ref=bkCol().doc(id);
+    // 조각을 먼저 쓰고 목록 문서를 마지막에 쓴다 → 목록에 보이는 백업은 항상 완전하다
+    const writes=[];
+    for(let i=0;i<chunks.length;i+=400){
+      const b=fs.batch();
+      chunks.slice(i,i+400).forEach((c,j)=> b.set(ref.collection('parts').doc(String(i+j)), {json:c}));
+      writes.push(b.commit());
+    }
+    return Promise.all(writes)
+      .then(()=>ref.set({savedAt:bkTime(now), savedAtMs:now.getTime(), reason:reason||'', by:S.user?S.user.email:'',
+        parts:chunks.length, size:json.length, workers:DB.workers.length, days:Object.keys(DB.schedules).length,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()}))
+      .then(bkPrune)
+      .then(()=>{ if(qs('#bkList') && qs('#bkList').dataset.shown) bkRender(); return {ok:true, at:bkTime(now)}; })
+      .catch(e=>({ok:false, err:bkErr(e)}));
+  }
+  function bkLoad(id, parts){
+    const ps=[]; for(let i=0;i<parts;i++) ps.push(bkCol().doc(id).collection('parts').doc(String(i)).get());
+    return Promise.all(ps).then(ds=>{
+      if(ds.some(d=>!d.exists)) throw new Error('백업 조각이 빠져 있습니다');
+      return JSON.parse(ds.map(d=>d.data().json).join(''));
+    });
+  }
+  function bkRender(){
+    const box=qs('#bkList'); if(!box) return;
+    const panel=qs('#bkPanel');
+    if(!S.on || !S.admin){ if(panel) panel.style.display='none'; return; }
+    if(panel) panel.style.display='';
+    const view=qs('#backup'); if(view && !view.classList.contains('on')) return;   // 화면을 열 때 불러온다
+    box.dataset.shown='1';
+    box.innerHTML='<div class="muted">불러오는 중…</div>';
+    bkCol().orderBy('savedAtMs','desc').limit(BK_KEEP).get().then(snap=>{
+      box.innerHTML='';
+      if(snap.empty){ box.innerHTML='<div class="muted">아직 서버 백업이 없습니다. 근무표를 생성하면 자동으로 만들어집니다.</div>'; return; }
+      snap.docs.forEach((d,i)=>{
+        const m=d.data();
+        const row=document.createElement('div'); row.className='bkrow';
+        row.innerHTML='<div class="bd"><div class="tm">'+esc(m.savedAt||'')+(i===0?' <span class="pill">최신</span>':'')+'</div>'
+          +'<div class="rs">'+esc(m.reason||'')+'</div>'
+          +'<div class="mt">근무자 '+(m.workers||0)+'명 · 근무표 '+(m.days||0)+'일 · '+Math.round((m.size||0)/1024)+'KB'+(m.by?' · '+esc(m.by):'')+'</div></div>';
+        const act=document.createElement('div'); act.className='ma';
+        const dl=document.createElement('button'); dl.className='btn ghost sm'; dl.textContent='내려받기';
+        dl.addEventListener('click',()=>bkLoad(d.id, m.parts).then(obj=>{
+          downloadBlob('cctv_server_backup_'+String(m.savedAt||d.id).replace(/[: ]/g,'-')+'.json', JSON.stringify(obj,null,2), 'application/json');
+        }).catch(e=>alert('내려받기 실패: '+bkErr(e))));
+        const rs=document.createElement('button'); rs.className='btn danger sm'; rs.textContent='이 시점으로 복원';
+        rs.addEventListener('click',()=>bkLoad(d.id, m.parts).then(obj=>{
+          const next=migrate(obj);
+          if(!confirm(m.savedAt+' 백업으로 되돌릴까요?\n\n지금: 근무자 '+DB.workers.length+'명 · 근무표 '+Object.keys(DB.schedules).length+'일\n백업: 근무자 '+next.workers.length+'명 · 근무표 '+Object.keys(next.schedules).length+'일\n\n지금 상태도 먼저 서버에 백업해 둡니다.')) return;
+          return bkCreate('복원 직전 자동 백업').then(()=>{
+            DB=next; invalidateStats(); save(); refreshAll();
+            alert('✓ '+m.savedAt+' 백업으로 복원했습니다.');
+          });
+        }).catch(e=>alert('복원 실패: '+bkErr(e))));
+        act.appendChild(dl); act.appendChild(rs); row.appendChild(act);
+        box.appendChild(row);
+      });
+    }).catch(e=>{ box.innerHTML='<div class="err">백업 목록을 불러오지 못했습니다: '+esc(bkErr(e))+'</div>'; });
+  }
+  window.SYNC_BACKUP=bkCreate;
+  window.SYNC_BACKUP_LIST=bkRender;
 })();

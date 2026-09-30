@@ -138,7 +138,6 @@ tr:last-child td{border-bottom:0}
 
 .warn,.ok,.err{border-radius:9px;padding:9px 12px;margin:6px 0;font-size:12.5px}
 .warn{background:color-mix(in srgb,var(--warn) 11%,transparent);color:var(--ink)}
-.warn::first-letter{color:var(--warn)}
 .ok{background:color-mix(in srgb,var(--ok) 11%,transparent);color:var(--ink)}
 .err{background:color-mix(in srgb,var(--err) 11%,transparent);color:var(--ink)}
 
@@ -352,7 +351,10 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .kinds button.on{color:var(--ink);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
 
 /* ---------- 더보기 ---------- */
-.acct{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:6px}
+.acct{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:6px;width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.acct .sp{flex:1}
+.acct .chev{color:var(--ink-faint)}
+.acct .sub.cta{color:var(--acc);font-weight:600}
 .acct .av{width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc);display:grid;place-items:center;font-weight:700;flex:none}
 .acct b{font-size:14px}
 .acct .sub{font-size:12px;color:var(--ink-dim)}
@@ -510,7 +512,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.0.1</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.0.2</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -685,7 +687,7 @@ body.ro .no-ro{display:none!important}
 
   <!-- 더보기 -->
   <section class="view" id="more">
-    <div class="acct"><div class="av" id="mAvatar">·</div><div><b id="mAcct">—</b><div class="sub" id="mAcctSub"></div></div></div>
+    <button class="acct" data-go="sync"><div class="av" id="mAvatar">·</div><div><b id="mAcct">—</b><div class="sub" id="mAcctSub"></div></div><span class="sp"></span><span class="chev">›</span></button>
     <div class="mgl">현황</div>
     <div class="menu">
       <button class="mi" data-go="count"><span class="mic"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></span>근무 카운트 · 배정률<span class="sp"></span><span class="mv" id="mCount"></span><span class="chev">›</span></button>
@@ -878,7 +880,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.0.1"></script>
+<script src="engine.js?v=6.0.2"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2576,7 +2578,8 @@ function renderMore(){
   const logged=$('#syLogout') && $('#syLogout').style.display!=='none';
   $('#mAvatar').textContent = ro?'열': logged?'관':'로';
   $('#mAcct').textContent = ro?'구성원 로그인': logged?'관리자 로그인':'로컬 모드';
-  $('#mAcctSub').textContent = ro?'열람 전용 · 실시간 갱신': logged?'동기화 연결됨 · 저장 시 자동 업로드':'동기화 미연결 · 이 기기에만 저장';
+  $('#mAcctSub').textContent = ro?'열람 전용 · 실시간 갱신': logged?'동기화 연결됨 · 저장 시 자동 업로드':'이 기기에만 저장 중 · 눌러서 로그인';
+  $('#mAcctSub').classList.toggle('cta', !ro && !logged);
   const sy=$('#mSync'); sy.textContent = ro?'열람 전용': logged?'연결됨':'미연결'; sy.className='mv'+(logged||ro?' okv':'');
   const st=buildStats(null,null);
   const fair=activeWorkers().filter(w=>!isRecruit(w)&&!isNavigator(w)).map(w=>st[w.id].hours);
@@ -2604,11 +2607,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.0.1"></script>
+<script src="firebase-config.js?v=6.0.2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.0.1"></script>
+<script src="sync.js?v=6.0.2"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

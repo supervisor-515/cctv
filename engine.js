@@ -306,17 +306,19 @@ let _statsCache = new Map();
    전날 표·사전등록·근무자 이름에도 의존하지만, DB 변경 시점(save)에 전체 무효화하므로 안전하다. */
 let _validCache = new Map();
 function invalidateStats(){ _statsCache.clear(); _validCache.clear(); }
-function buildStats(uptoDate, month){
-  const key = (month||'') + '\u0001' + ((uptoDate==null) ? '\u0000ALL' : uptoDate);
+/* ignoreReset: 카운트 화면 표시용 — 신병→역할 전환(countResetAt) 이전 기록도 포함해 센다.
+   배정(generateDay 등)은 항상 기본값(false)으로 호출하므로 배정 로직은 그대로다. */
+function buildStats(uptoDate, month, ignoreReset){
+  const key = (month||'') + '\u0001' + ((uptoDate==null) ? '\u0000ALL' : uptoDate) + (ignoreReset?'\u0001R':'');
   const hit = _statsCache.get(key);
   if(hit) return hit;
-  const st = _computeStats(uptoDate, month);
+  const st = _computeStats(uptoDate, month, !!ignoreReset);
   _statsCache.set(key, st);
   return st;
 }
 /* 모든 저장 근무표를 날짜순으로 훑어 각 근무자의
    분모(겪은 근무표 수)와 분자(배정 횟수)를 누적 → 배정률 산출 */
-function _computeStats(uptoDate, month){
+function _computeStats(uptoDate, month, ignoreReset){
   const dates = Object.keys(DB.schedules).filter(d=> (!uptoDate || d<uptoDate) && (!month || d.slice(0,7)===month)).sort();
   const st = {};
   DB.workers.forEach(w=>{
@@ -347,7 +349,7 @@ function _computeStats(uptoDate, month){
     const addH = (id, x)=>{ if(!okReset[id]) return; st[id].hours += x; if(isWknd) st[id].wkndHours += x; };
     DB.workers.forEach(w=>{
       const r=st[w.id];
-      const afterReset = !w.countResetAt || ds>=w.countResetAt;
+      const afterReset = ignoreReset || !w.countResetAt || ds>=w.countResetAt;
       okReset[w.id] = afterReset;
       const present = presentOn(w, ds, s);
       // 분모 (일반: 카운트 기준 이후 + 가용)

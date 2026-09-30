@@ -1571,6 +1571,239 @@ function schedKeySet(s, k, id, orig){
   return s;
 }
 
+/* ---------- 배정 이유 설명 ----------
+   완성된 표를 기준으로 엔진의 후보 조건(하드 제약)과 우선순위 정렬(solve·assignMeal·assignPatrol과
+   같은 비교 순서)을 다시 계산해 '왜 이 사람인지'를 사람이 읽는 말로 돌려준다.
+   생성 당시의 탐색 순서(백트래킹·국소 개선)까지 재현하지는 않으므로, 순위가 앞선 사람이
+   빠진 경우엔 그 사실을 그대로 알린다. 통계는 그 날짜 이전 표를 지금 기록으로 다시 계산한 값.
+   반환: {title, who, kind:'rule'|'rank', lines:[문장], ranked:[{id, reason, ahead}], blocked:[{id, reason}]} */
+function explainAssignment(s, key){
+  const ds=s.date, who=schedKeyGet(s,key);
+  const md=d=> d ? Number(d.slice(5,7))+'/'+Number(d.slice(8)) : '없음';
+  const pct=x=> (Math.round(x*1000)/10)+'%';
+  const nm=id=> nameOf(id);
+  const prev=DB.schedules[addDays(ds,-1)], prev2=DB.schedules[addDays(ds,-2)];
+  const ctx={date:ds, workHoliday:!!s.workHoliday, nextWorkHoliday:!!s.nextWorkHoliday,
+    dutyId:s.dutyId||null, situationId:s.situationId||null, nextDutyId:s.nextDutyId||null, nextSituationId:s.nextSituationId||null,
+    next2DutyId:s.next2DutyId||null, next2SituationId:s.next2SituationId||null,
+    prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null, mealId:s.mealId||null, nextMealId:s.nextMealId||null,
+    dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[], slotEx:normSlotEx(s.slotEx)};
+  ctx.stats=buildStats(ds);
+  ctx._dayGrp=dayGroup(ds,ctx.workHoliday); ctx._nightGrp=nightGroup(ds,ctx.nextWorkHoliday);
+  const prevNight=new Set(prev&&prev.night ? Object.values(prev.night).filter(Boolean) : []);
+  const p2n=new Set(prev2&&prev2.night ? Object.values(prev2.night).filter(Boolean) : []);
+  const twoConsec=new Set([...prevNight].filter(id=>p2n.has(id)));
+  ctx._prevNight=prevNight; ctx._twoConsec=twoConsec;
+  ctx.prev2DutyId=prev2?prev2.dutyId||null:null; ctx.prev2SituationId=prev2?prev2.situationId||null:null;
+  const rule=(title, ...lines)=>({title, who, kind:'rule', lines, ranked:[], blocked:[]});
+  let todayOf=null;   // 주간·야간 설명에서: 사람별 오늘 다른 칸 (앞선 후보가 왜 빠졌는지 보여 줄 때)
+  const exWhy=(id, dflt)=>{
+    const p=prebookOn(ds).find(x=>x.wid===id && x.kind!=='duty' && x.kind!=='situation');
+    if(!p) return dflt;
+    if(p.kind==='vacation') return ds===p.end ? '휴가 복귀일(주간 열외)' : '휴가';
+    return PREBOOK_KR[p.kind];
+  };
+
+  // ----- 규칙으로 정해지는 자리 -----
+  if(key==='duty') return rule('당직','당직은 자동으로 뽑지 않습니다. [근무표 생성]에서 지정한 값(당직 예약 또는 전날 표의 ‘다음날 당직’)입니다.');
+  if(key==='sit') return rule('상황병','상황병은 자동으로 뽑지 않습니다. [근무표 생성]에서 지정한 값(상황병 예약 또는 전날 표의 ‘다음날 상황’)입니다.');
+  const EV={'18:30':'다음날 상황병은 18:30에 고정으로 섭니다.','19:30':'다음날 당직은 19:30에 고정으로 섭니다.',
+            '20:30':'전날 상황병은 20:30에 고정으로 섭니다.','21:30':'전날 당직은 21:30에 고정으로 섭니다.'};
+  if(key[0]==='E' && EV[key.slice(2)]) return rule(key.slice(2), EV[key.slice(2)], '역할에 따라 정해지는 칸이라 순위 경쟁이 없습니다.');
+  if((key==='D:13:30'||key==='D:14:30') && s.fixed && s.fixed[key.slice(2)] && who===s.situationId)
+    return rule(key.slice(2), '오늘 상황병의 고정 칸입니다(평일 14:30, 금요일은 13:30).');
+  const nav=activeNavigator();
+  if(who && nav && who===nav.id){
+    if(key[0]==='D' && navFixedDaySlots(ds, ctx.workHoliday).includes(key.slice(2))) return rule(key.slice(2), '운항병의 주중 고정 칸입니다([기본 설정]의 운항병 고정 슬롯).');
+    if(key[0]==='N') return rule(key.slice(2)+'번초', '운항병은 금·토 중 하루 야간 1회를 맡고, 그동안 가장 적게 선 번초로 들어갑니다.');
+  }
+  if(who && s.fuelId===who && ctx.bothEx.includes(who)){
+    if(key[0]==='N') return rule(key.slice(2)+'번초', '유조차 운전병의 금요일 야간 1회입니다. 그동안 가장 적게 선 번초로 들어갑니다.');
+    if(key[0]==='D') return rule(key.slice(2), '유조차 운전병의 토·일 오후 1칸입니다. 12:30~16:30 중 그 사람이 가장 적게 선 시간대로 들어갑니다.');
+  }
+
+  // ----- 밥교대(당일·다음날) : assignMeal 순서 -----
+  const mealRank=(title, mctx, mds, cur)=>{
+    const mg=mealGroup(mds, mctx.workHoliday), mgKR=mg==='weekend'?'주말·휴일':'평일';
+    const out={title, who:cur, kind:'rank', lines:[], ranked:[], blocked:[]};
+    const ex=new Map([[mctx.prevDutyId,'전날 당직'],[mctx.dutyId,'당직'],[mctx.prevSituationId,'전날 상황병'],[mctx.situationId,'상황병']].filter(([k])=>k));
+    const base=[];
+    activeWorkers().forEach(w=>{
+      let why=null;
+      if(inInactive(w,mds)) why='근무 기간 아님';
+      else if(!w.canMeal) why='밥교대 불가 설정';
+      else if(w.roleReady===false) why='신병 — 밥교대는 역할 전환 후';
+      else if(isNavigator(w)) why='운항병 — 밥교대 제외';
+      else if(ex.has(w.id)) why=ex.get(w.id);
+      else if((mctx.bothEx||[]).includes(w.id)) why=exWhy(w.id,'종일 열외');
+      else if((mctx.dayEx||[]).includes(w.id)) why= w.id===mctx._todayMeal ? '오늘 밥교대(이틀 연속 방지)' : exWhy(w.id,'주간 열외');
+      else if(mealBlockedBySlotEx(mctx, w.id)) why='밥교대 시간대 열외';
+      if(why) out.blocked.push({id:w.id, reason:why}); else base.push(w);
+    });
+    const pN=mctx._prevNight||new Set(), nR=new Set([mctx.nextDutyId,mctx.nextSituationId].filter(Boolean)), p2R=new Set([mctx.prev2DutyId,mctx.prev2SituationId].filter(Boolean));
+    let pool=base;
+    [[w=>!pN.has(w.id),'전날 야간 — 피함'],[w=>!nR.has(w.id),'다음날 당직/상황병 — 피함'],[w=>!p2R.has(w.id),'이틀 전 당직/상황병 — 피함']].forEach(([f,why])=>{
+      const nx=pool.filter(f); if(nx.length){ pool.filter(w=>!f(w)).forEach(w=>out.blocked.push({id:w.id, reason:why})); pool=nx; }
+    });
+    const E=pool.map(w=>{ const r=mctx.stats[w.id]||{mealGNum:{},mealGDen:{}};
+      let sc=DB.settings.weights.mealRate*rate(r.mealGNum[mg],r.mealGDen[mg]) + DB.settings.weights.avgHours*avgHours(r)*0.5;
+      if(isRecruit(w)) sc+=DB.settings.weights.recruitBias;
+      return {id:w.id, g:r.mealGNum[mg]||0, t:(r.mealGNum.weekday||0)+(r.mealGNum.weekend||0), last:r.lastMeal||'', sc, avg:avgHours(r)};
+    }).sort((a,b)=>(a.g-b.g)||(a.t-b.t)||(a.last<b.last?-1:a.last>b.last?1:0)||(a.sc-b.sc));
+    const diff=(a,b)=> a.g!==b.g ? '밥교대('+mgKR+') '+b.g+'회 ('+nm(a.id)+' '+a.g+'회)'
+      : a.t!==b.t ? '밥교대 전체 '+b.t+'회 ('+nm(a.id)+' '+a.t+'회)'
+      : a.last!==b.last ? '마지막 밥교대 '+md(b.last)+' ('+nm(a.id)+' '+md(a.last)+')'
+      : '평균 근무시간 '+b.avg.toFixed(2)+'h/일 ('+nm(a.id)+' '+a.avg.toFixed(2)+'h/일)';
+    return finishRank(out, E, diff, cur, e=>'밥교대('+mgKR+') '+e.g+'회 · 전체 '+e.t+'회 · 마지막 '+md(e.last));
+  };
+  if(key==='nextMeal' || key==='E:17:30'){
+    const cur=key==='E:17:30' ? (s.fixed&&s.fixed['17:30'])||null : s.nextMealId;
+    if(key==='E:17:30' && cur!==s.nextMealId) return rule('17:30','다음날 밥교대('+nm(s.nextMealId)+')와 다른 사람입니다 — 이 시간만 직접 교체된 칸입니다.');
+    if(!s.nextMealAuto) return rule('다음날 밥교대','다음날 밥교대를 [근무표 생성]에서 직접 지정했습니다. 다음날 밥교대는 17:30(밥교대 근무+순찰)을 섭니다.');
+    const nd=addDays(ds,1);
+    const nctx={date:nd, workHoliday:ctx.nextWorkHoliday, dutyId:ctx.nextDutyId, situationId:ctx.nextSituationId,
+      prevDutyId:ctx.dutyId, prevSituationId:ctx.situationId, nextDutyId:ctx.next2DutyId, nextSituationId:ctx.next2SituationId,
+      prev2DutyId:prev?prev.dutyId||null:null, prev2SituationId:prev?prev.situationId||null:null,
+      dayEx:[...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx:ctx.bothEx||[], slotEx:ctx.slotEx, _todayMeal:ctx.mealId,
+      stats:null};
+    // 생성 당시엔 오늘 표가 아직 없었다 — 오늘 표를 잠시 빼고 다음날 기준 통계를 계산해야 같은 순위가 나온다
+    { const keep=DB.schedules[ds]; delete DB.schedules[ds]; invalidateStats();
+      try{ nctx.stats=buildStats(nd); } finally { if(keep) DB.schedules[ds]=keep; invalidateStats(); } }
+    const o=mealRank(key==='E:17:30'?'17:30 (다음날 밥교대)':'다음날 밥교대', nctx, nd, cur);
+    o.lines.push('다음날 밥교대는 17:30(밥교대 근무+순찰)을 서고, 다음날 밥교대를 맡습니다.');
+    return o;
+  }
+  if(key==='meal'){
+    if(prev && prev.nextMealId && prev.nextMealId===s.mealId) return rule('밥교대', md(prev.date)+' 근무표에서 ‘다음날 밥교대’로 정해진 사람입니다 — 그 날짜 표의 17:30 칸을 누르면 선정 이유가 나옵니다.');
+    return mealRank('밥교대', ctx, ds, s.mealId);
+  }
+
+  // ----- 17:00 추가 순찰 : assignPatrol 순서 -----
+  if(key==='P'){
+    const out={title:'17:00 추가 순찰', who, kind:'rank', lines:[], ranked:[], blocked:[]};
+    const pg=mealGroup(ds, ctx.workHoliday), pgKR=pg==='weekend'?'주말·휴일':'평일';
+    const a1630=(s.assign&&s.assign['16:30'])||(s.fixed&&s.fixed['16:30']), f1730=s.fixed&&s.fixed['17:30'];
+    const dc=new Set(dayCandidates(ds, ctx).map(w=>w.id));
+    const pool=[];
+    activeWorkers().forEach(w=>{
+      let why=null;
+      if(w.id===a1630) why='16:30 근무자(순찰은 16:30 칸 안)';
+      else if(w.id===f1730) why='17:30 근무자';
+      else if(!dc.has(w.id)) why=dayBlock(w);
+      else if(slotExcluded(ctx, w.id, PATROL_SLOT)) why='이 시간대 열외';
+      if(why) out.blocked.push({id:w.id, reason:why}); else pool.push(w);
+    });
+    const E=pool.map(w=>{ const r=ctx.stats[w.id];
+      let sc=DB.settings.weights.patrolRate*rate(r.patrolGNum[pg],r.patrolGDen[pg]) + DB.settings.weights.avgHours*avgHours(r)*0.4;
+      if(isRecruit(w)) sc+=DB.settings.weights.recruitBias;
+      return {id:w.id, sc, last:r.tiePatrol||'', pr:rate(r.patrolGNum[pg],r.patrolGDen[pg]), avg:avgHours(r)};
+    }).sort((a,b)=>(a.sc-b.sc)||lastCmp(a,b));
+    const diff=(a,b)=> Math.abs(a.sc-b.sc)>1e-9
+      ? '순찰 배정률('+pgKR+') '+pct(b.pr)+' · 평균 '+b.avg.toFixed(2)+'h/일 ('+nm(a.id)+' '+pct(a.pr)+' · '+a.avg.toFixed(2)+'h/일)'
+      : '마지막 순찰 '+md(b.last)+' ('+nm(a.id)+' '+md(a.last)+')';
+    return finishRank(out, E, diff, who, e=>'순찰 배정률('+pgKR+') '+pct(e.pr)+' · 평균 근무시간 '+e.avg.toFixed(2)+'h/일');
+  }
+  // 주간 후보 탈락 사유 (dayCandidates와 같은 조건)
+  function dayBlock(w){
+    if(inInactive(w,ds)) return '근무 기간 아님(전입 전·전역 등)';
+    if(ctx.bothEx.includes(w.id)) return exWhy(w.id,'종일 열외');
+    if(ctx.dayEx.includes(w.id)) return exWhy(w.id,'주간 열외');
+    const r=[[ctx.dutyId,'오늘 당직'],[ctx.situationId,'오늘 상황병'],[ctx.prevDutyId,'전날 당직'],[ctx.prevSituationId,'전날 상황병'],[ctx.mealId,'오늘 밥교대']].find(([id])=>id===w.id);
+    if(r) return r[1];
+    if(isNavigator(w) && dayGroup(ds,ctx.workHoliday)!=='weekend') return '운항병 — 주중엔 고정 칸만';
+    return '주간 후보 아님';
+  }
+
+  // ----- 주간 칸·야간 번초 : solve의 후보 조건과 정렬 -----
+  if(key[0]!=='D' && key[0]!=='N') return rule(key, '이 칸은 설명할 수 있는 배정 규칙이 없습니다.');
+  const isNight=key[0]==='N';
+  const v=isNight ? {type:'night', bunchoId:Number(key.slice(2))} : {type:'day', key:key.slice(2)};
+  const sl=slotsOf(v), unit=exUnitOf(v);
+  const title=isNight ? v.bunchoId+'번초 ('+sl.join('·')+')' : v.key;
+  const out={title, who, kind:'rank', lines:[], ranked:[], blocked:[]};
+  // 오늘 이 칸을 뺀 나머지 배정 — 인접·당일 개수 판정용 (엔진처럼 고정 칸 포함, 순찰 제외)
+  const occ={}, cnt={}, hrs={};
+  todayOf=occ;
+  const add=(id,slots,h)=>{ if(!id) return; occ[id]=(occ[id]||[]).concat(slots); cnt[id]=(cnt[id]||0)+1; hrs[id]=(hrs[id]||0)+h; };
+  DAY_SLOTS.forEach(x=>{ if('D:'+x!==key) add((s.assign&&s.assign[x])||(s.fixed&&s.fixed[x]), [x], slotHours(x)); });
+  EVENING.forEach(x=> add(s.fixed&&s.fixed[x], [x], x==='17:30'?1+DB.settings.patrolBonus:1));
+  NIGHT_BUNCHO.forEach(b=>{ if('N:'+b.id!==key) add(s.night&&s.night[b.id], b.slots, 1); });
+  const nightRole=[[ctx.dutyId,'오늘 당직'],[ctx.situationId,'오늘 상황병'],[ctx.prevDutyId,'전날 당직'],[ctx.prevSituationId,'전날 상황병'],
+    [ctx.nextDutyId,'다음날 당직'],[ctx.nextSituationId,'다음날 상황병'],[ctx.nextMealId,'다음날 밥교대(야간 연속 방지)']];
+  const dg=ctx._dayGrp, ng=ctx._nightGrp, ngKR=ng==='holiday'?'휴일전야':'평일전야';
+  const pool=[];
+  activeWorkers().forEach(w=>{
+    let why=null;
+    if(!isNight){ if(!dayCandidates(ds,ctx).some(x=>x.id===w.id)) why=dayBlock(w); }
+    else{
+      if(inInactive(w,ds)) why='근무 기간 아님(전입 전·전역 등)';
+      else if(ctx.bothEx.includes(w.id)) why=exWhy(w.id,'종일 열외');
+      else if(ctx.nightEx.includes(w.id)) why='야간 열외';
+      else { const r=nightRole.find(([id])=>id===w.id); if(r) why=r[1]; }
+      if(!why && isNavigator(w)) why='운항병 — 야간은 금·토 사전배정만';
+      if(!why && w.id===ctx.mealId) why='오늘 밥교대 — 야간은 인원이 모자랄 때만';
+    }
+    if(!why && slotExcluded(ctx, w.id, unit)) why='이 시간대 열외';
+    if(!why && !isNight && MORNING_AFTER_NIGHT.includes(v.key) && prevNight.has(w.id)) why='전날 야간 → 아침 근무 금지';
+    if(!why && isNight && twoConsec.has(w.id)) why='이틀 연속 야간 → 3일 연속 금지';
+    if(!why && isNight){ const b=NIGHT_BUNCHO.find(b=>'N:'+b.id!==key && s.night && s.night[b.id]===w.id); if(b) why='이미 '+b.id+'번초 근무(야간은 하루 1번초)'; }
+    if(!why && occ[w.id]){ const a=occ[w.id].find(x=>adjacent([x], sl)); if(a) why='바로 붙은 '+a+' 근무 — 연속 근무 금지'; }
+    if(why) out.blocked.push({id:w.id, reason:why}); else pool.push(w);
+  });
+  const E=pool.map(w=>{
+    const c=effTodayCount(w.id, cnt[w.id]);
+    const o={stats:ctx.stats, todayHours:hrs, isNight, dayGrp:dg, nightGrp:ng, bunchoId:isNight?v.bunchoId:null};
+    const r=ctx.stats[w.id];
+    return {id:w.id, cnt:c, raw:cnt[w.id]||0, recentNight:(isNight&&prevNight.has(w.id))?1:0, fair:slotFairKey(w.id, v, ctx),
+      rec:recruitOrder(w, c, isNight), sc:score(w, isNight?null:v.key, o), isRec:isRecruit(w), last:lastKey(w.id, v, ctx), ...rotKeys(w.id, ctx),
+      avg:avgHours(r), gCnt:isNight?0:((r.slotGNum[dg]||{})[v.key]||0), gDen:r.groupDen[dg]||0,
+      nRate:rate(r.nightGNum[ng], r.nightGDen[ng]), bCnt:isNight?(r.bunchoNum[v.bunchoId]||0):0};
+  });
+  const cmp = isRotationVar(v) ? (a,b)=> rotCompare(a,b)||(a.cnt-b.cnt)||(a.fair-b.fair)||(a.rec-b.rec)||(a.sc-b.sc)||lastCmp(a,b)
+            : isNight ? (a,b)=> (a.recentNight-b.recentNight)||(a.cnt-b.cnt)||(a.fair-b.fair)||(a.rec-b.rec)||(a.sc-b.sc)||lastCmp(a,b)
+            : (a,b)=> (a.cnt-b.cnt)||(a.fair-b.fair)||(a.rec-b.rec)||(a.sc-b.sc)||lastCmp(a,b);
+  E.sort(cmp);
+  const slotTxt=e=> v.key+' '+e.gCnt+'회/'+DAYGROUP_KR[dg]+' '+e.gDen+'일';
+  const diff=(a,b)=>{
+    const A=nm(a.id);
+    if(isRotationVar(v) && a.rotRate!==b.rotRate) return '06:30 배정률 '+pct(b.rotRate)+' ('+A+' '+pct(a.rotRate)+') — 06:30은 배정률 낮은 순번제';
+    if(isRotationVar(v) && a.rotLast!==b.rotLast) return '마지막 06:30 '+md(b.rotLast)+' ('+A+' '+md(a.rotLast)+') — 06:30은 오래된 순번';
+    if(a.recentNight!==b.recentNight) return '전날 야간 — 연속 야간을 피함';
+    if(a.cnt!==b.cnt) return a.raw!==b.raw ? '오늘 이미 '+b.raw+'칸 ('+A+' '+a.raw+'칸) — 하루 근무를 고르게'
+      : '오늘 칸 수는 같지만 신병은 하루 2칸이 기준이라 1칸을 덜 센다 — '+(b.isRec?nm(b.id)+'(신병)':A+'(신병)')+' 쪽이 '+(b.isRec?'뒤로':'먼저');
+    if(a.fair!==b.fair) return '이 시간대를 더 많이 섬: '+slotTxt(b)+' ('+A+' '+slotTxt(a)+')';
+    if(a.rec!==b.rec) return b.isRec ? '신병은 하루 2칸이 기준이라 3칸째는 뒤로' : '오늘 첫 칸은 신병이 먼저(신병 하루 2칸 기준)';
+    if(Math.abs(a.sc-b.sc)>1e-9) return isNight
+      ? '야간 배정률('+ngKR+') '+pct(b.nRate)+' · '+v.bunchoId+'번초 '+b.bCnt+'회 · 평균 '+b.avg.toFixed(2)+'h/일 ('+A+' '+pct(a.nRate)+' · '+a.bCnt+'회 · '+a.avg.toFixed(2)+'h/일)'
+      : '평균 근무시간 '+b.avg.toFixed(2)+'h/일 · '+slotTxt(b)+' ('+A+' '+a.avg.toFixed(2)+'h/일 · '+slotTxt(a)+')';
+    return '이 칸을 더 최근에 섬: '+md(b.last)+' ('+A+' '+md(a.last)+')';
+  };
+  return finishRank(out, E, diff, who, e=> isNight
+    ? '야간 배정률('+ngKR+') '+pct(e.nRate)+' · '+v.bunchoId+'번초 '+e.bCnt+'회 · 평균 근무시간 '+e.avg.toFixed(2)+'h/일 · 오늘 다른 칸 '+e.raw+'개'
+    : (isRotationVar(v)?'06:30 배정률 '+pct(e.rotRate)+' · 마지막 '+md(e.rotLast)+' · ':'')+slotTxt(e)+' · 평균 근무시간 '+e.avg.toFixed(2)+'h/일 · 오늘 다른 칸 '+e.raw+'개');
+
+  /* 순위 목록을 설명으로 정리 */
+  function finishRank(o, E, diff, cur, metric){
+    const i=E.findIndex(e=>e.id===cur);
+    const me=E[i];
+    if(!cur){ o.lines.push('미배정 — 규칙을 지키면서 이 칸에 설 수 있는 사람이 없었거나 비워 둔 칸입니다.'); }
+    else if(i<0){
+      const b=o.blocked.find(x=>x.id===cur);
+      o.lines.push('규칙상 이 칸 후보가 아닌 사람입니다'+(b?' ('+b.reason+')':'')+' — 직접 수정했거나 인원이 부족해 규칙을 완화한 결과일 수 있습니다.');
+    }else{
+      o.lines.push(metric(me));
+      if(i===0 && E[1]) o.lines.push('다음 후보 '+nm(E[1].id)+'보다 앞선 이유: '+diff(me, E[1]));
+      else if(i===0) o.lines.push('이 칸에 설 수 있는 사람이 이 사람뿐이었습니다.');
+      else o.lines.push('우선순위로는 '+(i+1)+'위입니다. 앞선 '+E.slice(0,i).map(e=>nm(e.id)).join(', ')+'은(는) 다른 칸과의 조합(연속 근무 금지 등)을 맞추는 과정에서 빠졌거나, 이 칸이 직접 수정됐을 수 있습니다.');
+    }
+    E.forEach((e,k)=>{ if(e.id===cur) return;
+      const busy = todayOf && todayOf[e.id] ? ' — 오늘 '+todayOf[e.id].filter((x,j,arr)=>arr.indexOf(x)===j).join('·')+' 근무' : '';
+      o.ranked.push({id:e.id, ahead:me?k<i:false, reason: me ? (k<i ? '우선순위는 앞섰지만 다른 칸 조합 때문에 빠짐'+busy : diff(me,e)) : metric(e)});
+    });
+    return o;
+  }
+}
+
 function prebookConflictsFor(p, s){
   const out=[];
   const who=nameOf(p.wid);
@@ -1699,6 +1932,6 @@ if(typeof module!=='undefined' && module.exports){
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,
-    SCHED_KEYS, schedKeyGet, schedKeySet
+    SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment
   };
 }

@@ -333,6 +333,8 @@ function _computeStats(uptoDate, month, ignoreReset){
       bunchoNum:{1:0,2:0,3:0,4:0},
       // 동점 최종 기준용 '실제로 마지막에 선 날짜' — 카운트 초기화와 무관하게 기록(초기화된 사람이 '한 번도 안 선 사람'처럼 먼저 뽑히지 않게)
       tieDay:{}, tieNight:{1:'',2:'',3:'',4:''}, tiePatrol:'',
+      // 06:30 순번용 배정률 — 신병·비신병이 한 줄로 도는 순번이라 카운트 초기화와 무관하게 전체 기록으로 센다
+      rotAllNum:0, rotAllDen:0,
       mealNum:0, mealDen:0, mealGNum:{weekday:0,weekend:0}, mealGDen:{weekday:0,weekend:0}, lastMeal:null,
       patrolNum:0, patrolDen:0, patrolGNum:{weekday:0,weekend:0}, patrolGDen:{weekday:0,weekend:0}
     };
@@ -355,6 +357,7 @@ function _computeStats(uptoDate, month, ignoreReset){
       okReset[w.id] = afterReset;
       const present = presentOn(w, ds, s);
       // 분모 (일반: 카운트 기준 이후 + 가용)
+      if(present) r.rotAllDen++;
       if(present && afterReset){
         r.denom++; r.slotDen++;
         if(isWknd) r.wkndDen++;
@@ -377,6 +380,7 @@ function _computeStats(uptoDate, month, ignoreReset){
         addH(id, slotHours(slot));
       }
       if(id && st[id]) st[id].tieDay[slot]=ds;
+      if(id && st[id] && slot==='06:30') st[id].rotAllNum++;
     });
     NIGHT_BUNCHO.forEach(b=>{
       const id = s.night && s.night[b.id];
@@ -592,13 +596,15 @@ function slotFairKey(wid, v, ctx){
 
 /* ----- 06:30 순번제(로테이션) -----
    06:30은 점수 경쟁이 아니라 순번으로 돈다: 신병/비신병 구분 없이
-   ①06:30 누적 횟수가 적은 사람 → ②동률이면 마지막 06:30이 가장 오래된(또는 한 적 없는) 사람.
+   ①06:30 배정률(06:30 횟수 ÷ 근무에 포함된 날)이 낮은 사람 → ②동률이면 마지막 06:30이 가장 오래된(또는 한 적 없는) 사람.
+   횟수가 아니라 배정률로 보므로 전입·휴가 복귀·역할 전환으로 분모가 짧은 사람이 남들 횟수를 따라잡으려
+   연달아 06:30을 받지 않는다. 배정률은 카운트 초기화와 무관한 전체 기록 기준.
    하드 제약(전날 야간자 아침 금지·인접·열외 등)에 걸린 사람은 건너뛰고 다음 순번이 들어간다
-   (횟수가 그대로라 다음 기회에 다시 1순위). */
+   (배정률이 그대로라 다음 기회에 다시 1순위). */
 const ROTATION_SLOT = '06:30';
 function isRotationVar(v){ return v && v.type==='day' && v.key===ROTATION_SLOT; }
 function rotCompare(a, b){
-  return (a.rotCnt-b.rotCnt) || (a.rotLast<b.rotLast?-1:a.rotLast>b.rotLast?1:0);
+  return (a.rotRate-b.rotRate) || (a.rotLast<b.rotLast?-1:a.rotLast>b.rotLast?1:0);
 }
 /* 동점 최종 기준 — 이 칸(주간)·이 번초(야간)를 마지막으로 선 날짜. ''(한 적 없음)이 가장 먼저 */
 function lastKey(wid, v, ctx){
@@ -608,8 +614,8 @@ function lastKey(wid, v, ctx){
 function lastCmp(a, b){ return a.last<b.last ? -1 : a.last>b.last ? 1 : 0; }
 function rotKeys(wid, ctx){
   const r = ctx.stats[wid];
-  if(!r) return {rotCnt:0, rotLast:''};
-  return {rotCnt: r.slotNum[ROTATION_SLOT]||0, rotLast: (r.slotLast&&r.slotLast[ROTATION_SLOT])||''};
+  if(!r) return {rotRate:0, rotLast:''};
+  return {rotRate: r.rotAllDen>0 ? r.rotAllNum/r.rotAllDen : 0, rotLast: (r.tieDay&&r.tieDay[ROTATION_SLOT])||''};
 }
 
 /* ----- 신병 간 공평성 -----

@@ -561,7 +561,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.3.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v6.4.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -964,13 +964,13 @@ body.ro .no-ro{display:none!important}
         하루 = 06:30~익일 05:30, 1시간 24슬롯 · 주간 06:30~16:30(11) · 야간 번초 4개(각 4시간 간격 2슬롯, 1번초=1h).<br>
         1번초 22:30+02:30 · 2번초 23:30+03:30 · 3번초 00:30+04:30 · 4번초 01:30+05:30.<br>
         고정 슬롯 17:30=다음날밥교대(+순찰) · 18:30=다음날상황병 · 19:30=다음날당직 · 20:30=전날상황병 · 21:30=전날당직 · 14:30=평일 당일상황병.<br>
-        06:30은 순번제 — 신병/비신병 구분 없이 누적 06:30 횟수가 적은 사람 → 동률이면 마지막 06:30이 가장 오래된 사람 순으로 돌아갑니다(열외자는 건너뛰고 다음 순번). 같은 날 신병끼리 받는 개수가 갈릴 때는 누적 평균시간이 많은 신병이 적은 개수를 받습니다.<br>
+        06:30은 순번제 — 신병/비신병 구분 없이 06:30 배정률(06:30 횟수 ÷ 근무에 포함된 날, 카운트 초기화와 무관한 전체 기록)이 낮은 사람 → 동률이면 마지막 06:30이 가장 오래된 사람 순으로 돌아갑니다. 횟수가 아니라 배정률이라 전입·휴가 복귀·역할 전환 직후에도 몰아 받지 않습니다(열외자는 건너뛰고 다음 순번). 같은 날 신병끼리 받는 개수가 갈릴 때는 누적 평균시간이 많은 신병이 적은 개수를 받습니다.<br>
         운항병(1명): 월~목 09:30·13:30 / 금 09:30·14:30 고정, 금·토 야간 매주 1회(균등 배분). 당일상황 고정칸은 금요일만 13:30(그 외 요일 14:30).
       </p>
     </div>
   </section>
 </div>
-<script src="engine.js?v=6.3.0"></script>
+<script src="engine.js?v=6.4.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2933,11 +2933,11 @@ init();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=6.3.0"></script>
+<script src="firebase-config.js?v=6.4.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=6.3.0"></script>
+<script src="sync.js?v=6.4.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

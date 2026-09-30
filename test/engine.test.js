@@ -685,7 +685,7 @@ function mkAssignSched(assign, ids) {
            mealId: null, patrolExtra: null, activeIds: ids, dayEx: [], nightEx: [], bothEx: [] };
 }
 
-test('06:30 순번제: 누적 06:30 횟수가 가장 적은 사람이 들어간다 (신병/비신병 무관)', () => {
+test('06:30 순번제: 06:30 배정률이 가장 낮은 사람이 들어간다 (신병/비신병 무관)', () => {
   const ws = roster(12);
   ws[11].canMeal = false;               // 기대 인원이 밥교대로 빠지지 않게
   const ids = ws.map(w => w.id);
@@ -700,7 +700,7 @@ test('06:30 순번제: 누적 06:30 횟수가 가장 적은 사람이 들어간�
   assert.equal(s.assign['06:30'], ws[11].id);
 });
 
-test('06:30 순번제: 횟수 동률이면 마지막 06:30이 가장 오래된 사람이 들어간다', () => {
+test('06:30 순번제: 배정률 동률이면 마지막 06:30이 가장 오래된 사람이 들어간다', () => {
   const ws = roster(12);
   ws[0].canMeal = false;
   const ids = ws.map(w => w.id);
@@ -745,6 +745,27 @@ test('06:30 순번제: 장기 실행 시 전원 06:30 횟수가 고르게 돈다
   // 42일/14명 = 평균 3회. 열외(전날 야간·밥교대 등)로 건너뛰어도 격차는 2 이내여야 순번제
   assert.ok(Math.max(...cnts) - Math.min(...cnts) <= 2,
     `06:30 횟수 격차 과다: [${cnts.join(',')}]`);
+});
+
+test('06:30 순번제: 역할 전환·전입 직후에도 06:30을 몰아 받지 않는다', () => {
+  // 회귀: 순번을 누적 '횟수'로 매기면 카운트 초기화(신병→역할 전환)로 0이 된 사람이나 전입자가
+  // 남들 횟수를 따라잡을 때까지 06:30을 연달아 받았다(시뮬레이션: 전환 후 2주 4회, 평균 0.9회).
+  for (const mode of ['convert', 'join']) {
+    const ws = roster(12, 2, mode + '_');
+    const t = mode === 'convert' ? ws[12] : ws[11];
+    if (mode === 'join') t.inactivePeriods = [{ start: '2026-05-01', end: '2026-06-28' }];
+    E.setDB(freshDB({ workers: ws }));
+    let ds = '2026-06-01';
+    const gen = n => { for (let d = 0; d < n; d++) { E.getDB().schedules[ds] = E.generateDay(E.autoInputFor(ds)); E.invalidateStats(); ds = E.addDays(ds, 1); } };
+    gen(28);
+    const from = ds;
+    if (mode === 'convert') { t.roleReady = true; t.roleType = 'duty'; t.countResetAt = from; E.invalidateStats(); }
+    gen(14);
+    const got = Object.keys(E.getDB().schedules).filter(d => d >= from && E.getDB().schedules[d].assign['06:30'] === t.id);
+    // 14명이 14일 → 평균 1회. 몰아 받으면 3회 이상, 이틀 연속이 생긴다
+    assert.ok(got.length <= 2, `${mode}: 2주에 06:30 ${got.length}회 (${got.join(',')})`);
+    got.slice(1).forEach((d, i) => assert.ok(d > E.addDays(got[i], 2), `${mode}: 06:30 간격이 너무 짧음 ${got[i]}→${d}`));
+  }
 });
 
 /* ---------- 신병 간 공평성: 개수가 갈릴 때 평균시간 많은 신병이 덜 받는다 ---------- */

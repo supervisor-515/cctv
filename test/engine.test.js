@@ -1232,3 +1232,31 @@ test('explainAssignment: 순찰·다음날 밥교대는 설명의 1순위가 실
   });
   assert.ok(top / slots > 0.85, '1순위 일치율 ' + (top / slots).toFixed(2));
 });
+
+test('유조차 운전병: 평일이라도 휴일이면 오후 1칸 (공휴일·지정 휴무일·직장 휴무일), 휴일 금요일은 야간 대신 오후', () => {
+  const ws = roster(14);
+  const fuel = ws[0];
+  E.setDB(freshDB({ workers: ws }));
+  const db = E.getDB();
+  db.prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-10-05' }));   // 10/5(월)~10/11(일), 10/9(금) 한글날
+  db.holidays['2026-10-06'] = '부대 휴무';                                                     // 화: 지정 휴무일
+  E.invalidateStats();
+  const run = (ds, tweak) => { const inp = E.autoInputFor(ds); if (tweak) tweak(inp);
+    [inp.dutyId, inp.situationId, inp.prevDutyId, inp.prevSituationId, inp.nextDutyId, inp.nextSituationId].forEach(id => assert.notEqual(id, fuel.id));
+    const s = E.generateDay(inp); db.schedules[ds] = s; E.invalidateStats(); return s; };
+  const shape = s => ({ day: daySlotsOf(s, fuel.id), night: E.NIGHT_BUNCHO.filter(b => s.night[b.id] === fuel.id).length });
+  const mon = shape(run('2026-10-05'));
+  assert.equal(mon.day.length, 1, '대체공휴일(월, 개천절)에 오후 1칸'); assert.equal(mon.night, 0);
+  const tue = shape(run('2026-10-06'));
+  assert.equal(tue.day.length, 1, '지정 휴무일(화)에 오후 1칸'); assert.ok(E.FUEL_DAY_SLOTS.includes(tue.day[0])); assert.equal(tue.night, 0);
+  const wed = shape(run('2026-10-07', inp => { inp.workHoliday = true; }));
+  assert.equal(wed.day.length, 1, '직장 휴무일로 체크한 수요일에 오후 1칸');
+  const thu = shape(run('2026-10-08'));
+  assert.deepEqual(thu, { day: [], night: 0 }, '휴일 아닌 목요일은 종일 열외');
+  const fri = shape(run('2026-10-09'));
+  assert.equal(fri.day.length, 1, '한글날(금)은 오후 1칸'); assert.equal(fri.night, 0, '휴일 금요일은 야간 없음');
+  ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-09'].forEach(ds => {
+    assert.deepEqual(E.validateSchedule(db.schedules[ds]).filter(m => /열외인데|사전등록 충돌/.test(m)), [], ds + ' 허용 칸이 위반으로 잡힘');
+  });
+  assert.equal(E.buildStats(null)[fuel.id].denom, 0, '휴일 근무도 분모 제외 유지');
+});

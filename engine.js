@@ -158,6 +158,19 @@ function fuelAllowedOn(ds, workHoliday){
   if(d===5) return {day:[], night:true};
   return {day:[], night:false};
 }
+/* 그 표에서 유조차 운전병(정)에게 허용되는 '한 자리' — 자동 배정이든 직접 고친 칸이든 한 칸까지는 정상.
+   운전병은 생성 때 기록(s.fuelId)이 있으면 그 사람, 없으면 그 주 유조차 등록자 중 그날 전체 열외(bothEx)인 사람.
+   반환 {wid, key:'D:hh:mm'|'N:b'|null} — 허용 칸(토·일·휴일 오후 / 금 야간) 중 실제로 선 첫 자리. 운전병이 없으면 null */
+function fuelAllowedKey(s){
+  const p=fuelTruckOn(s.date);
+  const wid = s.fuelId || (p && (s.bothEx||[]).includes(p.wid) ? p.wid : null);
+  if(!wid) return null;
+  const al=fuelAllowedOn(s.date, s.workHoliday);
+  const d=al.day.find(sl=> s.assign && s.assign[sl]===wid);
+  if(d) return {wid, key:'D:'+d};
+  const b=al.night ? NIGHT_BUNCHO.find(x=> s.night && s.night[x.id]===wid) : null;
+  return {wid, key: b ? 'N:'+b.id : null};
+}
 /* 해당 날짜에 걸리는 사전등록 목록 */
 function prebookOn(ds){ return (DB.prebook||[]).filter(p=> ds>=p.start && ds<=p.end); }
 
@@ -1411,18 +1424,18 @@ function validateSchedule(s){
   const dEx=new Set([...(s.dayEx||[]),...(s.bothEx||[])]);
   const nEx=new Set([...(s.nightEx||[]),...(s.bothEx||[])]);
   const sEx=s.slotEx||{};
-  // 유조차 운전병(정)의 부분근무는 열외 중에도 허용된 자리 — 그 칸만 예외로 둔다
-  const fuelAllow = s.fuelId ? fuelAllowedOn(s.date, s.workHoliday) : null;
+  // 유조차 운전병(정)의 부분근무는 열외 중에도 허용된 자리 — 그 한 칸만 예외(직접 옮겨도 같음, 두 칸째부터는 경고)
+  const fuelKey = fuelAllowedKey(s);
   DAY_SLOTS.forEach(sl=>{
     const id=assign[sl]; if(!id) return;
     if(sl==='14:30' && fixed['14:30']===id) return; // 당일 상황병 고정 예외
     // 유조차 부분근무 예외는 '유조차라서 붙은 전체 열외'에만 — 사용자가 지정한 시간대 열외는 그대로 검사
-    const fuelOk = fuelAllow && id===s.fuelId && fuelAllow.day.includes(sl);
+    const fuelOk = fuelKey && id===fuelKey.wid && fuelKey.key==='D:'+sl;
     if(!fuelOk && dEx.has(id)) push(nameOf(id)+' 주간열외인데 '+sl+' 배정됨');
     else if(sEx[id] && sEx[id].includes(sl)) push(nameOf(id)+' '+sl+' 시간대 열외인데 배정됨');
   });
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(!id) return;
-    const fuelOk = fuelAllow && id===s.fuelId && fuelAllow.night;         // 유조차 부분근무 예외(전체 열외에만)
+    const fuelOk = fuelKey && id===fuelKey.wid && fuelKey.key==='N:'+b.id;   // 유조차 부분근무 예외(전체 열외에만)
     if(!fuelOk && nEx.has(id)) push(nameOf(id)+' 야간/전체열외인데 '+b.id+'번초 배정됨');
     else if(sEx[id] && sEx[id].includes('N'+b.id)) push(nameOf(id)+' '+b.id+'번초 시간대 열외인데 배정됨'); });
 
@@ -1751,7 +1764,8 @@ function explainAssignment(s, key){
     if(key[0]==='D' && navFixedDaySlots(ds, ctx.workHoliday).includes(key.slice(2))) return rule(key.slice(2), '운항병의 주중 고정 칸입니다([기본 설정]의 운항병 고정 슬롯).');
     if(key[0]==='N') return rule(key.slice(2)+'번초', '운항병은 금·토 중 하루 야간 1회를 맡고, 그동안 가장 적게 선 번초로 들어갑니다.');
   }
-  if(who && s.fuelId===who && ctx.bothEx.includes(who)){
+  const fkx=fuelAllowedKey(s);
+  if(who && fkx && fkx.wid===who && fkx.key===key){
     if(key[0]==='N') return rule(key.slice(2)+'번초', '유조차 운전병의 금요일 야간 1회입니다. 그동안 가장 적게 선 번초로 들어갑니다.');
     if(key[0]==='D') return rule(key.slice(2), '유조차 운전병의 토·일·휴일 오후 1칸입니다. 12:30~16:30 중 그 사람이 가장 적게 선 시간대로 들어갑니다.');
   }
@@ -1955,11 +1969,10 @@ function prebookConflictsFor(p, s){
     if(roleIds.has(p.wid)) return out;   // 부가 유조차를 맡는 날 → 역할 근무 정상
     // 정(正) 운전병의 허용된 부분근무(금 야간 1번초 / 토·일·휴일 12:30 이후 1칸)는 충돌이 아니다.
     // 그 자리만 비운 사본으로 아래 일반 점검을 돌려, 허용 외 배정은 그대로 걸리게 한다.
-    if(p.kind==='fueltruck' && s.fuelId===p.wid){
-      const al=fuelAllowedOn(s.date, s.workHoliday);
+    const fk=p.kind==='fueltruck' ? fuelAllowedKey(s) : null;
+    if(fk && fk.wid===p.wid && fk.key){
       const assign2={...(s.assign||{})}, night2={...(s.night||{})};
-      al.day.forEach(sl=>{ if(assign2[sl]===p.wid) delete assign2[sl]; });
-      if(al.night) NIGHT_BUNCHO.forEach(b=>{ if(night2[b.id]===p.wid) delete night2[b.id]; });
+      if(fk.key[0]==='D') delete assign2[fk.key.slice(2)]; else delete night2[fk.key.slice(2)];
       s={...s, assign:assign2, night:night2};
     }
   }
@@ -2056,7 +2069,7 @@ if(typeof module!=='undefined' && module.exports){
     migrate, normWorker, normPrebook, normSched,
     // 날짜/그룹
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
-    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn, fuelAllowedOn,
+    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn, fuelAllowedOn, fuelAllowedKey,
     // 근무자
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,

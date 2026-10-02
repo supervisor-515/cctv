@@ -18,7 +18,7 @@ const NIGHT_BUNCHO = [
 const SLOT_ORDER = ['06:30','07:30','08:30','09:30','10:30','11:30','12:30','13:30','14:30','15:30','16:30',
   '17:30','18:30','19:30','20:30','21:30','22:30','23:30','00:30','01:30','02:30','03:30','04:30','05:30'];
 const MORNING_AFTER_NIGHT = ['06:30','07:30','08:30']; // 전날 야간자 다음날 열외
-// 유조차 운전병(정)이 부분근무로 설 수 있는 주간 칸 (토·일 한정, 이 중 1칸)
+// 유조차 운전병(정)이 부분근무로 설 수 있는 주간 칸 (토·일·휴일 한정, 이 중 1칸)
 const FUEL_DAY_SLOTS = ['12:30','13:30','14:30','15:30','16:30'];
 /* 시간대 열외(부분 열외) 밴드 — 주간 11칸을 셋으로 끊고 야간은 번초 4개.
    저녁(17:30~21:30)은 역할 고정이라 열외 대상이 아니다. */
@@ -146,13 +146,16 @@ function normPrebook(p){
 }
 /* 그 주에 등록된 유조차 운전병 항목 (없으면 null) */
 function fuelTruckOn(ds){ return (DB.prebook||[]).find(p=> p.kind==='fueltruck' && ds>=p.start && ds<=p.end) || null; }
-/* 유조차 운전병(정)이 그날 설 수 있는 자리 — 금: 야간 번초 1개, 토·일: 12:30 이후 주간 1칸.
-   그 외 요일은 종전대로 완전 열외. 어느 날이든 bothEx에는 계속 남으므로 분모(presentOn)에서는
-   빠지고, 실제 배정된 시간·횟수만 분자에 쌓인다 → 평균·배정률만 올라간다. */
-function fuelAllowedOn(ds){
+/* 유조차 운전병(정)이 그날 설 수 있는 자리 — 토·일·휴일: 12:30 이후 주간 1칸, (휴일 아닌) 금: 야간 번초 1개.
+   그 외 평일은 완전 열외. 휴일 여부는 workHoliday(그 표의 '직장 휴무일')를 넘기면 그 값,
+   안 넘기면 공휴일·지정 휴무일로 판단한다. 휴일인 금요일은 오후 1칸만 선다(야간 대신 — 하루 한 자리).
+   어느 날이든 bothEx에는 계속 남으므로 분모(presentOn)에서는 빠지고, 실제 배정된 시간·횟수만
+   분자에 쌓인다 → 평균·배정률만 올라간다. */
+function fuelAllowedOn(ds, workHoliday){
   const d = dow(ds);
+  const hol = workHoliday===undefined || workHoliday===null ? isHolidayDate(ds) : !!workHoliday;
+  if(d===6 || d===0 || hol) return {day:FUEL_DAY_SLOTS.slice(), night:false};
   if(d===5) return {day:[], night:true};
-  if(d===6 || d===0) return {day:FUEL_DAY_SLOTS.slice(), night:false};
   return {day:[], night:false};
 }
 /* 해당 날짜에 걸리는 사전등록 목록 */
@@ -1200,7 +1203,7 @@ function generateDay(input){
     }
   }
 
-  /* 2-2) 유조차 운전병(정) 부분근무 사전배정 — 금: 야간 1번초 / 토·일: 12:30 이후 1칸.
+  /* 2-2) 유조차 운전병(정) 부분근무 사전배정 — 금: 야간 1번초 / 토·일·휴일: 12:30 이후 1칸.
      bothEx에 그대로 남겨두므로 후보 풀(dayCandidates·nightCandidates·mealCandidates·순찰)과
      분모에서는 계속 빠진다. 여기서 명시적으로 꽂는 자리만 근무로 잡힌다.
      그날 당직/상황병 역할이 걸려 정상 근무하는 경우는 applyFuelTruckEx가 애초에 bothEx에
@@ -1211,7 +1214,7 @@ function generateDay(input){
   const fuelDay = {};     // slot -> 유조차 인원 id
   let fuelNight = null;   // {bunchoId}
   if(fuelW){
-    const allow = fuelAllowedOn(ds);
+    const allow = fuelAllowedOn(ds, ctx.workHoliday);
     const fr = ctx.stats[fuelW.id];
     if(allow.night && !prevNight.has(fuelW.id)){
       // 번초 균등: 그동안 가장 적게 선 번초 (운항병과 같은 기준). 운항병 선점 번초는 피한다.
@@ -1409,7 +1412,7 @@ function validateSchedule(s){
   const nEx=new Set([...(s.nightEx||[]),...(s.bothEx||[])]);
   const sEx=s.slotEx||{};
   // 유조차 운전병(정)의 부분근무는 열외 중에도 허용된 자리 — 그 칸만 예외로 둔다
-  const fuelAllow = s.fuelId ? fuelAllowedOn(s.date) : null;
+  const fuelAllow = s.fuelId ? fuelAllowedOn(s.date, s.workHoliday) : null;
   DAY_SLOTS.forEach(sl=>{
     const id=assign[sl]; if(!id) return;
     if(sl==='14:30' && fixed['14:30']===id) return; // 당일 상황병 고정 예외
@@ -1750,7 +1753,7 @@ function explainAssignment(s, key){
   }
   if(who && s.fuelId===who && ctx.bothEx.includes(who)){
     if(key[0]==='N') return rule(key.slice(2)+'번초', '유조차 운전병의 금요일 야간 1회입니다. 그동안 가장 적게 선 번초로 들어갑니다.');
-    if(key[0]==='D') return rule(key.slice(2), '유조차 운전병의 토·일 오후 1칸입니다. 12:30~16:30 중 그 사람이 가장 적게 선 시간대로 들어갑니다.');
+    if(key[0]==='D') return rule(key.slice(2), '유조차 운전병의 토·일·휴일 오후 1칸입니다. 12:30~16:30 중 그 사람이 가장 적게 선 시간대로 들어갑니다.');
   }
 
   // ----- 밥교대(당일·다음날) : assignMeal 순서 -----
@@ -1950,10 +1953,10 @@ function prebookConflictsFor(p, s){
   if(p.kind==='fueltruck' || p.kind==='fuelsub'){
     const roleIds=new Set([s.dutyId,s.situationId,s.prevDutyId,s.prevSituationId,s.nextDutyId,s.nextSituationId].filter(Boolean));
     if(roleIds.has(p.wid)) return out;   // 부가 유조차를 맡는 날 → 역할 근무 정상
-    // 정(正) 운전병의 허용된 부분근무(금 야간 1번초 / 토·일 12:30 이후 1칸)는 충돌이 아니다.
+    // 정(正) 운전병의 허용된 부분근무(금 야간 1번초 / 토·일·휴일 12:30 이후 1칸)는 충돌이 아니다.
     // 그 자리만 비운 사본으로 아래 일반 점검을 돌려, 허용 외 배정은 그대로 걸리게 한다.
     if(p.kind==='fueltruck' && s.fuelId===p.wid){
-      const al=fuelAllowedOn(s.date);
+      const al=fuelAllowedOn(s.date, s.workHoliday);
       const assign2={...(s.assign||{})}, night2={...(s.night||{})};
       al.day.forEach(sl=>{ if(assign2[sl]===p.wid) delete assign2[sl]; });
       if(al.night) NIGHT_BUNCHO.forEach(b=>{ if(night2[b.id]===p.wid) delete night2[b.id]; });

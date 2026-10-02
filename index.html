@@ -667,7 +667,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.1.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.2.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1127,7 +1127,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.1.0"></script>
+<script src="engine.js?v=7.2.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1251,16 +1251,26 @@ function applyRole(w, v){
 }
 
 /* ---------- ② 생성 탭 셀렉터 ---------- */
+/* 생성 탭에서 지금 그 날짜의 '직장 휴무일' 체크 값(다른 날짜면 undefined → 공휴일·지정 휴무일로 판단) */
+function genWorkHoliday(ds){ return $('#gDate') && $('#gDate').value===ds ? $('#gHoliday').checked : undefined; }
+/* 직장 휴무일을 직접 바꾸면 유조차 운전병의 잠금 칸(휴일이면 오후 1칸)을 다시 맞춘다. 추가로 고른 열외는 열린 칸 안에서 유지 */
+function refreshFuelLock(){
+  const ds=$('#gDate').value; if(!genEx.fuel || !ds) return;
+  const old=genEx.fuel, fi=fuelExInfo(ds); if(!fi || fi.wid!==old.wid) return;
+  const extra=[...exSetOf(fi.wid)].filter(u=>old.allowed.includes(u) && fi.allowed.includes(u));
+  delete genEx.units[fi.wid]; exMarkFuel(fi); extra.forEach(u=>exUnitsOf(fi.wid).add(u));
+  renderExChips(); renderFuelNotice(ds);
+}
 /* 그 주 유조차 운전병 등록 상태 안내 (미등록이면 등록 요청) */
 function renderFuelNotice(ds){
   const box=$('#gFuelNotice'); if(!box) return;
   const f=fuelTruckOn(ds);
   if(f){
-    const al=fuelAllowedOn(ds);
+    const al=fuelAllowedOn(ds, genWorkHoliday(ds));
     const today = al.night ? '오늘(금)은 야간 번초 1개가 자동 배정됩니다.'
                 : al.day.length ? '오늘은 '+al.day[0]+'~'+al.day[al.day.length-1]+' 중 1칸이 자동 배정됩니다.'
                 : '오늘은 열외입니다.';
-    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 월~목 종일 열외, 금 야간 번초 1자리 · 토/일 12:30 이후 1칸만 섭니다(그 주 7일 모두 분모 제외). '+today+' 그 안에서 못 서는 칸은 아래 열외에서 유조차 운전병을 눌러 추가로 고르세요.</div>';
+    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 평일(월~목) 종일 열외, 금 야간 번초 1자리 · 토/일·휴일 12:30 이후 1칸만 섭니다(그 주 7일 모두 분모 제외). '+today+' 그 안에서 못 서는 칸은 아래 열외에서 유조차 운전병을 눌러 추가로 고르세요.</div>';
   }else{
     box.innerHTML='<div class="warn">⚠ 이번 주 유조차 운전병이 등록되지 않았습니다. [달력 · 일정] 탭에서 이번 주 유조차를 등록해주세요.</div>';
   }
@@ -1287,13 +1297,15 @@ function refreshGenSelectors(){
     nm.value = existing ? (existing.nextMealAuto ? '' : (existing.nextMealId || '__none__')) : '';  // 신규일=자동
   }
   fillSelect($('#gMeal'), mealList(), {blank:'— 자동 배정 —', selected: existing?existing.mealId:(prev?prev.nextMealId:null)});
+  // 직장 휴무일 체크를 먼저 정한다 — 유조차 운전병의 열외(휴일이면 오후 1칸)가 이 값을 따른다
+  $('#gHoliday').checked = existing?existing.workHoliday: (prev&&prev.nextWorkHoliday) || dayGroup(ds,false)==='weekend' || isHolidayDate(ds);
   // 휴가 마지막날(복귀일)은 주간만 열외 — 복귀날 야간부터 투입 가능
   setGenExFrom(existing ? existing : {
     dayEx:  pb.filter(p=> p.kind==='exday'  || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid),
     bothEx: pb.filter(p=> p.kind==='exboth' || (p.kind==='vacation' && ds<p.end)).map(p=>p.wid)
   }, ds);
   // 유조차 운전병(정): 분모는 그 주 7일 내내 제외, 열외는 요일별 실제 규칙대로
-  //   월~목 종일 · 금 야간 번초 외 전부 · 토/일 12:30~16:30 외 전부 (열려 있는 칸 안에서 추가 열외 가능)
+  //   평일(월~목) 종일 · 금 야간 번초 외 전부 · 토/일·휴일 12:30~16:30 외 전부 (열려 있는 칸 안에서 추가 열외 가능)
   // 유조차 대체(부)는 지정 기간 종일 열외. 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
   if(!existing){
     const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
@@ -1306,7 +1318,6 @@ function refreshGenSelectors(){
   }
   renderExChips();
   renderFuelNotice(ds);
-  $('#gHoliday').checked = existing?existing.workHoliday: (prev&&prev.nextWorkHoliday) || dayGroup(ds,false)==='weekend' || isHolidayDate(ds);
   $('#gNextHoliday').checked = existing? !!existing.nextWorkHoliday : dayGroup(addDays(ds,1),false)==='weekend' || isHolidayDate(addDays(ds,1));
   // 전날 당직/상황병: 전날 표가 있으면 자동·비활성, 없으면 직접 입력 활성화
   const pd=$('#gPrevDuty'), ps=$('#gPrevSit'), pv=$('#gPrevView');
@@ -1346,7 +1357,7 @@ const genEx = { units:{}, omit:new Set(), open:null, detail:false, fuel:null };
    분모는 7일 내내 제외. 저장은 종전과 같이 bothEx(전체 열외·분모 제외) + 열린 칸 중 추가로 고른 열외는 slotEx. */
 function fuelExInfo(ds){
   const f=fuelTruckOn(ds); if(!f) return null;
-  const al=fuelAllowedOn(ds);
+  const al=fuelAllowedOn(ds, genWorkHoliday(ds));
   const allowed=[...al.day, ...(al.night?NIGHT_UNITS:[])];
   return {wid:f.wid, allowed, inherent:EX_UNITS.filter(u=>!allowed.includes(u)), night:al.night};
 }
@@ -1650,6 +1661,7 @@ function previewGen(){
     need.appendChild(el('span','muted','(야간 부족 — 밥교대 인원 자동 투입 예상)'));
   box.appendChild(need);
 }
+$('#gHoliday').addEventListener('change', refreshFuelLock);
 ['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
   .forEach(id=> $(id).addEventListener('change', previewGen));
 
@@ -2118,7 +2130,7 @@ function pbDayInfo(p, ds){
   if(p.kind==='exboth') return {word:'열외', cls:'cw-ex', label:'모두 열외', cond:'종일 열외 · 분모 제외'};
   if(p.kind==='fuelsub') return {word:'유조차', cls:'cw-fuel', label:'유조차 (부)', cond:'종일 열외 · 당직/상황병 날은 역할 근무'};
   if(p.kind==='fueltruck'){
-    const al=fuelAllowedOn(ds);
+    const s=DB.schedules[ds], al=fuelAllowedOn(ds, s ? s.workHoliday : undefined);   // 표가 있으면 그 표의 직장 휴무일 기준
     const cond = al.night ? '야간 번초만 가능, 나머지 열외'
                : al.day.length ? al.day[0]+'~'+al.day[al.day.length-1]+'만 가능, 나머지 열외'
                : '종일 열외';
@@ -3871,11 +3883,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.1.0"></script>
+<script src="firebase-config.js?v=7.2.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.1.0"></script>
+<script src="sync.js?v=7.2.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

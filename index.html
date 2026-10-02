@@ -464,6 +464,18 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .mlog-names button{min-height:46px}
 .mlog-msg{margin-top:10px}
 .mlog-foot{margin-top:12px}
+/* 당직사관·당직사령 (구성원 기록) */
+.ofl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 10px}
+.ofl .of{font:inherit;color:inherit;text-align:left;display:flex;flex-direction:column;gap:1px;min-width:0;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+button.of{cursor:pointer}
+button.of:hover{border-color:var(--line2)}
+.ofl .of small{font-size:11px;font-weight:700;color:var(--ink-dim)}
+.ofl .of b{font-size:13.5px;overflow-wrap:anywhere}
+.ofl .of b.none{color:var(--ink-faint);font-weight:500}
+.ofl .by{grid-column:1/-1;font-size:11px;color:var(--ink-faint)}
+.oflist{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.oflist .r{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}
+.oflist .r b{flex:1;min-width:0}
 .cmp .row1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .cmp .row1 b{font-size:13px}
 .cmp .row1 .me{font-family:var(--mono);font-size:16px;font-weight:700}
@@ -655,7 +667,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.0.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.1.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -881,6 +893,7 @@ body.ro .no-ro{display:none!important}
     <div class="mgl no-ro">관리</div>
     <div class="menu no-ro">
       <button class="mi" data-go="people"><span class="mic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg></span>근무자 관리<span class="sp"></span><span class="mv" id="mPeople"></span><span class="chev">›</span></button>
+      <button class="mi" id="mOfficers"><span class="mic"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg></span>당직사관 · 당직사령 명단<span class="sp"></span><span class="mv" id="mOfCnt"></span><span class="chev">›</span></button>
       <button class="mi" data-go="settings"><span class="mic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></span>기본 설정<span class="sp"></span><span class="chev">›</span></button>
     </div>
     <div class="mgl">데이터</div>
@@ -955,7 +968,20 @@ body.ro .no-ro{display:none!important}
     <details class="arch" id="pArchWrap"><summary><span id="pArchLabel">보관 인원</span><span>▸</span></summary><div class="plist" id="pArch"></div></details>
     <p class="smallnote" style="margin-top:14px">신병→당직/상황병 전환 시 신병 근무 카운트는 초기화하고 밥교대 카운트는 유지합니다.
       <b>운항병</b>(활성 1명)은 월~목·금 주간 고정 + 금/토 야간 1회. <b>말년</b>은 배정은 신병과 같게 하되 카운트 초기화는 하지 않습니다.</p>
+    <div class="panel no-ro" style="margin-top:14px">
+      <h2>당직사관 · 당직사령 명단</h2>
+      <p class="desc">구성원이 날짜마다 이 명단에서 그날의 당직사관·당직사령을 골라 기록합니다. 근무 배정에는 쓰이지 않습니다.</p>
+      <div id="ofAdmin"></div>
+    </div>
   </section>
+
+  <!-- 당직사관·당직사령 기록 시트 (구성원) -->
+  <div class="sheet-bg" id="ofSheetBg"></div>
+  <div class="sheet" id="ofSheet" role="dialog" aria-label="당직사관·당직사령 기록">
+    <div class="grab"></div>
+    <div class="sh-h"><b id="ofTitle">기록</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div id="ofBody"></div>
+  </div>
 
   <!-- 근무자 추가/편집 시트 -->
   <div class="sheet-bg" id="pSheetBg"></div>
@@ -1101,7 +1127,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.0.0"></script>
+<script src="engine.js?v=7.1.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1152,12 +1178,13 @@ $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
   showView(v);
 }));
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ MINE.userNav=true; vResolveDraft(); showView(b.dataset.go); }));
+$('#mOfficers').addEventListener('click',()=>{ MINE.userNav=true; showView('people'); const p=$('#ofAdmin'); if(p) p.parentElement.scrollIntoView({block:'start'}); });
 $$('[data-back]').forEach(b=>b.addEventListener('click',()=>showView('more')));
 
 /* 바텀 시트 열기/닫기 */
 function openSheet(id){ $('#'+id).classList.add('on'); $('#'+id+'Bg').classList.add('on'); }
 function closeSheet(id){ $('#'+id).classList.remove('on'); $('#'+id+'Bg').classList.remove('on'); }
-['pbSheet','pSheet','pickSheet','evSheet','edSheet','whySheet'].forEach(id=>{
+['pbSheet','pSheet','pickSheet','evSheet','edSheet','whySheet','ofSheet'].forEach(id=>{
   $('#'+id+'Bg').addEventListener('click',()=>closeSheet(id));
   $('#'+id+' [data-close]').addEventListener('click',()=>closeSheet(id));
 });
@@ -1925,6 +1952,7 @@ function renderView(){
   const issues = editing ? validateSchedule(s) : validateScheduleCached(s);
   renderStatusLine(body, s, issues);
   body.appendChild(renderRoleCards(s, ed));
+  if(!editing){ const ol=officerLine(ds); if(ol) body.appendChild(ol); }
   // 내 근무 강조 (이 기기에만 기억)
   const whoRow=el('div','who no-print'); whoRow.appendChild(el('span',null,'내 근무 강조'));
   if(window.MY_WORKER) whoRow.style.display='none';   // 구성원 계정은 본인이 자동 강조
@@ -2238,6 +2266,7 @@ function renderCalDetail(who){
   });
   hdr.appendChild(go);
   wrap.appendChild(hdr);
+  { const ol=officerLine(ds); if(ol) wrap.appendChild(ol); }
   const sec=(title)=>{ const x=el('div','cday-sec'); x.appendChild(el('h3',null,esc(title))); wrap.appendChild(x); return x; };
 
   if(!s){
@@ -2857,7 +2886,83 @@ $('#cSlotCsv').addEventListener('click',()=>{
 let pFilter='all';
 const PFILTERS=[['all','전체'],['duty','당직'],['situation','상황병'],['recruit','신병'],['etc','운항·말년']];
 function pMatch(w,f){ const v=roleValue(w); return f==='all' || v===f || (f==='etc' && (v==='navigator'||v==='veteran')); }
+/* ---------- 당직사관 · 당직사령 (구성원 참여 기록) ----------
+   명단은 관리자가 관리(DB.officers → 근무표와 함께 업로드), 날짜별 기록은 구성원이 서버(officerLog)에 직접 쓴다. */
+function officerList(role){ return (DB.officers && DB.officers[role]) || []; }
+function officerLine(ds){
+  const api=window.OFFICER_API;
+  if(!api || !api.readable()) return null;
+  const rec=api.get(ds), can=api.canWrite();
+  const box=el('div','ofl'); box.setAttribute('aria-label', calMd(ds)+' 당직사관·당직사령');
+  Object.entries(OFFICER_ROLES).forEach(([role,label])=>{
+    const name=rec && rec[role+'Name'];
+    const c=el(can?'button':'div','of');
+    if(can){ c.type='button'; c.addEventListener('click',()=>openOfficerPick(ds, role)); c.setAttribute('aria-label', label+' '+(name||'기록 없음')+' — 눌러서 기록'); }
+    c.appendChild(el('small',null,esc(label)));
+    c.appendChild(el('b', name?null:'none', name ? esc(name) : (api.loaded() ? (can?'기록하기':'기록 없음') : '불러오는 중…')));
+    box.appendChild(c);
+  });
+  if(rec && rec.byName && (rec.sagwanName||rec.saryeongName)) box.appendChild(el('div','by','기록: '+esc(rec.byName)));
+  return box;
+}
+function openOfficerPick(ds, role){
+  const api=window.OFFICER_API; if(!api || !api.canWrite()) return;
+  const label=OFFICER_ROLES[role], rec=api.get(ds), curId=rec && rec[role+'Id'];
+  $('#ofTitle').textContent=mdw(ds)+' '+label;
+  const b=$('#ofBody'); b.innerHTML='';
+  const list=officerList(role);
+  const st=el('div','mlog-msg'); st.setAttribute('role','status');
+  const pick=(entry)=>{
+    $$('#ofBody button').forEach(x=>x.disabled=true); st.innerHTML='<div class="hint">저장 중…</div>';
+    api.set(ds, role, entry).then(()=>{ closeSheet('ofSheet'); },
+      e=>{ $$('#ofBody button').forEach(x=>x.disabled=false); st.innerHTML='<div class="err">'+esc(window.MEMBER_API?MEMBER_API.msg(e):'저장하지 못했습니다.')+'</div>'; });
+  };
+  if(!list.length) b.appendChild(el('div','mnone','아직 '+esc(label)+' 명단이 없습니다. 행보관(관리자)에게 명단 등록을 요청하세요.'));
+  else{
+    const pl=el('div','picklist');
+    list.forEach(o=>{ const x=el('button', o.id===curId?'on':'', esc(o.name)); x.type='button'; x.addEventListener('click',()=>pick({id:o.id, name:o.name})); pl.appendChild(x); });
+    b.appendChild(pl);
+  }
+  if(rec && rec[role+'Name']){
+    b.appendChild(el('div','edsep','또는'));
+    const clr=el('button','btn ghost full','기록 지우기'); clr.type='button'; clr.addEventListener('click',()=>pick(null)); b.appendChild(clr);
+  }
+  b.appendChild(st);
+  b.appendChild(el('p','smallnote','고른 내용은 바로 저장되어 모든 구성원에게 보입니다. 잘못 골랐으면 다시 눌러 바꾸면 됩니다.'));
+  openSheet('ofSheet');
+}
+window.onOfficerLog=function(){
+  const cur=($$('.view.on')[0]||{}).id;
+  if(cur==='mine') renderMine();
+  else if(cur==='cal') renderCalDetail(calModeGet()==='person' ? ($('#calWho').value||'') : '');
+  else if(cur==='view' && vMode!=='edit') keepScroll(renderView);
+};
+function renderOfficerAdmin(){
+  const box=$('#ofAdmin'); if(!box) return; box.innerHTML='';
+  DB.officers=normOfficers(DB.officers);
+  Object.entries(OFFICER_ROLES).forEach(([role,label])=>{
+    box.appendChild(el('h3',null,esc(label)+' <span class="muted">'+officerList(role).length+'명</span>'));
+    const l=el('div','oflist');
+    officerList(role).forEach(o=>{
+      const r=el('div','r'); r.appendChild(el('b',null,esc(o.name)));
+      const del=el('button','btn danger sm','삭제'); del.type='button';
+      del.addEventListener('click',()=>{ if(!confirm(label+' 명단에서 '+o.name+'을(를) 뺄까요?\n이미 기록된 날짜의 이름은 그대로 남습니다.')) return;
+        DB.officers[role]=officerList(role).filter(x=>x.id!==o.id); save(); renderOfficerAdmin(); });
+      r.appendChild(del); l.appendChild(r);
+    });
+    box.appendChild(l);
+    const row=el('div','row'); row.style.marginBottom='14px';
+    const f=el('div','field'); const inp=el('input'); inp.placeholder=label+' 이름 (예: 중위 홍길동)'; inp.maxLength=30; inp.setAttribute('aria-label', label+' 이름');
+    f.appendChild(inp); row.appendChild(f);
+    const add=el('button','btn','추가'); add.type='button';
+    const go=()=>{ const n=inp.value.trim(); if(!n) return; if(officerList(role).some(x=>x.name===n)){ alert('이미 있는 이름입니다.'); return; }
+      DB.officers[role].push({id:'o'+role[1]+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name:n}); save(); renderOfficerAdmin(); };
+    add.addEventListener('click',go); inp.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+    row.appendChild(add); box.appendChild(row);
+  });
+}
 function renderPeople(){
+  renderOfficerAdmin();
   const act=DB.workers.filter(w=>w.active), arch=DB.workers.filter(w=>!w.active);
   const fb=$('#pFilter'); fb.innerHTML='';
   PFILTERS.forEach(([v,l])=>{
@@ -3084,7 +3189,7 @@ $('#bCsvAll').addEventListener('click',()=>{
   });
   downloadCsv('전체근무표.csv',rows);
 });
-$('#bClear').addEventListener('click',()=>{ if(confirm('모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없습니다.')){ localStorage.removeItem(STORE_KEY); DB={version:2,lastBackupAt:null,workers:[],schedules:{},prebook:[],holidays:{},settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))}; invalidateStats(); refreshAll(); } });
+$('#bClear').addEventListener('click',()=>{ if(confirm('모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없습니다.')){ localStorage.removeItem(STORE_KEY); DB=migrate(null); invalidateStats(); refreshAll(); } });
 
 /* ---------- 초기화 ---------- */
 /* ---------- 내 근무 — 구성원 개인 홈 ----------
@@ -3499,6 +3604,7 @@ function renderMineToday(w, today, now){
   const dayItems = early.concat(todays.filter(it=>it.date===today));
   const nightItems = todays.filter(it=>it.date!==today);
   minePbLines(w.id, today).forEach(x=>sec.appendChild(x));
+  { const ol=officerLine(today); if(ol) sec.appendChild(ol); }
   if(sT){ const rc=mineRoleChips(sT, w.id); if(rc) sec.appendChild(rc); }
   if(!sT && !sY){ sec.appendChild(el('div','mnone','오늘 근무표 미생성')); return sec; }
   const remain=dayItems.concat(nightItems).filter(it=>atOf(it.date,it.t)>now);
@@ -3577,6 +3683,7 @@ function renderMineTomorrow(w, today){
   const t=addDays(today,1);
   const sec=el('section','mcard'); sec.setAttribute('aria-label','내일');
   sec.appendChild(el('h3',null,'내일 <span class="muted">'+esc(mdw(t))+'</span>'));
+  { const ol=officerLine(t); if(ol) sec.appendChild(ol); }
   sec.appendChild(mineDaySummary(w, t));
   return sec;
 }
@@ -3609,6 +3716,7 @@ function renderMineWeek(w, today){
   const ds=MINE.sel;
   const det=el('div','mwk-d');
   det.appendChild(el('div','dh','<b>'+esc(mdw(ds))+'</b>'+(holidayName(ds)?' <span class="pill">'+esc(holidayName(ds))+'</span>':'')));
+  { const ol=officerLine(ds); if(ol) det.appendChild(ol); }
   det.appendChild(mineDaySummary(w, ds));
   const acts=el('div','flexgap');
   const gv=el('button','btn ghost sm','이 날 근무표 전체'); gv.type='button';
@@ -3715,6 +3823,7 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) tickMine
 
 /* 더보기 메뉴 — 항목 옆에 현재 상태 표시 */
 function renderMore(){
+  { const n=((DB.officers||{}).sagwan||[]).length+((DB.officers||{}).saryeong||[]).length; const c=$('#mOfCnt'); if(c) c.textContent=n?n+'명':'미등록'; }
   const ro=document.body.classList.contains('ro');
   const logged=$('#syLogout') && $('#syLogout').style.display!=='none';
   $('#mAvatar').textContent = ro?'열': logged?'관':'로';
@@ -3762,11 +3871,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.0.0"></script>
+<script src="firebase-config.js?v=7.1.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.0.0"></script>
+<script src="sync.js?v=7.1.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

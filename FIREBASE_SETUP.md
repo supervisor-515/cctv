@@ -106,6 +106,21 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/members/$(uid)).data.workerId == request.resource.data.wid;
       allow delete: if signedIn() && request.auth.uid == uid;
     }
+    // 당직사관·당직사령 날짜별 기록 — 구성원이 명단에서 골라 기록(관리자도 가능), 공용 열람 계정은 보기만.
+    // 문서 이름 = 날짜, 정해진 필드만, 기록자(by)는 본인 uid. 근무표(roster)와 별개 경로
+    match /officerLog/{date} {
+      allow read: if isAdmin() || isMember() || isLegacyViewer();
+      allow create, update: if (isAdmin() || isMember())
+        && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['date', 'sagwanId', 'sagwanName', 'saryeongId', 'saryeongName', 'by', 'byName', 'at'])
+        && request.resource.data.date == date
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.at == request.time
+        && request.resource.data.byName is string && request.resource.data.byName.size() <= 30
+        && (!('sagwanName' in request.resource.data) || (request.resource.data.sagwanName is string && request.resource.data.sagwanName.size() <= 30))
+        && (!('saryeongName' in request.resource.data) || (request.resource.data.saryeongName is string && request.resource.data.saryeongName.size() <= 30));
+      allow delete: if isAdmin();
+    }
     // 서버 백업(최근 10회) — 관리자만. 본문은 parts 하위 문서에 나눠 저장
     match /backups/{id} {
       allow read, write: if isAdmin();
@@ -177,6 +192,7 @@ service cloud.firestore {
 | 가입 시 "부대 코드가 올바르지 않습니다" | 코드 오타 또는 행보관이 코드를 바꿈. [더보기 › 서버 동기화]의 현재 코드 확인 |
 | 본인 선택 시 "선택 실패" | 그 근무자에 이미 다른 계정이 연결됨. 행보관이 가입자 관리에서 해제 후 다시 선택 |
 | 관리자 화면에 "부대 코드 불러오기 실패" | 새 보안 규칙(4번)이 아직 게시되지 않음 |
+| 당직사관·당직사령을 골라도 "권한이 없습니다" | 4번 규칙에 `officerLog` 부분이 없음(v7.1.0 이전 규칙). 4번 규칙을 다시 붙여넣고 게시 |
 | 내 근무에서 [확인했어요]가 "권한이 없습니다" | 4번 규칙에 `personal` 부분이 없음(v7.0.0 이전 규칙). 4번 규칙을 다시 붙여넣고 게시 |
 | 생성 후 "서버 백업 실패: 권한 없음" | 4번 규칙에 `backups` 부분이 없음(v6.8.0 이전 규칙). 4번 규칙을 다시 붙여넣고 게시 |
 | 가입자 관리 [연결 변경]이 "Missing or insufficient permissions" | 예전 규칙(claims 생성에 관리자 경로 없음)을 쓰는 중. 4번 규칙을 다시 붙여넣고 게시 |

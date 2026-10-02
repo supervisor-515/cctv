@@ -123,7 +123,7 @@
   const MONTH_DOC=/^m-\d{4}-\d{2}$/;
   function splitLocal(){
     const parts={ meta: JSON.stringify({version:DB.version, lastBackupAt:DB.lastBackupAt,
-      workers:DB.workers, prebook:DB.prebook, holidays:DB.holidays, settings:DB.settings}) };
+      workers:DB.workers, prebook:DB.prebook, holidays:DB.holidays, settings:DB.settings, officers:DB.officers}) };
     const byMonth={};
     Object.keys(DB.schedules).sort().forEach(ds=>{
       const id='m-'+ds.slice(0,7);
@@ -292,6 +292,22 @@
       notifyPhase();
     };
     unsub = S.admin ? col.onSnapshot(onSnap, onErr) : col.onSnapshot({includeMetadataChanges:true}, onSnap, onErr);
+    try{ subscribeOfficers(); }catch(e){ console.warn('당직사관 기록 구독 실패', e); }   // 이 기능이 실패해도 근무표 동기화는 그대로
+  }
+  /* ---------- 당직사관·당직사령 날짜별 기록 (officerLog/{YYYY-MM-DD}) ----------
+     구성원이 날짜마다 명단에서 골라 기록한다. 근무표(roster)와 분리 — 구성원 쓰기 권한은 이 경로에만 있다.
+     최근 두 달 + 앞으로의 기록만 받는다. */
+  let unsubOf=null;
+  function subscribeOfficers(){
+    if(unsubOf){ unsubOf(); unsubOf=null; }
+    S.officerLog={}; S.officerLoaded=false;
+    const from=addDays(todayStr(),-62);
+    unsubOf=fs.collection('officerLog').where('date','>=',from).onSnapshot(snap=>{
+      if(snap.metadata && snap.metadata.hasPendingWrites) return;
+      const m={}; snap.forEach(d=>{ const x=d.data(); if(x && x.date) m[x.date]=x; });
+      S.officerLog=m; S.officerLoaded=true;
+      if(window.onOfficerLog) window.onOfficerLog();
+    }, ()=>{ S.officerLoaded=false; if(window.onOfficerLog) window.onOfficerLog(); });
   }
 
   /* ---------- 로그인 UI ---------- */
@@ -362,6 +378,7 @@
     }else{
       S.admin=false; S.readonly=false; S.unitCode=null; S.pendingDir=null; S.memberLoading=false;
       if(unsub){ unsub(); unsub=null; }
+      if(unsubOf){ unsubOf(); unsubOf=null; } S.officerLog={}; S.officerLoaded=false;
       writeHint(null);
       try{ localStorage.removeItem(RECV_KEY); }catch(e){}
     }
@@ -683,6 +700,27 @@
     personalSave(wid, base){
       if(!S.user||!S.member) return Promise.reject(Object.assign(new Error('not member'),{code:'app/not-member'}));
       return withTimeout(personalRef().set({wid, base:JSON.stringify(base), savedAt:firebase.firestore.FieldValue.serverTimestamp()}), 8000);
+    }
+  };
+  /* 당직사관·당직사령 기록 — 관리자·등록 구성원만 쓴다(공용 열람 계정은 보기만) */
+  window.OFFICER_API={
+    readable(){ return !!(S.user && (S.admin || S.member || S.legacy)); },
+    canWrite(){ return !!(S.user && (S.admin || (S.member && !S.member.provisional))); },
+    loaded(){ return !!S.officerLoaded; },
+    get(ds){ return (S.officerLog||{})[ds]||null; },
+    /* role: 'sagwan'|'saryeong', entry: {id,name} 또는 null(기록 지우기). 다른 역할 기록은 그대로 둔다 */
+    set(ds, role, entry){
+      if(!this.canWrite()) return Promise.reject(Object.assign(new Error('no permission'),{code:'permission-denied'}));
+      const cur=(S.officerLog||{})[ds]||{};
+      const d={date:ds};
+      ['sagwan','saryeong'].forEach(r=>{
+        const e = r===role ? entry : (cur[r+'Id'] ? {id:cur[r+'Id'], name:cur[r+'Name']} : null);
+        if(e){ d[r+'Id']=String(e.id); d[r+'Name']=String(e.name).slice(0,30); }
+      });
+      d.by=S.user.uid;
+      d.byName=String(S.admin ? '관리자' : (S.member.workerName || nameOf(S.member.workerId) || '')).slice(0,30);
+      d.at=firebase.firestore.FieldValue.serverTimestamp();
+      return withTimeout(fs.collection('officerLog').doc(ds).set(d), 8000);
     }
   };
   /* 인증·가입 오류를 다음 행동이 보이는 한국어로 */

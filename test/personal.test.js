@@ -117,3 +117,10 @@ test('기간 통계: 이어진 두 기간의 분자·분모 합 = 합친 기간,
     f.forEach(k => assert.equal(AB[id][k], ALL[id][k], id + ' 전체 ' + k));
   });
 });
+
+test('당직사관·당직사령 명단: 저장·불러오기에서 유지, 빈 이름·중복 id 정리, 구버전 데이터는 빈 명단', () => {
+  const d = E.migrate({ workers: [], officers: { sagwan: [{ id: 'a', name: ' 중위 김 ' }, { id: 'a', name: '중복' }, { name: '' }], saryeong: [{ id: 'b', name: '대위 이' }] } });
+  assert.deepEqual(d.officers, { sagwan: [{ id: 'a', name: '중위 김' }], saryeong: [{ id: 'b', name: '대위 이' }] });
+  assert.deepEqual(E.migrate(JSON.parse(JSON.stringify(d))).officers, d.officers, '다시 불러와도 같음');
+  assert.deepEqual(E.migrate({ workers: [] }).officers, { sagwan: [], saryeong: [] });
+});

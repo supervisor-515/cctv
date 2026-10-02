@@ -66,6 +66,7 @@ function migrate(obj){
     Object.keys(obj.holidays).forEach(k=>{ if(/^\d{4}-\d{2}-\d{2}$/.test(k)) out.holidays[k]=String(obj.holidays[k]||'휴무'); });
   }
   out.lastBackupAt = obj.lastBackupAt || null;
+  out.officers = normOfficers(obj.officers);
   // settings
   if(obj.settings){
     out.settings = Object.assign({}, DEFAULT_SETTINGS, obj.settings);
@@ -85,6 +86,20 @@ function migrate(obj){
   const sc = obj.schedules || {};
   if(Array.isArray(sc)){ sc.forEach(s=>{ if(s&&s.date) out.schedules[s.date]=normSched(s); }); }
   else { Object.keys(sc).forEach(k=>{ out.schedules[k]=normSched(sc[k]); }); }
+  return out;
+}
+/* 당직사관·당직사령 명단 — 관리자가 관리하고, 구성원이 날짜별로 이 명단에서 골라 기록한다(officerLog, 서버) */
+const OFFICER_ROLES={sagwan:'당직사관', saryeong:'당직사령'};
+function normOfficers(o){
+  const out={sagwan:[], saryeong:[]};
+  Object.keys(out).forEach(r=>{
+    const seen=new Set();
+    ((o&&Array.isArray(o[r]))?o[r]:[]).forEach((x,i)=>{
+      const name=String(x&&x.name||'').trim().slice(0,30); if(!name) return;
+      const id=String(x.id||('o'+r[1]+Date.now().toString(36)+i+Math.random().toString(36).slice(2,6))); if(seen.has(id)) return; seen.add(id);
+      out[r].push({id, name});
+    });
+  });
   return out;
 }
 function normWorker(w,i){
@@ -2049,6 +2064,7 @@ if(typeof module!=='undefined' && module.exports){
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,
     SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment,
+    OFFICER_ROLES, normOfficers,
     realDateOf, personalKeys, keyTimes, personalItems, holderAt, cctvNeighbor, personalSnap, diffPersonal, ackPersonal, rollPersonal
   };
 }

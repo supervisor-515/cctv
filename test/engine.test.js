@@ -1260,3 +1260,40 @@ test('유조차 운전병: 평일이라도 휴일이면 오후 1칸 (공휴일·
   });
   assert.equal(E.buildStats(null)[fuel.id].denom, 0, '휴일 근무도 분모 제외 유지');
 });
+
+test('유조차 운전병: 직접 고쳐도 허용 칸 한 자리는 경고 없음, 두 번째 칸·허용 안 되는 날은 경고', () => {
+  const ws = roster(14);
+  const fuel = ws[0];
+  E.setDB(freshDB({ workers: ws }));
+  const db = E.getDB();
+  db.prebook.push(E.normPrebook({ kind: 'fueltruck', wid: fuel.id, start: '2026-06-15' }));
+  E.invalidateStats();
+  const warns = s => E.validateSchedule(s).filter(m => m.includes(fuel.name) && /열외인데|사전등록 충돌/.test(m));
+  // 토요일: 자동 배정된 칸을 다른 오후 칸으로 옮김
+  const sat = E.generateDay(E.autoInputFor('2026-06-20')); db.schedules['2026-06-20'] = sat; E.invalidateStats();
+  const cur = E.DAY_SLOTS.find(sl => sat.assign[sl] === fuel.id);
+  const to = E.FUEL_DAY_SLOTS.find(sl => sl !== cur && !(sat.fixed && sat.fixed[sl]));
+  const orig = JSON.parse(JSON.stringify(sat));
+  E.schedKeySet(sat, 'D:' + cur, sat.assign[to], orig); E.schedKeySet(sat, 'D:' + to, fuel.id, orig);
+  assert.deepEqual(warns(sat), [], '허용 칸 안에서 옮긴 것이 경고됨');
+  // 두 번째 허용 칸까지 배정하면 한 칸은 경고
+  const third = E.FUEL_DAY_SLOTS.find(sl => sl !== to && !(sat.fixed && sat.fixed[sl]));
+  E.schedKeySet(sat, 'D:' + third, fuel.id, orig);
+  assert.ok(warns(sat).length >= 1, '두 번째 칸이 경고되지 않음');
+  // 일요일: 오후 칸을 모두 시간대 열외해 자동 배정이 없던 표(fuelId 없음)에 직접 한 칸 넣기
+  const inp = E.autoInputFor('2026-06-21'); inp.slotEx = { [fuel.id]: [] };
+  const sun = E.generateDay(Object.assign(inp, { slotEx: {} }));
+  sun.fuelId = null; E.DAY_SLOTS.forEach(sl => { if (sun.assign[sl] === fuel.id) sun.assign[sl] = 'x'; });
+  db.schedules['2026-06-21'] = sun; E.invalidateStats();
+  sun.assign['15:30'] = fuel.id;
+  assert.deepEqual(warns(sun), [], '생성 기록 없이 직접 넣은 허용 칸이 경고됨');
+  // 월요일(평일): 직접 넣으면 경고
+  const mon = E.generateDay(E.autoInputFor('2026-06-15')); db.schedules['2026-06-15'] = mon; E.invalidateStats();
+  mon.assign['15:30'] = fuel.id;
+  assert.ok(warns(mon).length >= 1, '허용 안 되는 평일 배정이 경고되지 않음');
+  // 금요일: 번초를 다른 번초로 옮겨도 경고 없음
+  const fri = E.generateDay(E.autoInputFor('2026-06-19')); db.schedules['2026-06-19'] = fri; E.invalidateStats();
+  const nb = E.NIGHT_BUNCHO.find(b => fri.night[b.id] === fuel.id);
+  if (nb) { const o = nb.id === 1 ? 2 : 1, other = fri.night[o]; fri.night[o] = fuel.id; fri.night[nb.id] = other;
+    assert.deepEqual(warns(fri), [], '금요일 번초를 옮긴 것이 경고됨'); }
+});

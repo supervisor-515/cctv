@@ -203,6 +203,18 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .r1.chg{padding-top:5px;padding-bottom:5px}
 .r1 .was,.roles3 .was{flex-basis:100%;font-size:10.5px;font-weight:500;color:var(--ink-faint)}
 .r1 .chgb{font:inherit;font-size:11.5px;font-weight:600;color:var(--acc);background:none;border:1px solid var(--line2);border-radius:7px;padding:4px 10px;cursor:pointer;flex:none}
+.load{margin:14px 0 4px}
+.load-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px}
+.load-g>div{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 10px;min-width:0}
+.load-g .nm{flex:1;min-width:0;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.load-g .nm small{display:block;font-weight:500;font-size:10.5px;color:var(--ink-faint)}
+.load-g .td{font-family:var(--mono);font-size:13px;font-weight:700;text-align:right;white-space:nowrap}
+.load-g .td.z{color:var(--ink-faint);font-weight:500}
+.load-g .av{display:block;font-size:10.5px;font-weight:500;color:var(--ink-faint)}
+.load-g .av.hi{color:var(--warn)} .load-g .av.lo{color:var(--acc)}
+.load-g>div.me{box-shadow:inset 3px 0 0 var(--acc)}
+.load-g>div.chg{background:color-mix(in srgb,var(--warn) 9%,var(--panel))}
+.load .off{font-size:11.5px;color:var(--ink-faint);margin-top:6px}
 .tag.chgd{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);background:none}
 .roles3>div.ed{cursor:pointer}
 .roles3 .rl .sp{flex:1}
@@ -667,7 +679,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.2.2</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.3.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1127,7 +1139,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.2.2"></script>
+<script src="engine.js?v=7.3.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1973,6 +1985,7 @@ function renderView(){
   whoRow.appendChild(whoSel); body.appendChild(whoRow);
   body.appendChild(renderSchedTimeline(s, whoSel.value||null, ed));
   if(!editing) body.appendChild(el('p','smallnote no-print','칸이나 역할 카드를 누르면 그 사람이 배정된 이유가 나옵니다.'));
+  body.appendChild(renderDayLoad(s, whoSel.value||null, editing?vDraft.orig:null));
   // 기술적인 설명과 삭제는 평소에 접어 둔다
   const det=el('details','adv no-print');
   det.appendChild(el('summary',null,'배정 상세 · 근무표 관리'));
@@ -2000,6 +2013,36 @@ function renderView(){
     bar.appendChild(cancel); bar.appendChild(ok);
     body.appendChild(bar);
   }
+}
+
+/* 사람별 이 표 근무시간 + 전날까지 하루 평균 — 편집할 때 누구를 넣을지 고르기 쉽게 덜 선 사람부터 */
+const fmtH=x=> (Math.round(x*10)/10)+'h';
+function dayLoadInfo(s){
+  const st=buildStats(s.date), nPrev=Object.keys(DB.schedules).filter(d=>d<s.date).length;
+  const pool=activeWorkers().filter(w=>inAvgPool(w, st, minDaysFor(nPrev))).map(w=>avgHours(st[w.id]));
+  return {st, h:schedHoursByWorker(s), mean: pool.length ? pool.reduce((a,b)=>a+b,0)/pool.length : null};
+}
+function renderDayLoad(s, who, orig){
+  const {st, h, mean}=dayLoadInfo(s), oh=orig?schedHoursByWorker(orig):null;
+  const avg=id=> st[id]&&st[id].denom>0 ? avgHours(st[id]) : null;
+  const ws=activeWorkers(), on=ws.filter(w=>presentOn(w, s.date, s)), off=ws.filter(w=>!presentOn(w, s.date, s));
+  on.sort((a,b)=> (h[a.id]||0)-(h[b.id]||0) || (avg(a.id)??0)-(avg(b.id)??0));
+  const box=el('div','load no-print');
+  box.appendChild(el('div','band-h','사람별 근무 시간<span class="r">이날 · 하루 평균</span><span class="sp"></span><small>'
+    +(mean!=null?'부대 평균 '+mean.toFixed(2)+'h/일':'')+'</small>'));
+  const g=el('div','load-g');
+  on.forEach(w=>{
+    const t=h[w.id]||0, a=avg(w.id), chg=oh && (oh[w.id]||0)!==t;
+    const c=el('div',(w.id===who?'me':'')+(chg?' chg':''));
+    c.appendChild(el('div','nm', esc(w.name)+'<small>'+esc(roleLabel(w))+(chg?' · 기존 '+fmtH(oh[w.id]||0):'')+'</small>'));
+    const cls= a==null||mean==null ? '' : a>mean+0.1 ? ' hi' : a<mean-0.1 ? ' lo' : '';
+    c.appendChild(el('div','td'+(t?'':' z'), fmtH(t)+'<span class="av'+cls+'">평균 '+(a==null?'—':a.toFixed(2)+'h')+'</span>'));
+    g.appendChild(c);
+  });
+  box.appendChild(g);
+  if(off.length) box.appendChild(el('div','off','오늘 빠짐(열외·휴가 등): '+off.map(w=>esc(w.name)).join(', ')));
+  box.appendChild(el('p','smallnote','이날 시간은 07:30·17:30·17:00 순찰 가중 포함(공정성 계산과 같은 기준). 하루 평균은 이 날짜 전까지의 기록입니다. 평균이 부대 평균보다 높으면 주황, 낮으면 초록.'));
+  return box;
 }
 
 /* 편집 — 누른 칸만 아래 선택창에서 바꾼다(생성 탭의 근무자 선택 시트와 같은 모양) */
@@ -2043,10 +2086,11 @@ function openEdPick(key){
   };
   const ws=activeWorkers().slice();
   if(cur && !ws.some(w=>w.id===cur) && W(cur)) ws.push(W(cur));
+  const load=dayLoadInfo(s);
   ws.forEach(w=>{
     const b=el('button', w.id===cur?'on':'');
     b.appendChild(el('span',null,esc(w.name)));
-    b.appendChild(el('span','rt',esc(roleLabel(w))+(w.active?'':' · 비활성')));
+    b.appendChild(el('span','rt',esc(roleLabel(w))+(w.active?'':' · 비활성')+' · 이날 '+fmtH(load.h[w.id]||0)+' · 평균 '+(load.st[w.id]&&load.st[w.id].denom>0?avgHours(load.st[w.id]).toFixed(2)+'h':'—')));
     if(w.id!==cur) why(w.id).forEach(m=> b.appendChild(el('span','why','⚠ '+esc(m))));
     b.addEventListener('click',()=>pick(w.id));
     list.appendChild(b);
@@ -3880,11 +3924,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.2.2"></script>
+<script src="firebase-config.js?v=7.3.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.2.2"></script>
+<script src="sync.js?v=7.3.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

@@ -391,6 +391,14 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 
 /* ---------- 더보기 ---------- */
 /* 내 근무 — 개인 홈 */
+.msvc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 12px}
+.msvc .l{display:flex;align-items:center;font-size:12px;font-weight:700;color:var(--ink-dim)}
+.msvc .dd{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--acc)}
+.msvc .pct{font-family:var(--mono);font-size:30px;font-weight:800;letter-spacing:-.5px;margin:4px 0 8px;font-variant-numeric:tabular-nums}
+.msvc .bar{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden}
+.msvc .bar i{display:block;height:100%;background:var(--acc);border-radius:5px}
+.msvc .meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:var(--ink-faint)}
+.msvc.none .muted{font-size:12.5px;margin-top:4px}
 .mine-wait{display:flex;flex-direction:column;gap:4px;padding:28px 16px;text-align:center;background:var(--panel);border:1px dashed var(--line2);border-radius:12px}
 .mine-wait b{font-size:15px}
 .mine-wait span{font-size:12.5px;color:var(--ink-dim)}
@@ -681,14 +689,14 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.3.2</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.4.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
   <nav class="tabs" id="tabs">
     <button data-v="view" class="on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>근무표</button>
     <button data-v="cal"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>달력</button>
-    <button data-v="mine"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>내 근무</button>
+    <button data-v="mine"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>내 복무</button>
     <button data-v="gen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>생성</button>
     <button data-v="count" class="desk"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>카운트</button>
     <button data-v="people" class="desk"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>근무자</button>
@@ -1141,7 +1149,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.3.2"></script>
+<script src="engine.js?v=7.4.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -3041,6 +3049,7 @@ function renderPeople(){
     left.appendChild(el('div','pn', esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'+(w.countResetAt?' <span class="pill">전환 '+esc(w.countResetAt)+'</span>':'')));
     const meta=[w.canMeal?'밥교대 가능':'밥교대 불가'];
     const ip=(w.inactivePeriods||[]).length; if(ip) meta.push('비활성 기간 '+ip+'개');
+    if(w.enlistDate) meta.push('전역 '+dischargeDate(w.enlistDate));
     left.appendChild(el('div','pm', esc(meta.join(' · '))));
     c.appendChild(left);
     c.appendChild(el('span','sp'));
@@ -3096,6 +3105,11 @@ function openWorkerSheet(id){
   const inB=el('input'); inB.type='number'; inB.step='0.5'; inB.value=w.baseHours;
   inB.addEventListener('change',()=>{w.baseHours=Number(inB.value)||0;save();renderPeople();});
   field('기존 누적시간(h)', inB);
+  // 입대일 — 전역일(18개월 - 1일)과 구성원 [내 복무]의 복무율 표시용
+  const inE=el('input'); inE.type='date'; inE.value=w.enlistDate||'';
+  inE.addEventListener('change',()=>{w.enlistDate=inE.value||null;save();renderPeople();});
+  const fe=field('입대일', inE);
+  fe.appendChild(el('div','hint', w.enlistDate ? '전역일 '+esc(dischargeDate(w.enlistDate))+' (입대일 + 18개월 - 1일) · 본인 [내 복무]에 복무율로 표시됩니다.' : '입력하면 전역일이 계산되고, 본인 [내 복무]에 복무율이 표시됩니다.'));
   // 비활성 기간
   const ipBox=el('div');
   const lst=el('div','ip-list');
@@ -3396,10 +3410,10 @@ function renderMineAuth(box, phase){
   const A=MINE.auth, api=window.MEMBER_API;
   const wrap=el('div','mlog');
   const hero=el('div','mlog-h');
-  hero.appendChild(el('h2',null,'내 근무 보기'));
+  hero.appendChild(el('h2',null,'내 복무 보기'));
   if(phase==='guest'){
     const ul=el('ul','mlog-b');
-    ['내 다음 근무를 바로 확인','지난번 확인 이후 바뀐 내 근무 확인','내 일정과 배정 기준 확인'].forEach(t=>ul.appendChild(el('li',null,esc(t))));
+    ['내 다음 근무를 바로 확인','전역까지 복무율 실시간 확인','지난번 확인 이후 바뀐 내 근무 확인','내 일정과 배정 기준 확인'].forEach(t=>ul.appendChild(el('li',null,esc(t))));
     hero.appendChild(ul);
   }
   wrap.appendChild(hero);
@@ -3580,6 +3594,7 @@ function renderMine(){
   h.appendChild(el('div','nm', esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'));
   h.appendChild(el('div','st'+(ST.warn?' warn':''), (ST.fresh?'● ':'○ ')+esc(ST.text)));
   box.appendChild(h);
+  box.appendChild(renderService(w));
 
   // 2) 다음 CCTV 근무
   const up=upcomingItems(w.id, today, 45);
@@ -3874,6 +3889,26 @@ function renderMineAcct(legacy){
   else box.appendChild(el('p','smallnote','서버에 연결되지 않아 계정 정보를 확인할 수 없습니다.'));
   return box;
 }
+/* 복무율 — 입대일(관리자가 [인원]에서 입력) 기준, 소수점 7자리까지 실시간으로 올라간다 */
+function renderService(w){
+  const sec=el('section','msvc'); sec.setAttribute('aria-label','복무율');
+  const p=serviceProgress(w.enlistDate, Date.now());
+  if(!p){ sec.classList.add('none'); sec.appendChild(el('div','l','복무율')); sec.appendChild(el('div','muted','입대일이 아직 등록되지 않았습니다. 관리자에게 입대일 입력을 요청하세요.')); return sec; }
+  sec.appendChild(el('div','l','복무율'+(p.left>0?'<span class="dd">D-'+p.left+'</span>':p.left===0?'<span class="dd">오늘 전역</span>':'<span class="dd">전역</span>')));
+  const v=el('div','pct'); v.dataset.enlist=w.enlistDate; v.textContent=p.pct.toFixed(7)+'%'; sec.appendChild(v);
+  const bar=el('div','bar'); const f=el('i'); f.style.width=p.pct+'%'; bar.appendChild(f); sec.appendChild(bar);
+  sec.appendChild(el('div','meta','<span>입대 '+esc(mdwY(p.enlist))+'</span><span>'+(p.dayN>0?'복무 '+Math.min(p.dayN,p.total)+'일째 / '+p.total+'일':'입대 전')+'</span><span>전역 '+esc(mdwY(p.discharge))+'</span>'));
+  return sec;
+}
+function mdwY(d){ return d.slice(2,4)+'.'+d.slice(5,7)+'.'+d.slice(8)+' ('+DOW_KR[dow(d)]+')'; }
+function tickService(){
+  if(document.hidden) return;
+  const v=document.querySelector('#mine.on .msvc .pct'); if(!v) return;
+  const p=serviceProgress(v.dataset.enlist, Date.now()); if(!p) return;
+  v.textContent=p.pct.toFixed(7)+'%';
+  const f=v.parentNode.querySelector('.bar i'); if(f) f.style.width=p.pct+'%';
+}
+setInterval(tickService, 100);
 /* 남은 시간 — 화면을 켜 둔 동안 30초마다 글자만 갱신(통계는 다시 계산하지 않음), 다음 근무 시각이 지나거나 날짜가 바뀌면 다시 그림 */
 function tickMine(){
   if(!$('#mine') || !$('#mine').classList.contains('on') || document.hidden) return;
@@ -3892,8 +3927,8 @@ function renderMore(){
   $('#mAvatar').textContent = ro?'열': logged?'관':'로';
   const guest=document.body.classList.contains('guest');
   $('.acct').dataset.go = (ro||guest) ? 'mine' : 'sync';
-  $('#mAcct').textContent = ro ? (window.MY_WORKER ? nameOf(window.MY_WORKER) : '구성원 로그인') : logged?'관리자 로그인': guest?'내 근무 보기':'로컬 모드';
-  $('#mAcctSub').textContent = ro?'열람 전용 · 내 근무·계정': logged?'동기화 연결됨 · 저장 시 자동 업로드': guest?'구성원 로그인 · 가입':'이 기기에만 저장 중 · 눌러서 로그인';
+  $('#mAcct').textContent = ro ? (window.MY_WORKER ? nameOf(window.MY_WORKER) : '구성원 로그인') : logged?'관리자 로그인': guest?'내 복무 보기':'로컬 모드';
+  $('#mAcctSub').textContent = ro?'열람 전용 · 내 복무·계정': logged?'동기화 연결됨 · 저장 시 자동 업로드': guest?'구성원 로그인 · 가입':'이 기기에만 저장 중 · 눌러서 로그인';
   $('#mAcctSub').classList.toggle('cta', !ro && !logged);
   const sy=$('#mSync'); sy.textContent = ro?'열람 전용': logged?'연결됨':'미연결'; sy.className='mv'+(logged||ro?' okv':'');
   const st=buildStats(null,null);
@@ -3934,11 +3969,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.3.2"></script>
+<script src="firebase-config.js?v=7.4.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.3.2"></script>
+<script src="sync.js?v=7.4.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

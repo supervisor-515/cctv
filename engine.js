@@ -116,9 +116,28 @@ function normWorker(w,i){
     baseHours: Number(w.baseHours)||0,
     active: w.active!==undefined ? !!w.active : true,
     countResetAt: w.countResetAt || null,
+    enlistDate: /^\d{4}-\d{2}-\d{2}$/.test(w.enlistDate||'') ? w.enlistDate : null,   // 입대일 — 전역일·복무율 표시용(배정과 무관)
     createdAt: w.createdAt || null,
     inactivePeriods: Array.isArray(w.inactivePeriods)? w.inactivePeriods.filter(p=>p&&p.start) : []
   };
+}
+/* 전역일 = 입대일 + 18개월 - 1일 (예: 2026-01-05 입대 → 2027-07-04 전역). 그 달에 같은 날이 없으면 말일 기준. */
+const SERVICE_MONTHS = 18;
+function dischargeDate(enlist){
+  if(!enlist) return null;
+  const y=+enlist.slice(0,4), m=+enlist.slice(5,7)-1+SERVICE_MONTHS, d=+enlist.slice(8,10);
+  const last=new Date(y, m+1, 0).getDate();
+  const t=new Date(y, m, Math.min(d,last));
+  return addDays(t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate()), -1);
+}
+/* 복무율 — 입대일 00:00(0%) → 전역일 00:00(100%), 밀리초 단위 */
+function serviceProgress(enlist, nowMs){
+  const dis=dischargeDate(enlist); if(!dis) return null;
+  const a=new Date(enlist+'T00:00:00').getTime(), b=new Date(dis+'T00:00:00').getTime();
+  const pct=Math.min(100, Math.max(0, (nowMs-a)/(b-a)*100));
+  const day0=new Date(nowMs); const today=day0.getFullYear()+'-'+pad(day0.getMonth()+1)+'-'+pad(day0.getDate());
+  const dd=(x,y)=> Math.round((new Date(y+'T00:00:00')-new Date(x+'T00:00:00'))/86400000);
+  return {enlist, discharge:dis, pct, dayN: dd(enlist,today)+1, left: dd(today,dis), total: dd(enlist,dis)};
 }
 const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation','fueltruck','fuelsub'];
 const PREBOOK_KR={vacation:'휴가', exday:'주간 열외', exboth:'모두 열외', duty:'당직 예약', situation:'상황병 예약',
@@ -2086,7 +2105,7 @@ if(typeof module!=='undefined' && module.exports){
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,
     // 통계
-    buildStats, invalidateStats, slotHours, schedHoursByWorker, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
+    buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증

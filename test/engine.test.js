@@ -1312,3 +1312,21 @@ test('schedHoursByWorker: 표 한 장 시간이 누적 통계 증가분과 같�
   ws.forEach(w => assert.ok(Math.abs((h[w.id] || 0) - (after[w.id].hours - before[w.id].hours)) < 1e-9, w.name));
   assert.ok(Object.values(h).some(x => x > 0));
 });
+
+/* ---------- 전역일·복무율 ---------- */
+test('dischargeDate: 입대일 + 18개월 - 1일', () => {
+  assert.equal(E.dischargeDate('2026-01-05'), '2027-07-04');
+  assert.equal(E.dischargeDate('2026-03-01'), '2027-08-31');
+  assert.equal(E.dischargeDate('2026-08-31'), '2028-02-28');   // 2028-02-31 없음 → 말일(29) - 1
+  assert.equal(E.dischargeDate(null), null);
+  assert.equal(E.normWorker({ name: 'a', enlistDate: '2026-01-05' }, 0).enlistDate, '2026-01-05');
+  assert.equal(E.normWorker({ name: 'a', enlistDate: 'x' }, 0).enlistDate, null);
+});
+test('serviceProgress: 입대일 0%, 전역일 100%, 일수', () => {
+  const at = d => new Date(d + 'T00:00:00').getTime();
+  assert.equal(E.serviceProgress('2026-01-05', at('2026-01-05')).pct, 0);
+  assert.equal(E.serviceProgress('2026-01-05', at('2027-07-04')).pct, 100);
+  const p = E.serviceProgress('2026-01-05', at('2026-01-05') + 86400000 * 10 + 3600000);
+  assert.equal(p.dayN, 11); assert.equal(p.discharge, '2027-07-04'); assert.equal(p.left, 545 - 10);
+  assert.ok(p.pct > 0 && p.pct < 100);
+});

@@ -445,6 +445,18 @@ function _computeStats(uptoDate, month, ignoreReset){
   return st;
 }
 function slotHours(slot){ return slot==='07:30' ? 1+DB.settings.patrolBonus : 1; }
+/* 근무표 한 장에서 각자 받은 시간 — _computeStats와 같은 계산(주간칸·번초 1h, 07:30·17:30·17:00 순찰 가중, 고정 역할칸).
+   근무표 화면의 '사람별 오늘 근무' 표시용(배정 로직은 쓰지 않음). */
+function schedHoursByWorker(s){
+  const h={}, add=(id,x)=>{ if(id) h[id]=(h[id]||0)+x; };
+  DAY_SLOTS.forEach(slot=> add(s.assign&&s.assign[slot], slotHours(slot)));
+  NIGHT_BUNCHO.forEach(b=> add(s.night&&s.night[b.id], 1));
+  add(s.patrolExtra, DB.settings.patrolBonus);
+  const fx=s.fixed||{};
+  ['18:30','19:30','20:30','21:30','14:30','13:30'].forEach(k=> add(fx[k], 1));
+  add(fx['17:30'], 1+DB.settings.patrolBonus);
+  return h;
+}
 function rate(num,den){ return den>0 ? num/den : 0; }
 function avgHours(r){ return r.denom>0 ? r.hours/r.denom : r.hours; }
 // 운항병 배정 평균: 토·일·휴무 근무만으로 계산(분모=주말 근무일수, 분자=주말 근무시간).
@@ -2074,7 +2086,7 @@ if(typeof module!=='undefined' && module.exports){
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,
     // 통계
-    buildStats, invalidateStats, slotHours, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
+    buildStats, invalidateStats, slotHours, schedHoursByWorker, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증

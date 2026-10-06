@@ -1297,3 +1297,18 @@ test('유조차 운전병: 직접 고쳐도 허용 칸 한 자리는 경고 없�
   if (nb) { const o = nb.id === 1 ? 2 : 1, other = fri.night[o]; fri.night[o] = fuel.id; fri.night[nb.id] = other;
     assert.deepEqual(warns(fri), [], '금요일 번초를 옮긴 것이 경고됨'); }
 });
+
+/* ---------- 근무표 화면: 사람별 이 표 시간 ---------- */
+test('schedHoursByWorker: 표 한 장 시간이 누적 통계 증가분과 같다', () => {
+  const ws = roster(12, 2, 'h');
+  E.setDB(freshDB({ workers: ws }));
+  let ds = '2026-06-01';
+  for (let d = 0; d < 5; d++) {
+    E.getDB().schedules[ds] = E.generateDay(E.autoInputFor(ds)); E.invalidateStats();
+    ds = E.addDays(ds, 1);
+  }
+  const last = '2026-06-05', before = E.buildStats(last), after = E.buildStats(null);
+  const h = E.schedHoursByWorker(E.getDB().schedules[last]);
+  ws.forEach(w => assert.ok(Math.abs((h[w.id] || 0) - (after[w.id].hours - before[w.id].hours)) < 1e-9, w.name));
+  assert.ok(Object.values(h).some(x => x > 0));
+});

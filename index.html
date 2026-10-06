@@ -204,25 +204,19 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .r1 .was,.roles3 .was{flex-basis:100%;font-size:10.5px;font-weight:500;color:var(--ink-faint)}
 .r1 .chgb{font:inherit;font-size:11.5px;font-weight:600;color:var(--acc);background:none;border:1px solid var(--line2);border-radius:7px;padding:4px 10px;cursor:pointer;flex:none}
 .load{margin:14px 0 4px}
-.load-gr{margin-top:8px}
-.load-gh{display:flex;align-items:baseline;gap:6px;font-size:12px;font-weight:700;color:var(--ink-dim);padding:0 2px 4px}
-.load-gh b{font-family:var(--mono);font-size:15px;color:var(--ink)}
-.load-gh.z b{color:var(--acc)}
-.load-gh small{font-weight:500;color:var(--ink-faint)}
-.load-r{display:flex;align-items:center;gap:10px;padding:7px 12px;min-height:40px;border-bottom:1px solid var(--line)}
-.load-r:last-child{border-bottom:0}
-.load-r .nm{flex:1;min-width:0}
-.load-r .nm b{font-size:13.5px;font-weight:600}
-.load-r .ks{display:block;font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.load-r .ks .was{font-family:var(--kr);color:var(--warn)}
-.load-r .av{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
-.load-r .dv{display:inline-block;min-width:44px;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:700;text-align:center;color:var(--ink-dim);background:var(--panel2)}
-.load-r .dv.hi{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
-.load-r .dv.lo{color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent)}
-.load-r.me{box-shadow:inset 3px 0 0 var(--acc)}
-.load-r.chg{background:color-mix(in srgb,var(--warn) 9%,var(--panel))}
-.load .off{font-size:11.5px;color:var(--ink-faint);margin-top:8px}
-@media(min-width:1000px){ .load-cols{columns:2;column-gap:12px} .load-gr{break-inside:avoid} }
+.load-box{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:4px 10px}
+.load-ln{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line)}
+.load-ln:last-child{border-bottom:0}
+.load-ln .hh{flex:none;width:38px;padding-top:3px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink)}
+.load-ln .hh.z{color:var(--acc)}
+.load-ln .cs{flex:1;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.lc{display:inline-flex;align-items:baseline;gap:4px;padding:3px 7px;border-radius:7px;font-size:12.5px;font-weight:600;background:var(--panel2);border:1px solid transparent;white-space:nowrap}
+.lc i{font-style:normal;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--ink-faint)}
+.lc.hi{background:color-mix(in srgb,var(--warn) 15%,transparent)} .lc.hi i{color:var(--warn)}
+.lc.lo{background:color-mix(in srgb,var(--acc) 15%,transparent)} .lc.lo i{color:var(--acc)}
+.lc.me{border-color:var(--acc)}
+.lc.chg{border-color:var(--warn);border-style:dashed}
+.load .off{font-size:11.5px;color:var(--ink-faint);margin-top:6px}
 .tag.chgd{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);background:none}
 .roles3>div.ed{cursor:pointer}
 .roles3 .rl .sp{flex:1}
@@ -687,7 +681,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.3.1</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.3.2</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1147,7 +1141,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.3.1"></script>
+<script src="engine.js?v=7.3.2"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2033,35 +2027,31 @@ function dayLoadInfo(s){
 function renderDayLoad(s, who, orig){
   const {st, h, mean}=dayLoadInfo(s), oh=orig?schedHoursByWorker(orig):null;
   const avg=id=> st[id]&&st[id].denom>0 ? avgHours(st[id]) : null;
+  const short=n=> String(n).replace(/^(이병|일병|상병|병장)\s+/,'');   // 한눈에 보이게 계급은 뺀다
   const ws=activeWorkers(), on=ws.filter(w=>presentOn(w, s.date, s)), off=ws.filter(w=>!presentOn(w, s.date, s));
-  const KL={'R:duty':'당직','R:sit':'상황','R:meal':'밥교대','P':'17:00 순찰'};
-  const keysTxt=id=> personalKeys(s,id).map(k=> KL[k] || (k[0]==='N' ? k.slice(2)+'번초' : k.slice(2))).join(' · ');
-  // 이날 시간별로 묶고(적은 시간부터), 묶음 안에서는 평균이 낮은 사람부터 — 누구를 넣을지 위에서부터 고르면 된다
+  // 이날 시간별 한 줄(적은 시간부터), 줄 안에서는 평균이 낮은 사람부터 — 누구를 넣을지 위에서 고르면 된다
   const groups=new Map();
   on.slice().sort((a,b)=> (h[a.id]||0)-(h[b.id]||0) || (avg(a.id)??0)-(avg(b.id)??0))
     .forEach(w=>{ const t=h[w.id]||0; if(!groups.has(t)) groups.set(t,[]); groups.get(t).push(w); });
   const box=el('div','load no-print');
-  box.appendChild(el('div','band-h','사람별 근무 시간<span class="sp"></span><small>'+(mean!=null?'부대 하루 평균 '+mean.toFixed(2)+'h':'')+'</small>'));
-  const cols=el('div','load-cols');
+  box.appendChild(el('div','band-h','사람별 근무 시간<span class="r">이날 · 하루 평균</span><span class="sp"></span><small>'+(mean!=null?'부대 평균 '+mean.toFixed(2)+'h':'')+'</small>'));
+  const card=el('div','load-box');
   groups.forEach((list,t)=>{
-    const gr=el('div','load-gr');
-    gr.appendChild(el('div','load-gh'+(t?'':' z'),'이날 <b>'+fmtH(t)+'</b><small>'+list.length+'명'+(t?'':' · 아직 근무 없음')+'</small>'));
-    const rows=el('div','rows');
+    const ln=el('div','load-ln');
+    ln.appendChild(el('div','hh'+(t?'':' z'), fmtH(t)));
+    const cs=el('div','cs');
     list.forEach(w=>{
-      const a=avg(w.id), chg=oh && (oh[w.id]||0)!==(h[w.id]||0);
-      const r=el('div','load-r'+(w.id===who?' me':'')+(chg?' chg':''));
-      const ks=keysTxt(w.id);
-      r.appendChild(el('div','nm','<b>'+esc(w.name)+'</b><span class="ks">'+(chg?'<span class="was">기존 '+fmtH(oh[w.id]||0)+'</span> · ':'')+esc(ks||'—')+'</span>'));
-      const d= a==null||mean==null ? null : a-mean;
-      const cls= d==null ? '' : d>0.1 ? ' hi' : d<-0.1 ? ' lo' : '';
-      r.appendChild(el('div','av', (a==null?'—':a.toFixed(2)+'h')+'<span class="dv'+cls+'">'+(d==null?'신규':(d>=0?'+':'−')+Math.abs(d).toFixed(2))+'</span>'));
-      rows.appendChild(r);
+      const a=avg(w.id), d= a==null||mean==null ? 0 : a-mean, chg=oh && (oh[w.id]||0)!==t;
+      const c=el('span','lc'+(d>0.1?' hi':d<-0.1?' lo':'')+(w.id===who?' me':'')+(chg?' chg':''),
+        esc(short(w.name))+'<i>'+(a==null?'신규':a.toFixed(2))+'</i>');
+      c.title=w.name+' · 이날 '+fmtH(t)+(chg?' (기존 '+fmtH(oh[w.id]||0)+')':'')+' · 하루 평균 '+(a==null?'—':a.toFixed(2)+'h');
+      cs.appendChild(c);
     });
-    gr.appendChild(rows); cols.appendChild(gr);
+    ln.appendChild(cs); card.appendChild(ln);
   });
-  box.appendChild(cols);
-  if(off.length) box.appendChild(el('div','off','오늘 빠짐(열외·휴가 등): '+off.map(w=>esc(w.name)).join(', ')));
-  box.appendChild(el('p','smallnote','오른쪽은 이 날짜 전까지의 하루 평균과 부대 평균과의 차이(주황 = 많이 섬, 초록 = 덜 섬). 시간은 07:30·17:30·17:00 순찰 가중 포함 — 공정성 계산과 같은 기준.'));
+  box.appendChild(card);
+  if(off.length) box.appendChild(el('div','off','빠짐: '+off.map(w=>esc(short(w.name))).join(', ')));
+  box.appendChild(el('p','smallnote','왼쪽 = 이날 시간, 이름 옆 = 하루 평균(이 날짜 전까지). 주황 = 부대 평균보다 많이 섬, 초록 = 덜 섬'+(oh?', 점선 = 편집으로 시간이 바뀐 사람':'')+'. 순찰 가중 포함 — 공정성 계산과 같은 기준.'));
   return box;
 }
 
@@ -3944,11 +3934,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.3.1"></script>
+<script src="firebase-config.js?v=7.3.2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.3.1"></script>
+<script src="sync.js?v=7.3.2"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

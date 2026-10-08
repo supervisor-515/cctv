@@ -139,16 +139,16 @@ function serviceProgress(enlist, nowMs){
   const dd=(x,y)=> Math.round((new Date(y+'T00:00:00')-new Date(x+'T00:00:00'))/86400000);
   return {enlist, discharge:dis, pct, dayN: dd(enlist,today)+1, left: dd(today,dis), total: dd(enlist,dis)};
 }
-const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation','fueltruck','fuelsub'];
+const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation','fueltruck','fuelsub','mess'];
 const PREBOOK_KR={vacation:'휴가', exday:'주간 열외', exboth:'모두 열외', duty:'당직 예약', situation:'상황병 예약',
-                  fueltruck:'유조차 운전병', fuelsub:'유조차 대체'};
+                  fueltruck:'유조차 운전병', fuelsub:'유조차 대체', mess:'배식조'};
 /* 그 날짜가 속한 주의 월요일 (월~일 주 단위) */
 function weekMonday(ds){ const d=dow(ds); return addDays(ds, d===0 ? -6 : 1-d); }
 function normPrebook(p){
   if(!p || !p.wid || !p.start) return null;
   const kind = PREBOOK_KINDS.includes(p.kind)? p.kind : 'vacation';
-  // 유조차 운전병은 주 단위(월~일) — 어느 날짜를 찍든 그 주 전체로 맞춘다
-  if(kind==='fueltruck'){
+  // 유조차 운전병·배식조는 주 단위(월~일) — 어느 날짜를 찍든 그 주 전체로 맞춘다
+  if(kind==='fueltruck' || kind==='mess'){
     const mon = weekMonday(p.start);
     return {
       id: p.id || ('pb'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
@@ -1994,8 +1994,8 @@ function prebookConflictsFor(p, s){
     if(s.situationId!==p.wid) out.push('사전등록 충돌: 상황병 예약('+who+')과 표의 상황병('+nameOf(s.situationId)+')이 다릅니다');
     return out;
   }
-  // 유조차 운전병(정)·대체자(부): 그날 당직/상황병 역할이면 정상 근무이므로 충돌 아님
-  if(p.kind==='fueltruck' || p.kind==='fuelsub'){
+  // 유조차 운전병(정)·대체자(부)·배식조: 그날 당직/상황병 역할이면 정상 근무이므로 충돌 아님
+  if(p.kind==='fueltruck' || p.kind==='fuelsub' || p.kind==='mess'){
     const roleIds=new Set([s.dutyId,s.situationId,s.prevDutyId,s.prevSituationId,s.nextDutyId,s.nextSituationId].filter(Boolean));
     if(roleIds.has(p.wid)) return out;   // 부가 유조차를 맡는 날 → 역할 근무 정상
     // 정(正) 운전병의 허용된 부분근무(금 야간 1번초 / 토·일·휴일 12:30 이후 1칸)는 충돌이 아니다.
@@ -2063,11 +2063,11 @@ function autoInputFor(ds){
   };
   return applyFuelTruckEx(ds, out, pb);
 }
-/* 유조차 운전병(정)·대체자(부)를 그날 전체 열외에 추가한다.
+/* 유조차 운전병(정)·대체자(부)·배식조를 그날 전체 열외에 추가한다.
    단 그날 당직/상황병 역할이 걸려 있으면(전날·다음날 역할 포함) 부 운전병이 유조차를 맡으므로
    본인은 그 역할 근무(전날 19:30·당일 당직·다음날 21:30 등)를 그대로 서야 한다 → 열외에서 뺀다. */
 function applyFuelTruckEx(ds, out, pb){
-  const fuelIds = (pb||prebookOn(ds)).filter(p=> p.kind==='fueltruck' || p.kind==='fuelsub').map(p=>p.wid);
+  const fuelIds = (pb||prebookOn(ds)).filter(p=> p.kind==='fueltruck' || p.kind==='fuelsub' || p.kind==='mess').map(p=>p.wid);
   if(!fuelIds.length) return out;
   const roleIds = new Set([out.dutyId, out.situationId, out.prevDutyId, out.prevSituationId,
                            out.nextDutyId, out.nextSituationId].filter(Boolean));

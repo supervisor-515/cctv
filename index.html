@@ -689,7 +689,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.4.1</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.5.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -772,7 +772,7 @@ body.ro .no-ro{display:none!important}
     <div class="field"><label>종류</label>
       <div class="kinds" id="pbKinds">
         <button data-k="vacation">휴가</button><button data-k="exday">주간 열외</button><button data-k="exboth">모두 열외</button><button data-k="duty">당직 예약</button>
-        <button data-k="situation">상황병 예약</button><button data-k="fueltruck">유조차 (정)</button><button data-k="fuelsub">유조차 (부)</button><button data-k="holiday">휴무일</button>
+        <button data-k="situation">상황병 예약</button><button data-k="fueltruck">유조차 (정)</button><button data-k="fuelsub">유조차 (부)</button><button data-k="mess">배식조</button><button data-k="holiday">휴무일</button>
       </div>
       <select id="pbKind" style="display:none">
         <option value="vacation">휴가 (복귀일은 주간만 열외)</option>
@@ -782,6 +782,7 @@ body.ro .no-ro{display:none!important}
         <option value="situation">상황병 예약</option>
         <option value="fueltruck">유조차 운전병 (그 주 월~일)</option>
         <option value="fuelsub">유조차 대체 (부 운전병)</option>
+        <option value="mess">배식조 (그 주 월~일)</option>
       </select>
     </div>
     <div id="pbForm">
@@ -1149,7 +1150,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.4.1"></script>
+<script src="engine.js?v=7.5.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1328,11 +1329,11 @@ function refreshGenSelectors(){
   }, ds);
   // 유조차 운전병(정): 분모는 그 주 7일 내내 제외, 열외는 요일별 실제 규칙대로
   //   평일(월~목) 종일 · 금 야간 번초 외 전부 · 토/일·휴일 12:30~16:30 외 전부 (열려 있는 칸 안에서 추가 열외 가능)
-  // 유조차 대체(부)는 지정 기간 종일 열외. 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
+  // 유조차 대체(부)·배식조는 그 기간 종일 열외. 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
   if(!existing){
     const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
                            $('#gPrevDuty').value,$('#gPrevSit').value].filter(Boolean));
-    pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub').forEach(p=>{
+    pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub'||p.kind==='mess').forEach(p=>{
       if(roleIds.has(p.wid)) return;
       const fi = p.kind==='fueltruck' ? fuelExInfo(ds) : null;
       if(fi && fi.wid===p.wid) exMarkFuel(fi); else exMarkFull(p.wid, true);
@@ -2182,7 +2183,7 @@ function ymTitle(ym){ const [y,m]=ym.split('-'); return y+'년 '+Number(m)+'월'
 function ymShift(ym,n){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-1+n,1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }
 const calMd=d=>Number(d.slice(5,7))+'/'+Number(d.slice(8));
 const PREBOOK_TAGCLS={vacation:'ex', exday:'ex', exboth:'ex', duty:'duty', situation:'sit',
-                      fueltruck:'patrol', fuelsub:'patrol'};
+                      fueltruck:'patrol', fuelsub:'patrol', mess:'patrol'};
 
 /* 그날 그 일정이 실제로 뜻하는 것 — 엔진(autoInputFor·applyFuelTruckEx)과 같은 규칙.
    휴가 마지막 날(복귀일)은 주간만 열외, 그날 야간부터 투입된다. */
@@ -2192,6 +2193,7 @@ function pbDayInfo(p, ds){
     : {word:'휴가', cls:'cw-ex', label:'휴가', cond:'휴가 중 · 종일 열외'};
   if(p.kind==='exday') return {word:'주간', cls:'cw-ex', label:'주간 열외', cond:'주간만 열외, 야간 가능'};
   if(p.kind==='exboth') return {word:'열외', cls:'cw-ex', label:'모두 열외', cond:'종일 열외 · 분모 제외'};
+  if(p.kind==='mess') return {word:'배식', cls:'cw-fuel', label:'배식조', cond:'종일 열외 · 분모 제외 · 당직/상황병 날은 역할 근무'};
   if(p.kind==='fuelsub') return {word:'유조차', cls:'cw-fuel', label:'유조차 (부)', cond:'종일 열외 · 당직/상황병 날은 역할 근무'};
   if(p.kind==='fueltruck'){
     const s=DB.schedules[ds], al=fuelAllowedOn(ds, s ? s.workHoliday : undefined);   // 표가 있으면 그 표의 직장 휴무일 기준
@@ -2375,7 +2377,7 @@ function renderCalDetail(who){
   const lw=sec('휴가·열외·예약');
   if(pbs.length){
     const l=el('div','cday-list');
-    const order={vacation:0,exday:1,exboth:2,fueltruck:3,fuelsub:4,duty:5,situation:6};
+    const order={vacation:0,exday:1,exboth:2,fueltruck:3,fuelsub:4,mess:5,duty:6,situation:7};
     pbs.slice().sort((a,b)=>order[a.kind]-order[b.kind]).forEach(p=>{
       const i=pbDayInfo(p,ds);
       const it=el('div','cday-item');
@@ -2499,11 +2501,12 @@ function renderPrebookForm(){
   const list = kind==='duty'? dutyList() : kind==='situation'? sitList() : activeWorkers();
   const keep=$('#pbWho').value;
   fillSelect($('#pbWho'), list, {blank:'— 선택 —', selected:keep||null});
-  // 당직/상황 예약은 하루, 유조차 운전병은 주 단위(자동 월~일)라 종료일 입력 숨김
-  $('#pbEndField').style.display = (kind==='duty'||kind==='situation'||kind==='fueltruck') ? 'none' : '';
+  // 당직/상황 예약은 하루, 유조차 운전병·배식조는 주 단위(자동 월~일)라 종료일 입력 숨김
+  $('#pbEndField').style.display = (kind==='duty'||kind==='situation'||kind==='fueltruck'||kind==='mess') ? 'none' : '';
   if(!$('#pbStart').value) $('#pbStart').value=todayStr();
   const st=$('#pbKindNote');
   if(kind==='fueltruck') st.innerHTML='<div class="hint">유조차 운전병: 어느 날짜를 찍든 그 주 월~일 전체로 등록되고, 그 주 CCTV 근무에서 모두 열외됩니다(분모 제외). 단 당직/상황병이 걸린 날은 부 운전병이 유조차를 맡으므로 본인이 그 역할 근무를 그대로 섭니다.</div>';
+  else if(kind==='mess') st.innerHTML='<div class="hint">배식조: 어느 날짜를 찍든 그 주 월~일 전체로 등록되고, 그 주 CCTV 근무에서 모두 열외됩니다(휴가처럼 분모 제외). 같은 주에 여러 명을 등록할 수 있습니다. 당직/상황병이 걸린 날은 그 역할 근무를 그대로 섭니다.</div>';
   else if(kind==='fuelsub') st.innerHTML='<div class="hint">유조차 대체(부 운전병): 정이 당직 등으로 유조차를 못 모는 날에 지정하세요. 지정한 기간 동안 그 사람도 CCTV 근무에서 모두 열외됩니다.</div>';
   else if(kind==='vacation') st.innerHTML='<div class="hint">휴가 마지막 날(복귀일)은 주간만 열외되고, 그날 야간부터 투입됩니다.</div>';
   else if(kind==='exboth') st.innerHTML='<div class="hint">그 기간 모든 근무에서 빠지고 분모(겪은 근무표 수)에서도 제외됩니다.</div>';
@@ -2580,11 +2583,16 @@ $('#pbAdd').addEventListener('click',()=>{
     const mon=weekMonday(start);
     DB.prebook=DB.prebook.filter(p=>!(p.kind==='fueltruck' && p.start===mon));
   }
+  if(kind==='mess'){
+    // 배식조는 같은 주에 여러 명 — 같은 사람의 같은 주 중복 등록만 하나로 합친다
+    const mon=weekMonday(start);
+    DB.prebook=DB.prebook.filter(p=>!(p.kind==='mess' && p.start===mon && p.wid===wid));
+  }
   if(!end || end<start) end=start;
   const p=normPrebook({id:pbEditId||undefined,kind,wid,start,end});
   DB.prebook.push(p);
   save();
-  st.innerHTML='<div class="ok">✓ '+esc(PREBOOK_KR[kind]+' · '+nameOf(wid)+' · '+start+(end!==start?' ~ '+end:''))+(pbEditId?' 수정했습니다.':' 등록했습니다.')+'</div>';
+  st.innerHTML='<div class="ok">✓ '+esc(PREBOOK_KR[kind]+' · '+nameOf(wid)+' · '+p.start+(p.end!==p.start?' ~ '+p.end:''))+(pbEditId?' 수정했습니다.':' 등록했습니다.')+'</div>';
   // 이미 생성된 표와 충돌 검사 — 사전등록은 소급 적용되지 않으므로 재생성/수정 안내
   {
     const confs=prebookConflictList(p);
@@ -3971,11 +3979,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.4.1"></script>
+<script src="firebase-config.js?v=7.5.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.4.1"></script>
+<script src="sync.js?v=7.5.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

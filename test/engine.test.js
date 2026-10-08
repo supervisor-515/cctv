@@ -1330,3 +1330,34 @@ test('serviceProgress: 입대일 0%, 전역일 100%, 일수', () => {
   assert.equal(p.dayN, 11); assert.equal(p.discharge, '2027-07-04'); assert.equal(p.left, 545 - 10);
   assert.ok(p.pct > 0 && p.pct < 100);
 });
+
+/* ---------- 배식조: 그 주 월~일 완전 열외(여러 명) ---------- */
+test('배식조: 주 단위 등록, 같은 주 여러 명, 그 주 근무·분모 모두 제외', () => {
+  const p = E.normPrebook({ kind: 'mess', wid: 'x', start: '2026-06-18' }); // 목
+  assert.equal(p.start, '2026-06-15'); assert.equal(p.end, '2026-06-21');
+  const ws = roster(16, 0, 'ms');
+  const a = ws[2], b = ws[3];
+  E.setDB(freshDB({ workers: ws }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'mess', wid: a.id, start: '2026-06-17' }));
+  E.getDB().prebook.push(E.normPrebook({ kind: 'mess', wid: b.id, start: '2026-06-20' }));
+  let ds = '2026-06-15';
+  for (let d = 0; d < 7; d++) {
+    const inp = E.autoInputFor(ds);
+    inp.dutyId = inp.dutyId || ws[(d * 2 + 4) % 16].id; inp.situationId = inp.situationId || ws[(d * 2 + 5) % 16].id;
+    const s = E.generateDay(inp);
+    [a, b].forEach(w => {
+      assert.ok(s.bothEx.includes(w.id), ds + ' ' + w.name + ' 열외 아님');
+      assert.deepEqual(daySlotsOf(s, w.id), [], ds + ' 주간 배정됨');
+      assert.ok(!Object.values(s.night || {}).includes(w.id), ds + ' 야간 배정됨');
+      assert.ok(s.patrolExtra !== w.id && s.mealId !== w.id, ds + ' 순찰/밥교대 배정됨');
+    });
+    assert.deepEqual(E.prebookConflictsFor(E.getDB().prebook[0], s), []);
+    E.getDB().schedules[ds] = s; E.invalidateStats(); ds = E.addDays(ds, 1);
+  }
+  const st = E.buildStats(null);
+  assert.equal(st[a.id].denom, 0); assert.equal(st[b.id].denom, 0);
+  // 그날 당직이면 열외하지 않고 역할 근무를 선다
+  E.getDB().prebook.push(E.normPrebook({ kind: 'duty', wid: a.id, start: '2026-06-16' }));
+  assert.ok(!E.autoInputFor('2026-06-16').bothEx.includes(a.id), '당직인 날까지 열외됨');
+  assert.ok(E.autoInputFor('2026-06-18').bothEx.includes(a.id), '역할 없는 날은 열외');
+});

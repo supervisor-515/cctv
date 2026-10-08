@@ -592,6 +592,7 @@
   function bkCreate(reason){
     if(!S.on || !S.admin) return Promise.resolve({ok:false, skipped:true});
     const now=new Date(), json=JSON.stringify(DB);
+    const nW=DB.workers.length, nD=Object.keys(DB.schedules).length;   // 목록 표시값도 직렬화한 그 시점 기준(업로드 중 DB가 바뀌어도)
     const id='b'+now.getTime();
     const chunks=[]; for(let i=0;i<json.length;i+=BK_CHUNK) chunks.push(json.slice(i,i+BK_CHUNK));
     const ref=bkCol().doc(id);
@@ -604,7 +605,7 @@
     }
     return Promise.all(writes)
       .then(()=>ref.set({savedAt:bkTime(now), savedAtMs:now.getTime(), reason:reason||'', by:S.user?S.user.email:'',
-        parts:chunks.length, size:json.length, workers:DB.workers.length, days:Object.keys(DB.schedules).length,
+        parts:chunks.length, size:json.length, workers:nW, days:nD,
         createdAt:firebase.firestore.FieldValue.serverTimestamp()}))
       .then(bkPrune)
       .then(()=>{ if(qs('#bkList') && qs('#bkList').dataset.shown) bkRender(); return {ok:true, at:bkTime(now)}; })

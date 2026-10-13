@@ -34,7 +34,7 @@
 | `FIREBASE_SETUP.md` | 동기화 설정 가이드 (프로젝트 생성 → 계정 → 보안 규칙 → 연결) |
 | `manifest.webmanifest` | PWA 매니페스트(앱 이름·색상·아이콘). 홈 화면 설치 정보. |
 | `sw.js` | 서비스 워커. 앱 셸 캐시로 오프라인 실행·설치 지원. |
-| `icon.svg` / `icon-*.png` | 앱 아이콘(원본 SVG + 192/512 일반·maskable, apple-touch, favicon). |
+| `icon-*.png` | 앱 아이콘(192/512 일반·maskable, apple-touch 180, favicon 32). |
 | `test/engine.test.js` | 엔진 회귀 테스트 (`node --test`) |
 
 ## 시간 구조

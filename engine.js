@@ -559,6 +559,16 @@ function nightCandidates(ds, ctx){
 /* 밥교대 후보: 투입가능 + 전날·당일 당직/상황병·주간열외 제외
    + 전날 야간자 회피(야간 후보 부족 시 밥교대가 야간에 투입될 수 있음 → 이틀연속 방지)
    + 다음날 당직/상황병 회피(밥교대 다음날 바로 역할 근무 → 연속 부담). 각 단계는 후보 고갈 시에만 완화. */
+/* 밥교대 텀 — 한 번 섰으면 최소 7일은 쉬게 한다(그 날짜 앞뒤 6일 안에 밥교대가 있으면 후보에서 뺀다).
+   이미 생성된 앞뒤 표의 mealId를 본다. 후보가 전혀 없을 때만 완화(mealCandidates의 소프트 제약 1순위). */
+const MEAL_GAP_DAYS = 7;
+function recentMeals(mds){
+  const m = new Map();   // wid -> 가장 가까운 밥교대 날짜
+  for(let i=1;i<MEAL_GAP_DAYS;i++) [addDays(mds,-i), addDays(mds,i)].forEach(d=>{
+    const s=DB.schedules[d]; if(s && s.mealId && !m.has(s.mealId)) m.set(s.mealId, d);
+  });
+  return m;
+}
 function mealCandidates(ds, ctx){
   const ex = new Set([
     ctx.prevDutyId, ctx.dutyId, ctx.prevSituationId, ctx.situationId,
@@ -571,7 +581,9 @@ function mealCandidates(ds, ctx){
   const nextRole  = new Set([ctx.nextDutyId, ctx.nextSituationId].filter(Boolean));
   const prev2Role = new Set([ctx.prev2DutyId, ctx.prev2SituationId].filter(Boolean));
   // 소프트 제약을 순서대로 적용 — 어떤 단계가 후보를 0명으로 만들면 그 단계만 건너뛴다(미배정 방지)
+  const recent = recentMeals(ds);
   const soft = [
+    w=> !recent.has(w.id),       // 앞뒤 6일 안에 밥교대 → 최소 7일 텀 (가장 우선 — 후보가 이들뿐일 때만 완화)
     w=> !prevN.has(w.id),        // 전날 야간자 (야간 폴백 시 이틀 연속 우려)
     w=> !nextRole.has(w.id),     // 다음날 당직/상황병 → 밥교대 다음날 바로 역할 근무
     w=> !prev2Role.has(w.id)     // 이틀 전 당직/상황병 → 19:30·당직·21:30에 이어 4일째 연속 부담
@@ -1259,6 +1271,11 @@ function generateDay(input){
   let fuelNight = null;   // {bunchoId}
   if(fuelW){
     const allow = fuelAllowedOn(ds, ctx.workHoliday);
+    // 그날 역할에 걸리면 그 자리는 서지 않는다 — 주간: 당일·전날 당직/상황병(근무취침), 야간: 전날·당일·다음날 당직/상황병
+    const dayRole = new Set([ctx.dutyId, ctx.prevDutyId, ctx.situationId, ctx.prevSituationId].filter(Boolean));
+    const nightRole = new Set([ctx.dutyId, ctx.prevDutyId, ctx.nextDutyId, ctx.situationId, ctx.prevSituationId, ctx.nextSituationId].filter(Boolean));
+    if(dayRole.has(fuelW.id)) allow.day = [];
+    if(nightRole.has(fuelW.id)) allow.night = false;
     const fr = ctx.stats[fuelW.id];
     if(allow.night && !prevNight.has(fuelW.id)){
       // 번초 균등: 그동안 가장 적게 선 번초 (운항병과 같은 기준). 운항병 선점 번초는 피한다.
@@ -1821,8 +1838,9 @@ function explainAssignment(s, key){
     });
     const pN=mctx._prevNight||new Set(), nR=new Set([mctx.nextDutyId,mctx.nextSituationId].filter(Boolean)), p2R=new Set([mctx.prev2DutyId,mctx.prev2SituationId].filter(Boolean));
     let pool=base;
-    [[w=>!pN.has(w.id),'전날 야간 — 피함'],[w=>!nR.has(w.id),'다음날 당직/상황병 — 피함'],[w=>!p2R.has(w.id),'이틀 전 당직/상황병 — 피함']].forEach(([f,why])=>{
-      const nx=pool.filter(f); if(nx.length){ pool.filter(w=>!f(w)).forEach(w=>out.blocked.push({id:w.id, reason:why})); pool=nx; }
+    const rM=recentMeals(mds);
+    [[w=>!rM.has(w.id),w=>md(rM.get(w.id))+' 밥교대 — 최소 7일 텀'],[w=>!pN.has(w.id),'전날 야간 — 피함'],[w=>!nR.has(w.id),'다음날 당직/상황병 — 피함'],[w=>!p2R.has(w.id),'이틀 전 당직/상황병 — 피함']].forEach(([f,why])=>{
+      const nx=pool.filter(f); if(nx.length){ pool.filter(w=>!f(w)).forEach(w=>out.blocked.push({id:w.id, reason:typeof why==='function'?why(w):why})); pool=nx; }
     });
     const E=pool.map(w=>{ const r=mctx.stats[w.id]||{mealGNum:{},mealGDen:{}};
       let sc=DB.settings.weights.mealRate*rate(r.mealGNum[mg],r.mealGDen[mg]) + DB.settings.weights.avgHours*avgHours(r)*0.5;

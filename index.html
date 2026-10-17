@@ -710,7 +710,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.6.3</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.7.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1189,7 +1189,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.6.3"></script>
+<script src="engine.js?v=7.7.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1371,8 +1371,9 @@ function refreshGenSelectors(){
   //   평일(월~목) 종일 · 금 야간 번초 외 전부 · 토/일·휴일 12:30~16:30 외 전부 (열려 있는 칸 안에서 추가 열외 가능)
   // 유조차 대체(부)·배식조는 그 기간 종일 열외. 그날 당직/상황병 역할이면 정상 근무라 제외하지 않음.
   if(!existing){
+    // 전날 당직/상황병(근무취침)은 아래에서 전날 표로 다시 채워지므로 여기서는 전날 표 값을 직접 쓴다 — 칸이 아직 이전 날짜 값일 수 있음
     const roleIds=new Set([$('#gDuty').value,$('#gSit').value,$('#gNextDuty').value,$('#gNextSit').value,
-                           $('#gPrevDuty').value,$('#gPrevSit').value].filter(Boolean));
+                           prev?prev.dutyId:$('#gPrevDuty').value, prev?prev.situationId:$('#gPrevSit').value].filter(Boolean));
     pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub'||p.kind==='mess').forEach(p=>{
       if(roleIds.has(p.wid)) return;
       const fi = p.kind==='fueltruck' ? fuelExInfo(ds) : null;
@@ -4084,11 +4085,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.6.3"></script>
+<script src="firebase-config.js?v=7.7.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.6.3"></script>
+<script src="sync.js?v=7.7.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

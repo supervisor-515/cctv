@@ -137,7 +137,7 @@ function serviceProgress(enlist, nowMs){
   const pct=Math.min(100, Math.max(0, (nowMs-a)/(b-a)*100));
   const day0=new Date(nowMs); const today=day0.getFullYear()+'-'+pad(day0.getMonth()+1)+'-'+pad(day0.getDate());
   const dd=(x,y)=> Math.round((new Date(y+'T00:00:00')-new Date(x+'T00:00:00'))/86400000);
-  return {enlist, discharge:dis, pct, dayN: dd(enlist,today)+1, left: dd(today,dis), total: dd(enlist,dis)};
+  return {enlist, discharge:dis, pct, dayN: dd(enlist,today)+1, left: dd(today,dis), total: dd(enlist,dis)+1};   // 총 복무일은 입대일·전역일 모두 포함
 }
 const PREBOOK_KINDS=['vacation','exday','exboth','duty','situation','fueltruck','fuelsub','mess'];
 const PREBOOK_KR={vacation:'휴가', exday:'주간 열외', exboth:'모두 열외', duty:'당직 예약', situation:'상황병 예약',

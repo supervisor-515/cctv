@@ -1328,6 +1328,8 @@ test('serviceProgress: 입대일 0%, 전역일 100%, 일수', () => {
   assert.equal(E.serviceProgress('2026-01-05', at('2027-07-04')).pct, 100);
   const p = E.serviceProgress('2026-01-05', at('2026-01-05') + 86400000 * 10 + 3600000);
   assert.equal(p.dayN, 11); assert.equal(p.discharge, '2027-07-04'); assert.equal(p.left, 545 - 10);
+  assert.equal(p.total, 546);   // 2026-01-05 ~ 2027-07-04, 양 끝 포함
+  assert.equal(E.serviceProgress('2026-01-05', at('2027-07-04')).dayN, 546);   // 전역일 = 마지막 날(546일째)
   assert.ok(p.pct > 0 && p.pct < 100);
 });
 

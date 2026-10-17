@@ -12,6 +12,11 @@
 "use strict";
 (function(){
   const CFG_KEY='cctv_sync_cfg_v1';
+  /* 앱 버전 — 서버 meta에 함께 기록. 서버가 더 새 버전 앱으로 저장돼 있으면 이 기기는 올리지 않는다
+     (구버전이 모르는 필드(예: 입대일)를 빼고 덮어쓰는 사고 방지). 버전을 올릴 때 index.html·sw.js와 같이 바꾼다. */
+  const APP_VER='7.6.2';
+  const verCmp=(a,b)=>{ const x=String(a).split('.').map(Number), y=String(b).split('.').map(Number);
+    for(let i=0;i<3;i++){ const d=(x[i]||0)-(y[i]||0); if(d) return d; } return 0; };
   const MTIME_KEY='cctv_local_mtime_v1';   // 로컬 마지막 수정시각 — index.html save()가 기록
   const qs=s=>document.querySelector(s);
   const S={ on:false, admin:false, readonly:false, user:null, dirty:false,
@@ -122,7 +127,7 @@
      나눠 문서별 JSON 문자열을 만든다. S.remote는 실시간 구독으로 유지되는 서버 사본. */
   const MONTH_DOC=/^m-\d{4}-\d{2}$/;
   function splitLocal(){
-    const parts={ meta: JSON.stringify({version:DB.version, lastBackupAt:DB.lastBackupAt,
+    const parts={ meta: JSON.stringify({appVer:APP_VER, version:DB.version, lastBackupAt:DB.lastBackupAt,
       workers:DB.workers, prebook:DB.prebook, holidays:DB.holidays, settings:DB.settings, officers:DB.officers}) };
     const byMonth={};
     Object.keys(DB.schedules).sort().forEach(ds=>{
@@ -177,8 +182,14 @@
   /* ---------- 로컬 → 서버 업로드 (관리자) ----------
      서버 사본(S.remote)과 다른 문서만 batch로 쓰고, 로컬에 없는 월 문서와
      구형식 문서(main 등)는 삭제한다 → 보통 저장 1회에 문서 1~2개만 쓴다. */
+  function remoteAppVer(){ try{ return S.remote.meta ? (JSON.parse(S.remote.meta).appVer||null) : null; }catch(e){ return null; } }
   function upload(){
     if(!S.admin) return Promise.resolve();
+    const rv=remoteAppVer();
+    if(rv && verCmp(rv, APP_VER)>0){
+      status('<div class="err">서버 데이터는 더 새 버전 앱(v'+esc(rv)+')으로 저장돼 있어, 이 기기(v'+APP_VER+')에서는 서버에 올리지 않았습니다. 새로고침(안 되면 앱을 완전히 닫았다 열기)해서 최신 버전으로 바꾼 뒤 다시 저장하세요.</div>');
+      return Promise.resolve(false);
+    }
     const parts=splitLocal();
     Object.keys(parts).forEach(id=>{
       if(parts[id].length>900000)
@@ -654,6 +665,31 @@
       });
     }).catch(e=>{ box.innerHTML='<div class="err">백업 목록을 불러오지 못했습니다: '+esc(bkErr(e))+'</div>'; });
   }
+  /* 입대일만 복구 — 최신 백업부터 거슬러 올라가며, 지금 입대일이 비어 있는 근무자에게 백업에 있던 입대일을 채운다.
+     근무표·다른 설정은 건드리지 않는다. */
+  function bkRestoreEnlist(){
+    const st=qs('#bkNowSt');
+    const need=()=>DB.workers.filter(w=>!w.enlistDate);
+    if(!need().length){ st.textContent='모든 근무자에게 입대일이 있습니다.'; return Promise.resolve(); }
+    st.textContent='백업에서 입대일을 찾는 중…';
+    return bkCol().orderBy('savedAtMs','desc').limit(BK_KEEP).get().then(snap=>{
+      const found={}, from={};
+      return snap.docs.reduce((pr,d)=>pr.then(()=>{
+        if(need().every(w=>found[w.id])) return;
+        return bkLoad(d.id, d.data().parts).then(obj=>{
+          (obj.workers||[]).forEach(w=>{ if(w && w.id && /^\d{4}-\d{2}-\d{2}$/.test(w.enlistDate||'') && !found[w.id]){ found[w.id]=w.enlistDate; from[w.id]=d.data().savedAt; } });
+        }).catch(()=>{});
+      }), Promise.resolve()).then(()=>{
+        const fill=need().filter(w=>found[w.id]);
+        if(!fill.length){ st.textContent='최근 백업 '+snap.size+'개에 입대일 기록이 없습니다. 내려받아 둔 JSON 백업이 있으면 [JSON 불러오기]를 쓰거나 직접 다시 입력하세요.'; return; }
+        if(!confirm('백업에서 찾은 입대일 '+fill.length+'명을 채울까요? (지금 비어 있는 사람만, 근무표는 그대로)\n\n'+fill.map(w=>w.name+' '+found[w.id]).join('\n'))){ st.textContent=''; return; }
+        fill.forEach(w=>{ w.enlistDate=found[w.id]; });
+        save(); refreshAll();
+        st.textContent='✓ 입대일 '+fill.length+'명 복구'+(need().length?' · 남은 미등록 '+need().length+'명':'');
+      });
+    }).catch(e=>{ st.textContent='⚠ 실패: '+bkErr(e); });
+  }
+  qs('#bkEnlist').addEventListener('click', bkRestoreEnlist);
   /* 수동 백업 */
   qs('#bkNow').addEventListener('click',()=>{
     const b=qs('#bkNow'), st=qs('#bkNowSt');

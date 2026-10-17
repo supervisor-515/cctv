@@ -1,6 +1,6 @@
 /* ============================================================
    서버 동기화 (Firebase Firestore) — 선택 기능
-   - 관리자(행보관): 로그인하면 수정 가능, 저장할 때마다 자동 업로드
+   - 관리자: 로그인하면 수정 가능, 저장할 때마다 자동 업로드
    - 구성원: 열람 계정으로 로그인 → 읽기 전용 + 실시간 수신
    - 미설정/오프라인/로그아웃: 기존처럼 localStorage 단독으로 동작
    저장 구조: roster/meta(근무자·설정 등 공통) + roster/m-YYYY-MM(월별 근무표).
@@ -343,7 +343,7 @@
   function refreshStatus(){
     if(!S.user){
       status(loginMode==='up'
-        ? '<div class="warn">회원가입 — 이메일·비밀번호와 행보관에게 받은 <b>부대 코드</b>를 입력하세요. 코드가 맞아야 가입됩니다.</div>'
+        ? '<div class="warn">회원가입 — 이메일·비밀번호와 관리자에게 받은 <b>부대 코드</b>를 입력하세요. 코드가 맞아야 가입됩니다.</div>'
         : '<div class="warn">연결됨 — 로그인하세요. 계정이 없으면 [회원가입]을 누르세요. 로그인 전에는 이 브라우저에만 저장됩니다.</div>');
       return;
     }
@@ -499,7 +499,7 @@
     const wid=qs('#syWho').value, d=S.pendingDir;
     if(!wid||!d) return;
     const w=d.list.find(x=>x.id===wid);
-    if(!confirm((w?w.name:'')+' — 본인이 맞습니까?\n선택 후에는 행보관만 바꿀 수 있습니다.')) return;
+    if(!confirm((w?w.name:'')+' — 본인이 맞습니까?\n선택 후에는 관리자만 바꿀 수 있습니다.')) return;
     doClaim(wid).catch(e=>status('<div class="err">'+esc(authMsg(e))+'</div>'));
   });
   function renderJoin(){
@@ -776,12 +776,12 @@
       'auth/network-request-failed':'인터넷에 연결되지 않았습니다. 연결을 확인한 뒤 다시 시도하세요.',
       'auth/email-already-in-use':'이미 가입된 이메일입니다. [로그인]에서 이 이메일로 로그인하세요.',
       'auth/weak-password':'비밀번호는 6자 이상으로 정하세요.',
-      'auth/user-disabled':'사용이 중지된 계정입니다. 행보관에게 문의하세요.',
-      'auth/operation-not-allowed':'이 앱에서 이메일 로그인이 꺼져 있습니다. 행보관에게 알려 주세요.',
-      'app/bad-unit-code':'부대 코드가 맞지 않습니다. 행보관에게 받은 코드를 다시 확인하세요. (방금 만든 계정은 지웠으니 다시 가입하면 됩니다)',
-      'app/claim-denied':'이미 다른 계정이 이 이름을 선택했거나 부대 코드가 바뀌었습니다. 행보관에게 문의하세요.',
+      'auth/user-disabled':'사용이 중지된 계정입니다. 관리자에게 문의하세요.',
+      'auth/operation-not-allowed':'이 앱에서 이메일 로그인이 꺼져 있습니다. 관리자에게 알려 주세요.',
+      'app/bad-unit-code':'부대 코드가 맞지 않습니다. 관리자에게 받은 코드를 다시 확인하세요. (방금 만든 계정은 지웠으니 다시 가입하면 됩니다)',
+      'app/claim-denied':'이미 다른 계정이 이 이름을 선택했거나 부대 코드가 바뀌었습니다. 관리자에게 문의하세요.',
       'app/timeout':'서버 응답이 늦습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.',
-      'permission-denied':'권한이 없습니다. 행보관에게 보안 규칙 적용 여부를 확인해 달라고 하세요.',
+      'permission-denied':'권한이 없습니다. 관리자에게 보안 규칙 적용 여부를 확인해 달라고 하세요.',
       'unavailable':'서버에 연결할 수 없습니다. 인터넷 연결을 확인하세요.'
     };
     return T[k] || ('문제가 생겼습니다'+(k?' ('+k+')':'')+'. 잠시 뒤 다시 시도하세요.');

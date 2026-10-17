@@ -9,4 +9,4 @@ window.FIREBASE_CONFIG = {
   projectId: "프로젝트ID",
   appId: "1:............:web:............"
 };
-window.FIREBASE_ADMIN_EMAIL = "행보관이메일@example.com";
+window.FIREBASE_ADMIN_EMAIL = "admin@example.com";

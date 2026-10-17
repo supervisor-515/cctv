@@ -1122,14 +1122,14 @@ body.ro .no-ro{display:none!important}
   <section class="view" id="sync">
     <div class="subhdr"><button class="back" data-back>‹ 더보기</button><h2>서버 동기화</h2></div>
     <div class="panel sync-panel">
-      <p class="desc">행보관(관리자)만 수정하고 구성원은 실시간 열람만 하도록 동기화합니다. 관리자가 저장하면 자동 업로드되고, 구성원 화면은 실시간으로 갱신됩니다. 미설정 시 기존처럼 이 브라우저에만 저장됩니다. 설정 절차: 저장소의 <b>FIREBASE_SETUP.md</b> 참고.</p>
+      <p class="desc">관리자가 저장하면 서버에 자동 업로드되고, 구성원은 실시간으로 열람만 할 수 있습니다. 설정하지 않으면 기존처럼 이 브라우저에만 저장됩니다. 설정 절차는 저장소의 <b>FIREBASE_SETUP.md</b>를 참고하세요.</p>
       <div id="syStatus" style="margin-bottom:10px"></div>
       <div class="row" id="syLoginRow">
         <div class="seg" id="syMode" style="flex:1 1 100%;max-width:260px"><button data-m="in" class="on" style="flex:1">로그인</button><button data-m="up" style="flex:1">회원가입</button></div>
         <div class="field"><label>이메일</label><input id="syEmail" type="email" autocomplete="username"></div>
         <div class="field"><label>비밀번호</label><input id="syPass" type="password" autocomplete="current-password"></div>
         <div class="field" style="display:none"><label>비밀번호 확인</label><input id="syPass2" type="password" autocomplete="new-password"></div>
-        <div class="field" style="display:none"><label>부대 코드 (행보관에게 받은 코드)</label><input id="syJoinCode" type="text" autocomplete="off" autocapitalize="off"></div>
+        <div class="field" style="display:none"><label>부대 코드 (관리자에게 받은 코드)</label><input id="syJoinCode" type="text" autocomplete="off" autocapitalize="off"></div>
         <button class="btn" id="syLogin">로그인</button>
         <button class="btn" id="sySignup" style="display:none">가입하기</button>
         <button class="btn ghost" id="syLogout" style="display:none">로그아웃</button>
@@ -1139,12 +1139,12 @@ body.ro .no-ro{display:none!important}
       <div class="joinbox" id="syJoin" style="display:none">
         <div id="syJoinStep1">
           <b>부대 등록</b>
-          <p class="smallnote" style="margin:4px 0 10px">행보관에게 받은 부대 코드를 입력하면 근무자 명단에서 본인을 고를 수 있습니다.</p>
+          <p class="smallnote" style="margin:4px 0 10px">관리자에게 받은 부대 코드를 입력하면 근무자 명단에서 본인을 고를 수 있습니다.</p>
           <div class="row"><div class="field"><label>부대 코드</label><input id="syCode" type="text" autocomplete="off" autocapitalize="off"></div><button class="btn" id="syCodeCheck">확인</button></div>
         </div>
         <div id="syJoinStep2" style="display:none">
           <b>본인 선택</b>
-          <p class="smallnote" style="margin:4px 0 10px">본인 이름을 고르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 행보관만 바꿀 수 있습니다.</p>
+          <p class="smallnote" style="margin:4px 0 10px">본인 이름을 고르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 관리자만 바꿀 수 있습니다.</p>
           <div class="row"><div class="field"><label>근무자</label><select id="syWho"></select></div><button class="btn" id="syClaim">이 사람이 저입니다</button></div>
         </div>
       </div>
@@ -1166,11 +1166,11 @@ body.ro .no-ro{display:none!important}
           <textarea id="syCfg" rows="7" style="font-family:var(--mono);font-size:11.5px" placeholder='{ apiKey: "...", authDomain: "....firebaseapp.com", projectId: "...", appId: "..." }'></textarea>
         </div>
         <div class="row" style="margin-bottom:12px">
-          <div class="field"><label>관리자(행보관) 이메일</label><input id="syAdmin" type="email" placeholder="admin@example.com"></div>
+          <div class="field"><label>관리자 이메일</label><input id="syAdmin" type="email" placeholder="admin@example.com"></div>
           <button class="btn" id="syCfgSave">연결 설정 저장</button>
           <button class="btn danger" id="syCfgClear">동기화 해제</button>
         </div>
-        <p class="smallnote">실제 권한(읽기=로그인한 사용자만, 쓰기=관리자만)은 Firebase 콘솔의 <b>Firestore 보안 규칙</b>이 강제합니다 — FIREBASE_SETUP.md의 규칙을 반드시 적용하세요. 저장소에 firebase-config.js 파일을 두면 구성원은 이 설정 입력 없이 로그인만 하면 됩니다.</p>
+        <p class="smallnote">실제 권한(읽기: 로그인한 사용자만, 쓰기: 관리자만)은 Firebase 콘솔의 <b>Firestore 보안 규칙</b>으로 정해집니다. FIREBASE_SETUP.md의 규칙을 꼭 적용하세요. 저장소에 firebase-config.js 파일을 두면 구성원은 이 설정 입력 없이 로그인만 하면 됩니다.</p>
       </div>
     </div>
   </section>
@@ -3062,7 +3062,7 @@ function openOfficerPick(ds, role){
     api.set(ds, role, entry).then(()=>{ closeSheet('ofSheet'); },
       e=>{ $$('#ofBody button').forEach(x=>x.disabled=false); st.innerHTML='<div class="err">'+esc(window.MEMBER_API?MEMBER_API.msg(e):'저장하지 못했습니다.')+'</div>'; });
   };
-  if(!list.length) b.appendChild(el('div','mnone','아직 '+esc(label)+' 명단이 없습니다. 행보관(관리자)에게 명단 등록을 요청하세요.'));
+  if(!list.length) b.appendChild(el('div','mnone','아직 '+esc(label)+' 명단이 없습니다. 관리자에게 명단 등록을 요청하세요.'));
   else{
     const pl=el('div','picklist');
     list.forEach(o=>{ const x=el('button', o.id===curId?'on':'', esc(o.name)); x.type='button'; x.addEventListener('click',()=>pick({id:o.id, name:o.name})); pl.appendChild(x); });
@@ -3451,7 +3451,7 @@ function mineSaveMsg(e){
   const c=e&&e.code||'';
   if(c==='app/no-server') return '서버에 연결되지 않아 확인 상태를 저장하지 못했습니다. 연결되면 다시 눌러 주세요.';
   if(c==='app/local-save') return '이 기기에 저장하지 못했습니다(저장 공간 부족 등).';
-  if(c==='permission-denied') return '확인 상태를 저장할 권한이 없습니다. 행보관에게 보안 규칙(personal) 적용을 요청하세요.';
+  if(c==='permission-denied') return '확인 상태를 저장할 권한이 없습니다. 관리자에게 보안 규칙(personal) 적용을 요청하세요.';
   return (window.MEMBER_API ? MEMBER_API.msg(e) : '저장하지 못했습니다.')+' 변경 내역은 확인 전 상태로 남아 있습니다.';
 }
 
@@ -3522,7 +3522,7 @@ function renderMineAuth(box, phase){
   form.addEventListener('submit',e=>e.preventDefault());
 
   if(!api){
-    form.appendChild(el('div','warn', window.SYNC_UNAVAILABLE==='nocfg' ? '이 앱에는 서버 연결이 설정되어 있지 않습니다. 행보관에게 문의하세요.'
+    form.appendChild(el('div','warn', window.SYNC_UNAVAILABLE==='nocfg' ? '이 앱에는 서버 연결이 설정되어 있지 않습니다. 관리자에게 문의하세요.'
       : '서버에 연결할 수 없습니다(인터넷 연결 확인). 연결되면 새로고침하세요.'));
     wrap.appendChild(form); box.appendChild(wrap); return;
   }
@@ -3574,7 +3574,7 @@ function renderMineAuth(box, phase){
         });
         form.appendChild(nx);
       }else{
-        form.appendChild(field('부대 코드 (행보관에게 받은 코드)','code','text','off'));
+        form.appendChild(field('부대 코드 (관리자에게 받은 코드)','code','text','off'));
         const two=el('div','two');
         const bk=el('button','btn ghost full','이전'); bk.type='button'; bk.addEventListener('click',()=>{ A.step=1; A.err=''; renderMine(); });
         const go=busy(el('button','btn full',A.busy?'가입 중…':'가입하고 본인 찾기')); go.type='submit';
@@ -3592,7 +3592,7 @@ function renderMineAuth(box, phase){
     form.appendChild(el('p','smallnote',esc(info.email)+' 계정으로 로그인했습니다. 본인 이름을 연결하면 내 근무를 볼 수 있습니다.'));
     const list=info.pendingList;
     if(!list){
-      form.appendChild(field('부대 코드 (행보관에게 받은 코드)','code','text','off'));
+      form.appendChild(field('부대 코드 (관리자에게 받은 코드)','code','text','off'));
       const go=busy(el('button','btn full',A.busy?'확인 중…':'확인')); go.type='submit';
       go.addEventListener('click',()=>{
         const code=A.code.trim();
@@ -3601,12 +3601,12 @@ function renderMineAuth(box, phase){
       });
       form.appendChild(go);
     }else{
-      form.appendChild(el('div','mlog-q','본인 이름을 누르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 행보관만 바꿀 수 있습니다.'));
+      form.appendChild(el('div','mlog-q','본인 이름을 누르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 관리자만 바꿀 수 있습니다.'));
       const pl=el('div','picklist mlog-names');
       list.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(w=>{
         const b=busy(el('button',null,esc(w.name))); b.type='button';
         b.addEventListener('click',()=>{
-          if(!confirm(w.name+' — 본인이 맞습니까?\n선택 후에는 행보관만 바꿀 수 있습니다.')) return;
+          if(!confirm(w.name+' — 본인이 맞습니까?\n선택 후에는 관리자만 바꿀 수 있습니다.')) return;
           run(api.claim(w.id), ()=>{ A.step=1; A.code=''; MINE.routed=true; showView('mine'); });
         });
         pl.appendChild(b);
@@ -3619,7 +3619,7 @@ function renderMineAuth(box, phase){
   }
   wrap.appendChild(form);
   wrap.appendChild(msg);
-  if(phase==='guest') wrap.appendChild(el('p','smallnote mlog-foot','근무표는 행보관만 수정하고, 구성원은 읽기만 합니다. 행보관·기기 설정은 [더보기 › 서버 동기화]에 있습니다.'));
+  if(phase==='guest') wrap.appendChild(el('p','smallnote mlog-foot','근무표는 관리자만 수정하고, 구성원은 읽기만 합니다. 관리자·기기 설정은 [더보기 › 서버 동기화]에 있습니다.'));
   box.appendChild(wrap);
 }
 
@@ -3659,7 +3659,7 @@ function renderMine(){
     row.appendChild(sel); box.appendChild(row);
     if(legacy) box.appendChild(el('p','smallnote','공용 열람 계정입니다. 본인 계정으로 가입하면 이름을 매번 고를 필요가 없습니다. 여기서 고른 사람은 이 기기에만 기억됩니다.'));
   }
-  if(!w){ box.appendChild(el('div','muted',w0?'연결된 근무자를 명단에서 찾을 수 없습니다. 행보관에게 문의하세요.':'근무자를 선택하면 내 근무가 나옵니다.')); return; }
+  if(!w){ box.appendChild(el('div','muted',w0?'연결된 근무자를 명단에서 찾을 수 없습니다. 관리자에게 문의하세요.':'근무자를 선택하면 내 근무가 나옵니다.')); return; }
   const today=todayStr(), now=new Date(), ST=mineDataStatus();
 
   // 1) 이름 · 데이터 상태 (작게)
@@ -3923,7 +3923,7 @@ function renderMineStats(w){
   if(!r || !r.denom){ box.appendChild(el('div','mnone','이 기간에 내가 포함된 근무표가 없어 계산할 수 없습니다.')); return box; }
   box.appendChild(el('div','mstat-sum','근무표에 포함된 날 <b>'+r.denom+'일</b> · 집계 근무시간 <b>'+r.hours.toFixed(1)+'h</b> · 하루 평균 <b>'+avgHours(r).toFixed(2)+'h</b>'
     +'<span class="muted"> (집계 시간은 07:30·17:30의 순찰 가중을 포함한 공정성 계산용 값)</span>'));
-  if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+'은(는) 배정 방식이 달라 평균 계산에서 빠져 있습니다. 평균보다 높거나 낮게 나오는 게 정상일 수 있습니다.'));
+  if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+'은(는) 배정 방식이 달라 평균 계산에서 빠져 있습니다. 평균보다 높거나 낮게 나올 수 있습니다.'));
   else if(!inAvgPool(w, st, minD)) box.appendChild(el('p','smallnote','이 기간 근무일이 '+r.denom+'일로 적어(최소 '+minD+'일) 평균 계산에서는 빠져 있습니다. 내 값은 그대로 보여 줍니다.'));
   const guard=f=> x=> (st[x.id] && st[x.id].denom>0) ? f(x) : null;
   fairMetrics(st).forEach(([label,unit,dec,f0])=>{

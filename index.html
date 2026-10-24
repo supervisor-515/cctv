@@ -710,7 +710,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.9.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.9.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1195,7 +1195,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.9.0"></script>
+<script src="engine.js?v=7.9.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1991,7 +1991,9 @@ function xmessOn(s){ return !!(s && (s.xmessId || s.nextXmessId)) || DB.workers.
 /* 역할 카드 — 보기·편집 공통. 편집 중에는 카드마다 [변경] */
 function renderRoleCards(s, ed){
   const r3=el('div','roles3');
-  ROLE_CARDS.concat(xmessOn(s)?XMESS_CARDS:[]).forEach(([key,l,c])=>{
+  // 관리자 보기 화면은 추가배식조를 아래 줄(당직사관·사령 자리)에 따로 보여 주므로 카드에서는 뺀다 — 편집·구성원 화면은 카드로
+  const xCards = xmessOn(s) && (ed || document.body.classList.contains('ro'));
+  ROLE_CARDS.concat(xCards?XMESS_CARDS:[]).forEach(([key,l,c])=>{
     const id=schedKeyGet(s,key), chg=ed && ed.changed.has(key);
     const d=el('div',(ed?'ed':'')+(chg?' chg':'')); d.dataset.k=key;
     d.appendChild(el('div','rl','<i style="background:var(--'+c+')"></i>'+esc(l)+(ed?'<span class="sp"></span><span class="chgl">변경</span>':'')));
@@ -2087,7 +2089,11 @@ function renderView(){
   const issues = editing ? validateSchedule(s) : validateScheduleCached(s);
   renderStatusLine(body, s, issues);
   body.appendChild(renderRoleCards(s, ed));
-  if(!editing){ const ol=officerLine(ds); if(ol) body.appendChild(ol); }
+  if(!editing){
+    // 관리자: 당직사관·사령 대신 추가배식조(당일·다음날) / 구성원: 종전대로 당직사관·사령
+    const ol = document.body.classList.contains('ro') ? officerLine(ds) : xmessLine(s);
+    if(ol) body.appendChild(ol);
+  }
   // 내 근무 강조 (이 기기에만 기억)
   const whoRow=el('div','who no-print'); whoRow.appendChild(el('span',null,'내 근무 강조'));
   if(window.MY_WORKER) whoRow.style.display='none';   // 구성원 계정은 본인이 자동 강조
@@ -3075,6 +3081,20 @@ function pMatch(w,f){ const v=roleValue(w); return f==='all' || v===f || (f==='e
 /* ---------- 당직사관 · 당직사령 (구성원 참여 기록) ----------
    명단은 관리자가 관리(DB.officers → 근무표와 함께 업로드), 날짜별 기록은 구성원이 서버(officerLog)에 직접 쓴다. */
 function officerList(role){ return (DB.officers && DB.officers[role]) || []; }
+/* 근무표 확인(관리자) — 당직사관·사령 줄 자리에 추가배식조 당일·다음날. 누르면 배정 이유 */
+function xmessLine(s){
+  if(!xmessOn(s)) return null;
+  const box=el('div','ofl'); box.setAttribute('aria-label', calMd(s.date)+' 추가배식조');
+  XMESS_CARDS.forEach(([key,label])=>{
+    const id=schedKeyGet(s,key);
+    const c=el(id?'button':'div','of');
+    if(id){ c.type='button'; c.addEventListener('click',()=>openWhy(s, key)); c.title='눌러서 배정 이유 보기'; }
+    c.appendChild(el('small',null,esc(label)+(key==='nextXmess'?' · '+esc(mdw(addDays(s.date,1))):'')));
+    c.appendChild(el('b', id?null:'none', id ? esc(nameOf(id)) : '없음'));
+    box.appendChild(c);
+  });
+  return box;
+}
 function officerLine(ds){
   const api=window.OFFICER_API;
   if(!api || !api.readable()) return null;
@@ -4131,11 +4151,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.9.0"></script>
+<script src="firebase-config.js?v=7.9.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.9.0"></script>
+<script src="sync.js?v=7.9.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

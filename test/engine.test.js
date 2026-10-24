@@ -1476,3 +1476,77 @@ test('관제병: 운항병이 상황병인 날의 전날·당일 야간 열외',
   E.getDB().workers.find(w => w.id === ctl.id).isController = false;
   assert.deepEqual(E.controllerNightEx(nav.id, null), []);
 });
+
+/* ---------- 추가배식조 ---------- */
+function genRun(ws, start, days, opts = {}) {
+  let ds = start;
+  for (let d = 0; d < days; d++) {
+    const inp = E.autoInputFor(ds);
+    inp.dutyId = inp.dutyId || ws[(d * 3) % ws.length].id; inp.situationId = inp.situationId || ws[(d * 3 + 1) % ws.length].id;
+    inp.nextDutyId = ws[((d + 1) * 3) % ws.length].id; inp.nextSituationId = ws[((d + 1) * 3 + 1) % ws.length].id;
+    inp.next2DutyId = ws[((d + 2) * 3) % ws.length].id; inp.next2SituationId = ws[((d + 2) * 3 + 1) % ws.length].id;
+    const s = E.generateDay(inp);
+    E.getDB().schedules[ds] = s; E.invalidateStats(); ds = E.addDays(ds, 1);
+  }
+}
+test('추가배식조: 평일만 1명, 순번으로 고르게, 전날 야간·당일 CCTV 전부 열외, 분모 제외', () => {
+  const ws = roster(18, 0, 'xm');
+  ws.slice(0, 6).forEach(w => { w.canXmess = true; });
+  E.setDB(freshDB({ workers: ws.map((w, i) => E.normWorker(w, i)) }));
+  assert.equal(E.getDB().workers[0].canXmess, true);
+  genRun(ws, '2026-06-01', 42);   // 6/1(월) ~ 7/12
+  const S = E.getDB().schedules, cnt = {};
+  Object.keys(S).sort().forEach(ds => {
+    const s = S[ds], wkday = E.isXmessDay(ds, false);
+    if (ds === '2026-06-01') { assert.equal(s.xmessId, null); return; }   // 첫날은 전날 표가 없어 없음
+    if (!wkday) { assert.equal(s.xmessId, null, ds + ' 주말에 추가배식조'); return; }
+    const x = s.xmessId; assert.ok(x, ds + ' 평일인데 추가배식조 없음');
+    assert.ok(ws.slice(0, 6).some(w => w.id === x), '토글 안 한 사람');
+    cnt[x] = (cnt[x] || 0) + 1;
+    const used = [...Object.values(s.assign || {}), ...Object.values(s.fixed || {}), ...Object.values(s.night || {}), s.patrolExtra, s.mealId, s.dutyId, s.situationId];
+    assert.ok(!used.includes(x), ds + ' 추가배식조가 근무에 배정');
+    const prev = S[E.addDays(ds, -1)];
+    assert.equal(prev.nextXmessId, x);
+    assert.notEqual(prev.xmessId, x, ds + ' 이틀 연속 추가배식조');
+    assert.ok(!Object.values(prev.night || {}).includes(x), ds + ' 전날 야간에 배정');
+    assert.ok(E.validateSchedule(s).every(m => !m.includes('추가배식조')), E.validateSchedule(s).join(' | '));
+  });
+  const v = Object.values(cnt);
+  assert.equal(Object.keys(cnt).length, 6);
+  assert.ok(Math.max(...v) - Math.min(...v) <= 2, '고르지 않음 ' + JSON.stringify(cnt));   // 역할 날 건너뛰기로 ±1 이상 벌어질 수 있음
+  // 분모: 추가배식조 날은 근무일수에서 빠진다
+  const st = E.buildStats(null);
+  ws.slice(0, 6).forEach(w => assert.equal(st[w.id].denom, 42 - cnt[w.id], w.name));
+});
+test('추가배식조: 휴일·주말 앞 표는 다음날 몫 없음, 과거 기록 직접 입력이 순번에 반영, 구버전 표는 경고 없음', () => {
+  const ws = roster(16, 0, 'xh');
+  ws.slice(0, 3).forEach(w => { w.canXmess = true; });
+  E.setDB(freshDB({ workers: ws.map((w, i) => E.normWorker(w, i)), holidays: { '2026-06-09': '테스트 휴일' } }));
+  // 과거 기록: 6/1·6/2에 0번이 섰다고 직접 입력(편집과 같은 schedKeySet)
+  genRun(ws, '2026-06-01', 2);
+  ['2026-06-01', '2026-06-02'].forEach(d => { E.schedKeySet(E.getDB().schedules[d], 'xmess', ws[0].id); });
+  E.getDB().schedules['2026-06-02'].nextXmessId = null; E.invalidateStats();
+  assert.equal(E.buildStats(null)[ws[0].id].xmessNum, 2);
+  genRun(ws, '2026-06-03', 8);   // ~6/10
+  const S = E.getDB().schedules;
+  assert.notEqual(S['2026-06-03'].xmessId, ws[0].id);
+  assert.ok([ws[1].id, ws[2].id].includes(S['2026-06-03'].nextXmessId), '과거 2회 선 사람이 다시 먼저 뽑힘');
+  assert.equal(S['2026-06-05'].nextXmessId, null, '금요일 표인데 토요일 몫');
+  assert.equal(S['2026-06-08'].nextXmessId, null, '휴일(6/9) 앞 표인데 몫');
+  assert.equal(S['2026-06-09'].xmessId, null);
+  // 구버전 표(필드 없음)는 그대로 읽히고 추가배식조 관련 경고가 없다
+  const old = E.normSched({ date: '2026-05-01', assign: {}, night: {}, fixed: {} });
+  assert.equal(old.xmessId, null);
+  assert.ok(E.validateSchedule(old).every(m => !m.includes('추가배식조')));
+});
+test('추가배식조 설명: 1순위가 실제 배정자', () => {
+  const ws = roster(16, 0, 'xe');
+  ws.slice(0, 5).forEach(w => { w.canXmess = true; });
+  E.setDB(freshDB({ workers: ws.map((w, i) => E.normWorker(w, i)) }));
+  genRun(ws, '2026-06-01', 20);
+  Object.values(E.getDB().schedules).filter(s => s.nextXmessId).forEach(s => {
+    const ex = E.explainAssignment(s, 'nextXmess');
+    const first = ex.lines.find(l => /^1\. /.test(l));
+    assert.ok(first && first.includes('← 배정'), s.date + ' ' + first);
+  });
+});

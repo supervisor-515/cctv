@@ -1418,3 +1418,61 @@ test('유조차 운전병이 근무취침(전날 당직)·당직인 토요일엔
   const s = E.generateDay(inp);
   assert.equal(E.FUEL_DAY_SLOTS.filter(sl => s.assign && s.assign[sl] === fuel.id).length, 1);
 });
+
+/* ---------- 관제병 ---------- */
+test('관제병: 토요일 07:30~14:30 열외(06:30 등은 가능), 다음날 토요일 밥교대 제외', () => {
+  const ws = roster(9, 0, 'cs');
+  const ctl = mkWorker('관제', { id: 'cs-ctl', isController: true, roleType: 'situation' });
+  const all = ws.concat([ctl]);
+  E.setDB(freshDB({ workers: all }));
+  assert.equal(E.getDB().workers.find(w => w.id === ctl.id).isController, true);
+  const day = [];
+  for (let k = 0; k < 6; k++) {   // 토요일 여러 번 — 06:30·15:30 같은 칸에는 들어갈 수 있어야
+    const ds = E.addDays('2026-06-20', 7 * k);
+    const inp = E.autoInputFor(ds);
+    inp.dutyId = ws[1].id; inp.situationId = ws[0].id; inp.prevDutyId = ws[3].id; inp.prevSituationId = ws[2].id;
+    const s = E.generateDay(inp);
+    const got = daySlotsOf(s, ctl.id);
+    assert.ok(got.every(sl => !E.CONTROLLER_SAT_SLOTS.includes(sl)), ds + ' 열외 칸 배정: ' + got);
+    assert.notEqual(s.mealId, ctl.id);
+    assert.ok(E.validateSchedule(s).every(m => !m.includes('관제')));
+    day.push(...got);
+    E.getDB().schedules[ds] = s; E.invalidateStats();
+  }
+  // 금요일 표의 '다음날 밥교대'(토요일 밥교대)로 관제병을 뽑지 않는다
+  for (let k = 0; k < 5; k++) {
+    const fri = E.addDays('2026-06-19', 7 * k);
+    const inp = E.autoInputFor(fri);
+    inp.dutyId = ws[5].id; inp.situationId = ws[4].id; inp.nextDutyId = ws[7].id; inp.nextSituationId = ws[6].id;
+    assert.notEqual(E.generateDay(inp).nextMealId, ctl.id, fri + ' 토요일 밥교대로 관제병');
+  }
+  // 일요일은 평소대로
+  const sun = E.autoInputFor('2026-06-21'); sun.dutyId = ws[1].id; sun.situationId = ws[0].id;
+  assert.deepEqual(E.controllerSatSlotEx('2026-06-21'), {});
+});
+test('관제병: 운항병이 상황병인 날의 전날·당일 야간 열외', () => {
+  const ws = roster(13, 0, 'cn');
+  const nav = mkWorker('운항', { id: 'cn-nav', isNavigator: true, roleType: 'situation' });
+  const ctl = mkWorker('관제', { id: 'cn-ctl', isController: true });
+  E.setDB(freshDB({ workers: ws.concat([nav, ctl]) }));
+  const run = (ds, sit, nextSit) => {
+    const inp = E.autoInputFor(ds);
+    inp.dutyId = ws[1].id; inp.situationId = sit; inp.prevDutyId = ws[3].id; inp.prevSituationId = ws[2].id;
+    inp.nextDutyId = ws[5].id; inp.nextSituationId = nextSit;
+    return E.generateDay(inp);
+  };
+  const inNight = s => Object.values(s.night || {}).includes(ctl.id);
+  // 화요일(6/16) 운항병 상황병 → 6/15(전날)·6/16(당일) 야간 없음
+  for (let k = 0; k < 4; k++) {
+    const d1 = E.addDays('2026-06-15', 7 * k), d2 = E.addDays(d1, 1);
+    const a = run(d1, ws[0].id, nav.id), b = run(d2, nav.id, ws[4].id);
+    assert.ok(!inNight(a) && a.nightEx.includes(ctl.id), d1 + ' 전날 야간');
+    assert.ok(!inNight(b) && b.nightEx.includes(ctl.id), d2 + ' 당일 야간');
+  }
+  // 운항병이 상황병이 아니면 야간 열외 없음
+  const c = run('2026-06-17', ws[0].id, ws[4].id);
+  assert.ok(!c.nightEx.includes(ctl.id));
+  // 관제병 표시가 없으면 아무 규칙도 없음
+  E.getDB().workers.find(w => w.id === ctl.id).isController = false;
+  assert.deepEqual(E.controllerNightEx(nav.id, null), []);
+});

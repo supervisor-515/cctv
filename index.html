@@ -710,7 +710,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.7.0</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.8.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -875,6 +875,7 @@ body.ro .no-ro{display:none!important}
             <label class="sw"><input type="checkbox" id="gNextHoliday"> 다음날 휴무일</label>
           </div>
           <div id="gFuelNotice" style="margin-top:10px"></div>
+          <div id="gCtrlNotice"></div>
         </div>
         <div class="step">
           <div class="step-h"><span class="no">2</span>역할<div class="sp"></div><small>전날 표가 있으면 자동으로 채워집니다</small></div>
@@ -1189,7 +1190,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.7.0"></script>
+<script src="engine.js?v=7.8.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1381,7 +1382,7 @@ function refreshGenSelectors(){
     });
   }
   renderExChips();
-  renderFuelNotice(ds);
+  renderFuelNotice(ds); renderCtrlNotice();
   $('#gNextHoliday').checked = existing? !!existing.nextWorkHoliday : dayGroup(addDays(ds,1),false)==='weekend' || isHolidayDate(addDays(ds,1));
   // 전날 당직/상황병: 전날 표가 있으면 자동·비활성, 없으면 직접 입력 활성화
   const pd=$('#gPrevDuty'), ps=$('#gPrevSit'), pv=$('#gPrevView');
@@ -1726,6 +1727,18 @@ function previewGen(){
   box.appendChild(need);
 }
 $('#gHoliday').addEventListener('change', refreshFuelLock);
+['#gSit','#gNextSit'].forEach(id=> $(id).addEventListener('change', renderCtrlNotice));
+/* 관제병 규칙 안내 — 생성 시 엔진이 자동으로 열외에 더한다(아래 열외 칩에는 따로 표시하지 않음) */
+function renderCtrlNotice(){
+  const box=$('#gCtrlNotice'); if(!box) return;
+  const ds=$('#gDate').value, cs=controllers(); box.innerHTML='';
+  if(!ds || !cs.length) return;
+  const names=cs.map(w=>esc(w.name)).join(', '), t=[];
+  if(dow(ds)===6) t.push('토요일 07:30~14:30 열외(밥교대 제외)');
+  const nx=controllerNightEx($('#gSit').value, $('#gNextSit').value);
+  if(nx.length) t.push('야간 열외 — 운항병이 '+($('#gSit').value && W($('#gSit').value) && W($('#gSit').value).isNavigator ? '오늘' : '내일')+' 상황병');
+  if(t.length) box.appendChild(el('div','hint','🎧 관제병 '+names+': '+t.join(' · ')+' — 생성할 때 자동으로 적용됩니다.'));
+}
 ['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
   .forEach(id=> $(id).addEventListener('change', previewGen));
 
@@ -3120,7 +3133,7 @@ function renderPeople(){
     const c=el('button','pc'+(w.active?'':' off'));
     const left=el('div');
     const cls = v==='duty'?'duty' : v==='situation'?'sit' : 'kind';
-    left.appendChild(el('div','pn', esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'+(w.countResetAt?' <span class="pill">전환 '+esc(w.countResetAt)+'</span>':'')));
+    left.appendChild(el('div','pn', esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'+(w.isController?' <span class="tag kind">관제병</span>':'')+(w.countResetAt?' <span class="pill">전환 '+esc(w.countResetAt)+'</span>':'')));
     const meta=[w.canMeal?'밥교대 가능':'밥교대 불가'];
     const ip=(w.inactivePeriods||[]).length; if(ip) meta.push('비활성 기간 '+ip+'개');
     if(w.enlistDate) meta.push('전역 '+dischargeDate(w.enlistDate));
@@ -3174,7 +3187,9 @@ function openWorkerSheet(id){
   const row=el('div','flexgap'); row.style.gap='18px'; row.style.marginBottom='12px';
   row.appendChild(sw('밥교대 투입 가능', w.canMeal, v=>{w.canMeal=v;save();renderPeople();}));
   row.appendChild(sw('활성', w.active, v=>{w.active=v;save();refreshAll();}));
+  row.appendChild(sw('관제병', !!w.isController, v=>{w.isController=v;save();refreshAll();}));
   f.appendChild(row);
+  f.appendChild(el('div','hint','관제병: 구분은 그대로 두고 덧붙는 표시입니다. 매주 토요일(휴일 포함) 07:30~14:30 칸과 그날 밥교대에서 빠지고, 운항병이 상황병인 날은 그 전날·당일 야간에서 빠집니다.'));
   // 기존 누적시간
   const inB=el('input'); inB.type='number'; inB.step='0.5'; inB.value=w.baseHours;
   inB.addEventListener('change',()=>{w.baseHours=Number(inB.value)||0;save();renderPeople();});
@@ -4085,11 +4100,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.7.0"></script>
+<script src="firebase-config.js?v=7.8.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.7.0"></script>
+<script src="sync.js?v=7.8.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

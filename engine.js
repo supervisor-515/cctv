@@ -112,6 +112,8 @@ function normWorker(w,i){
     // 말년: 메커니즘상 신병과 동일 취급(roleReady=false)이되 카운트 초기화는 하지 않음.
     isNavigator: !!w.isNavigator,
     isVeteran: !!w.isVeteran,
+    // 관제병: 구분(신병·당직·상황병 등)은 그대로 두고 덧붙는 표시 — 토요일 07:30~14:30 열외, 운항병이 상황병인 날의 전날·당일 야간 열외
+    isController: !!w.isController,
     canMeal: w.canMeal!==undefined ? !!w.canMeal : true,
     baseHours: Number(w.baseHours)||0,
     active: w.active!==undefined ? !!w.active : true,
@@ -310,6 +312,28 @@ function isNavigator(w){ return !!w.isNavigator; }
 function isVeteran(w){ return !!w.isVeteran; }
 function activeWorkers(){ return DB.workers.filter(w=>w.active); }
 /* 활성 운항병 1명(없으면 null) */
+/* ---------- 관제병 규칙 ----------
+   ① 토요일(휴일이어도)은 07:30~14:30 주간 칸 고정 열외(06:30·15:30·16:30·저녁·야간은 그대로)
+   ② 운항병이 상황병인 날(D)에는 D-1·D 근무표의 야간(번초) 열외 — 그 표의 상황병/다음날 상황병으로 판단 */
+const CONTROLLER_SAT_SLOTS = ['07:30','08:30','09:30','10:30','11:30','12:30','13:30','14:30'];
+function controllers(){ return DB.workers.filter(w=>w.active && w.isController); }
+function controllerSatSlotEx(ds){
+  const out={}; if(dow(ds)!==6) return out;
+  controllers().forEach(w=>{ out[w.id]=CONTROLLER_SAT_SLOTS.slice(); });
+  return out;
+}
+function controllerNightEx(situationId, nextSituationId){
+  const nav=[situationId, nextSituationId].map(id=>id && DB.workers.find(w=>w.id===id)).some(w=>w && w.isNavigator);
+  return nav ? controllers().map(w=>w.id) : [];
+}
+/* 표 입력(ctx)에 관제병 규칙을 합친다 — 사용자가 고른 열외는 그대로 두고 더하기만 */
+function applyControllerRules(ds, ctx){
+  const add=controllerSatSlotEx(ds);
+  Object.entries(add).forEach(([wid,us])=>{ ctx.slotEx[wid]=[...new Set([...(ctx.slotEx[wid]||[]), ...us])]; });
+  const nx=controllerNightEx(ctx.situationId, ctx.nextSituationId);
+  if(nx.length) ctx.nightEx=[...new Set([...(ctx.nightEx||[]), ...nx])];
+  return ctx;
+}
 function activeNavigator(){ return DB.workers.find(w=>w.active && w.isNavigator) || null; }
 /* 운항병 주간 고정 슬롯: 월~목 09:30·13:30 / 금 09:30·14:30 / 주말·휴무 없음(일반 풀 참여) */
 function navFixedDaySlots(ds, workHoliday){
@@ -1117,6 +1141,7 @@ function autoNextMeal(ds, ctx){
     // 오늘 밥교대자는 야간 후보 부족 시 오늘 야간에 투입될 수 있음 → 다음날 밥교대로 또 뽑히면 이틀 연속 우려.
     // 그러므로 다음날 밥교대 후보에서 오늘 밥교대자를 제외한다.
     dayEx: [...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx: ctx.bothEx||[],
+    slotEx: controllerSatSlotEx(nextDs),   // 다음날이 토요일이면 관제병은 밥교대 시간과 겹쳐 후보에서 빠진다
     mealId: null,
     stats: buildStats(nextDs)
   };
@@ -1175,6 +1200,7 @@ function generateDay(input){
     slotEx: normSlotEx(input.slotEx),
     nextWorkHoliday: !!input.nextWorkHoliday,
   };
+  applyControllerRules(ds, ctx);
   // 통계는 '이 날짜 이전' 표 기준
   ctx.stats = buildStats(ds);
   ctx._todayHours = {};
@@ -1861,7 +1887,7 @@ function explainAssignment(s, key){
     const nctx={date:nd, workHoliday:ctx.nextWorkHoliday, dutyId:ctx.nextDutyId, situationId:ctx.nextSituationId,
       prevDutyId:ctx.dutyId, prevSituationId:ctx.situationId, nextDutyId:ctx.next2DutyId, nextSituationId:ctx.next2SituationId,
       prev2DutyId:prev?prev.dutyId||null:null, prev2SituationId:prev?prev.situationId||null:null,
-      dayEx:[...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx:ctx.bothEx||[], slotEx:ctx.slotEx, _todayMeal:ctx.mealId,
+      dayEx:[...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx:ctx.bothEx||[], slotEx:controllerSatSlotEx(nd), _todayMeal:ctx.mealId,
       stats:null};
     // 생성 당시엔 오늘 표가 아직 없었다 — 오늘 표를 잠시 빼고 다음날 기준 통계를 계산해야 같은 순위가 나온다
     { const keep=DB.schedules[ds]; delete DB.schedules[ds]; invalidateStats();
@@ -2118,7 +2144,7 @@ if(typeof module!=='undefined' && module.exports){
     migrate, normWorker, normPrebook, normSched,
     // 날짜/그룹
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
-    holidayName, isHolidayDate, prebookOn, weekMonday, fuelTruckOn, fuelAllowedOn, fuelAllowedKey,
+    holidayName, isHolidayDate, prebookOn, controllerSatSlotEx, controllerNightEx, CONTROLLER_SAT_SLOTS, weekMonday, fuelTruckOn, fuelAllowedOn, fuelAllowedKey,
     // 근무자
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,

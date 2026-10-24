@@ -115,6 +115,8 @@ function normWorker(w,i){
     // 관제병: 구분(신병·당직·상황병 등)은 그대로 두고 덧붙는 표시 — 토요일 07:30~14:30 열외, 운항병이 상황병인 날의 전날·당일 야간 열외
     isController: !!w.isController,
     canMeal: w.canMeal!==undefined ? !!w.canMeal : true,
+    canXmess: !!w.canXmess,   // 추가배식조 후보(토글) — 평일 1명 순번제
+    xmessSince: /^\d{4}-\d{2}-\d{2}$/.test(w.xmessSince||'') ? w.xmessSince : null,   // 토글을 켠 날 — 순번 배정률 분모의 시작
     baseHours: Number(w.baseHours)||0,
     active: w.active!==undefined ? !!w.active : true,
     countResetAt: w.countResetAt || null,
@@ -256,6 +258,8 @@ function normSched(s){
     next2DutyId:s.next2DutyId||null, next2SituationId:s.next2SituationId||null,
     prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null,
     mealId:s.mealId||null,
+    // 추가배식조: 오늘(xmessId — 그날 CCTV 전부 열외·분모 제외) / 다음날(nextXmessId — 오늘 야간 열외). 구버전 표는 없음(null)
+    xmessId:s.xmessId||null, nextXmessId:s.nextXmessId||null, nextXmessAuto:!!s.nextXmessAuto,
     dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[], slotEx:normSlotEx(s.slotEx),
     assign:{...(s.assign||{})}, night:s.night||{},
     fixed:{...(s.fixed||{})}, patrolExtra:s.patrolExtra||null,
@@ -363,6 +367,7 @@ function presentOn(w, ds, sched){
   if(inInactive(w,ds)) return false;
   if(sched){
     if((sched.bothEx||[]).includes(w.id)) return false;            // 전체열외 → 분모 제외
+    if(sched.xmessId===w.id) return false;                          // 추가배식조 → 그날 분모 제외
     if(Array.isArray(sched.activeIds)) return sched.activeIds.includes(w.id); // 생성시 활성자 스냅샷이 정답
     // 스냅샷 없는 구버전 표: 그 표가 만들어질 때 근무자가 아직 없었으면 제외(신규 추가자는 분모 0부터)
     if(w.createdAt && sched.generatedAt && sched.generatedAt < w.createdAt) return false;
@@ -412,12 +417,17 @@ function _computeStats(uptoDate, month, ignoreReset){
       tieDay:{}, tieNight:{1:'',2:'',3:'',4:''}, tiePatrol:'',
       // 06:30 순번용 배정률 — 신병·비신병이 한 줄로 도는 순번이라 카운트 초기화와 무관하게 전체 기록으로 센다
       rotAllNum:0, rotAllDen:0,
+      // 추가배식조 순번용 — 평일(근무일)에 후보였던 날(그날 선 날 포함)·선 횟수·마지막 날짜. 카운트 초기화와 무관한 전체 기록
+      xmessNum:0, xmessDen:0, lastXmess:'',
       mealNum:0, mealDen:0, mealGNum:{weekday:0,weekend:0}, mealGDen:{weekday:0,weekend:0}, lastMeal:null,
       patrolNum:0, patrolDen:0, patrolGNum:{weekday:0,weekend:0}, patrolGDen:{weekday:0,weekend:0}
     };
     DAY_SLOTS.forEach(s=>st[w.id].slotNum[s]=0);
     DAY_SLOTS.forEach(s=>{ ['mtth','wed','fri','weekend'].forEach(g=>st[w.id].slotGNum[g][s]=0); });
   });
+  // 추가배식조 분모 시작: 토글 켠 날(xmessSince) — 없으면 부대에서 처음 추가배식조 기록이 있는 날(그 전 평일은 제도 자체가 없었음)
+  let xStart='9999-99-99';
+  Object.keys(DB.schedules).forEach(d=>{ if(DB.schedules[d].xmessId && d<xStart) xStart=d; });
   for(const ds of dates){
     const s = DB.schedules[ds];
     const g = dayGroup(ds, s.workHoliday);
@@ -435,6 +445,7 @@ function _computeStats(uptoDate, month, ignoreReset){
       const present = presentOn(w, ds, s);
       // 분모 (일반: 카운트 기준 이후 + 가용)
       if(present) r.rotAllDen++;
+      if(!isWknd && w.canXmess && (s.xmessId===w.id || (present && ds>=(w.xmessSince||xStart)))) r.xmessDen++;
       if(present && afterReset){
         r.denom++; r.slotDen++;
         if(isWknd) r.wkndDen++;
@@ -467,6 +478,7 @@ function _computeStats(uptoDate, month, ignoreReset){
       }
       if(id && st[id]) st[id].tieNight[b.id]=ds;
     });
+    if(s.xmessId && st[s.xmessId]){ st[s.xmessId].xmessNum++; st[s.xmessId].lastXmess=ds; }
     // 밥교대 (근무시간 부여 안 함 — 카운트만, 초기화 예외로 유지). 오름차순 순회라 lastMeal은 최근 날짜가 남음
     if(s.mealId && st[s.mealId]){
       st[s.mealId].mealNum++; st[s.mealId].mealGNum[mg]++; st[s.mealId].lastMeal=ds;
@@ -1125,6 +1137,46 @@ function assignMeal(ds, ctx){
   return scored[0].id;
 }
 
+/* ----- 추가배식조 (평일 1명, 순번제) -----
+   D-1 표에서 '다음날 추가배식조'로 뽑아 D-1 야간에서 빼고, D 표에서는 그날 CCTV 전부 열외(분모 제외).
+   열외는 표의 bothEx/nightEx에 섞지 않고 xmessId/nextXmessId로 따로 둔다 — 편집에서 사람만 바꾸면 되고, 구버전 표는 그냥 없음.
+   순번(06:30과 같은 방식): ①추가배식조 배정률(선 횟수 ÷ 평일 후보였던 날) 낮은 순 → ②마지막으로 선 날이 오래된(한 적 없는) 순.
+   후보 제외: D의 당직·상황병, D-1·D+1의 당직·상황병(D의 저녁 고정칸 20:30·21:30 / 18:30·19:30), 그날 휴가·열외·유조차·배식조 일정. */
+function isXmessDay(ds, workHoliday){ return !workHoliday && dayGroup(ds,false)!=='weekend' && !isHolidayDate(ds); }
+/* 표 하나의 열외 세트에 추가배식조를 합친 것 — 후보·검증 계산용(저장은 하지 않음) */
+function xmessEx(s){
+  const both=[...(s.bothEx||[])], night=[...(s.nightEx||[])];
+  if(s.xmessId && !both.includes(s.xmessId)) both.push(s.xmessId);
+  if(s.nextXmessId && !night.includes(s.nextXmessId)) night.push(s.nextXmessId);
+  return {dayEx:s.dayEx||[], nightEx:night, bothEx:both};
+}
+/* ctx는 D-1(오늘) 표의 입력. nds = D */
+function xmessCandidates(nds, ctx){
+  const ex=new Set([ctx.nextDutyId, ctx.nextSituationId, ctx.dutyId, ctx.situationId, ctx.next2DutyId, ctx.next2SituationId].filter(Boolean));
+  const pbEx=new Set(prebookOn(nds).filter(p=> p.kind!=='duty' && p.kind!=='situation').map(p=>p.wid));
+  return activeWorkers().filter(w=> w.canXmess && !inInactive(w, nds) && !ex.has(w.id) && !pbEx.has(w.id));
+}
+function xmessRank(nds, ctx, stats){
+  // 통계는 '오늘 이전' 표 기준이라 오늘 표의 추가배식조(ctx.xmessId)가 빠져 있다 — 이미 선 것으로 더해 준다
+  const today=ctx.xmessId||null;
+  const r0=xmessCandidates(nds, ctx).map(w=>{ const r=stats[w.id]||{};
+      const t = w.id===today ? 1 : 0, num=(r.xmessNum||0)+t, den=(r.xmessDen||0)+t;
+      return {id:w.id, rate: den>0 ? num/den : 0, num, den, last: t ? ctx.date : (r.lastXmess||'')}; })
+    .sort((a,b)=> (a.rate-b.rate) || (a.last<b.last?-1:a.last>b.last?1:0) || (a.id<b.id?-1:a.id>b.id?1:0));
+  // 이틀 연속은 피한다 — 오늘 선 사람은 다른 후보가 없을 때만
+  const nx=r0.filter(e=>e.id!==today);
+  return nx.length ? nx.concat(r0.filter(e=>e.id===today)) : r0;
+}
+/* 다음날 추가배식조: ''·미지정=자동, '__none__'=없음, 그 외=지정 */
+function resolveNextXmess(ds, ctx){
+  const v=ctx.nextXmessId, nds=addDays(ds,1);
+  if(v==='__none__') return {id:null, auto:false};
+  if(v) return {id:v, auto:false};
+  if(!isXmessDay(nds, ctx.nextWorkHoliday)) return {id:null, auto:true};
+  const r=xmessRank(nds, ctx, ctx.stats);
+  return {id: r.length ? r[0].id : null, auto:true, empty: !r.length && activeWorkers().some(w=>w.canXmess)};
+}
+
 /* ----- 다음날 밥교대 자동배정 (다음날 기준으로 assignMeal 재사용) ----- */
 function autoNextMeal(ds, ctx){
   const nextDs = addDays(ds,1);
@@ -1140,7 +1192,7 @@ function autoNextMeal(ds, ctx){
     prev2SituationId: (DB.schedules[addDays(ds,-1)]||{}).situationId||null,
     // 오늘 밥교대자는 야간 후보 부족 시 오늘 야간에 투입될 수 있음 → 다음날 밥교대로 또 뽑히면 이틀 연속 우려.
     // 그러므로 다음날 밥교대 후보에서 오늘 밥교대자를 제외한다.
-    dayEx: [...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx: ctx.bothEx||[],
+    dayEx: [...(ctx.dayEx||[]), ctx.mealId, ctx.nextXmessId].filter(Boolean), bothEx: ctx.bothEx||[],   // 다음날 추가배식조는 다음날 밥교대 불가
     slotEx: controllerSatSlotEx(nextDs),   // 다음날이 토요일이면 관제병은 밥교대 시간과 겹쳐 후보에서 빠진다
     mealId: null,
     stats: buildStats(nextDs)
@@ -1228,6 +1280,17 @@ function generateDay(input){
   const warnings = [];
   const relaxed = {};
   const fixed = {};
+
+  /* 0) 추가배식조 — 오늘 몫(전날 표에서 정해짐)은 그날 CCTV 전부 열외, 다음날 몫은 오늘 야간 열외.
+        배정 계산에만 열외로 합치고, 저장하는 bothEx/nightEx는 사용자가 고른 그대로 둔다(xmessId/nextXmessId로 따로 기록) */
+  const userBothEx = ctx.bothEx.slice(), userNightEx = ctx.nightEx.slice();
+  ctx.xmessId = input.xmessId==='__none__' ? null : (input.xmessId || (prev?prev.nextXmessId:null) || null);
+  if(ctx.xmessId && !ctx.bothEx.includes(ctx.xmessId)) ctx.bothEx = [...ctx.bothEx, ctx.xmessId];
+  ctx.nextXmessId = input.nextXmessId;
+  { const rx = resolveNextXmess(ds, ctx);
+    ctx.nextXmessId = rx.id; ctx.nextXmessAuto = rx.auto;
+    if(rx.empty) warnings.push('다음날 추가배식조 후보가 없어 미배정되었습니다.');
+    if(ctx.nextXmessId && !ctx.nightEx.includes(ctx.nextXmessId)) ctx.nightEx = [...ctx.nightEx, ctx.nextXmessId]; }
 
   /* 1) 오늘 밥교대 결정 (전날 야간자 회피 → 야간 폴백 투입 시 이틀연속 방지) */
   ctx.mealId = assignMeal(ds, ctx);
@@ -1444,7 +1507,8 @@ function generateDay(input){
     next2DutyId:ctx.next2DutyId, next2SituationId:ctx.next2SituationId,
     nextMealAuto:ctx.nextMealAuto,
     prevDutyId:ctx.prevDutyId, prevSituationId:ctx.prevSituationId,
-    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:ctx.nightEx, bothEx:ctx.bothEx, slotEx:ctx.slotEx, fuelId:ctx.fuelId,
+    mealId:ctx.mealId, dayEx:ctx.dayEx, nightEx:userNightEx, bothEx:userBothEx, slotEx:ctx.slotEx, fuelId:ctx.fuelId,
+    xmessId:ctx.xmessId, nextXmessId:ctx.nextXmessId, nextXmessAuto:!!ctx.nextXmessAuto,
     nextWorkHoliday:ctx.nextWorkHoliday,
     assign, night, fixed, patrolExtra, relaxed, warnings, tier:usedTier,
     activeIds: activeWorkers().map(w=>w.id),   // 생성 시점 활성자 스냅샷 → 비활성자는 이 날 분모에서 제외
@@ -1495,8 +1559,8 @@ function validateSchedule(s){
   }
 
   // 4) 열외 대상이 해당 영역에 배정 (14:30 당일상황병 고정 예외)
-  const dEx=new Set([...(s.dayEx||[]),...(s.bothEx||[])]);
-  const nEx=new Set([...(s.nightEx||[]),...(s.bothEx||[])]);
+  const dEx=new Set([...(s.dayEx||[]),...(s.bothEx||[]), s.xmessId].filter(Boolean));
+  const nEx=new Set([...(s.nightEx||[]),...(s.bothEx||[]), s.xmessId, s.nextXmessId].filter(Boolean));
   const sEx=s.slotEx||{};
   // 유조차 운전병(정)의 부분근무는 열외 중에도 허용된 자리 — 그 한 칸만 예외(직접 옮겨도 같음, 두 칸째부터는 경고)
   const fuelKey = fuelAllowedKey(s);
@@ -1532,6 +1596,20 @@ function validateSchedule(s){
     if(mealNightEx && inNight) push('밥교대('+nameOf(s.mealId)+')가 야간 열외 대상인데 야간 번초에 배정되었습니다.');
   }
 
+  // 5-1) 추가배식조(그날 CCTV 전부 열외)인데 고정칸·밥교대·순찰·역할에 걸린 경우
+  if(s.xmessId){
+    const x=s.xmessId, nm=nameOf(x), hit=[];
+    Object.entries(fixed).forEach(([sl,id])=>{ if(id===x) hit.push(sl); });
+    if(s.patrolExtra===x) hit.push('17:00 순찰');
+    if(s.mealId===x) hit.push('밥교대');
+    if(s.dutyId===x || s.situationId===x) hit.push(s.dutyId===x?'당직':'상황병');
+    if(hit.length) push('추가배식조('+nm+')인데 '+hit.join('·')+' 배정됨');
+  }
+  if(s.nextXmessId){
+    const x=s.nextXmessId;
+    if(x===s.nextMealId) push('다음날 추가배식조('+nameOf(x)+')가 다음날 밥교대(17:30)로 지정됨');
+    if(x===s.nextDutyId || x===s.nextSituationId) push('다음날 추가배식조('+nameOf(x)+')가 다음날 '+(x===s.nextDutyId?'당직':'상황병')+'으로 지정됨');
+  }
   // 6) 다음날 밥교대 == 다음날 당직/상황병 → 17:30/18:30/19:30 충돌
   if(s.nextMealId && s.nextMealId===s.nextDutyId) push('다음날 밥교대=다음날 당직: 17:30·19:30 충돌('+nameOf(s.nextMealId)+')');
   if(s.nextMealId && s.nextMealId===s.nextSituationId) push('다음날 밥교대=다음날 상황병: 17:30·18:30 충돌('+nameOf(s.nextMealId)+')');
@@ -1598,7 +1676,7 @@ function repairRoleChange(sched, kind, newId){
   const ctx = { date:ds, workHoliday:!!t.workHoliday, dutyId:t.dutyId||null, situationId:t.situationId||null,
     nextDutyId:t.nextDutyId||null, nextSituationId:t.nextSituationId||null, nextMealId:t.nextMealId||null,
     mealId:t.mealId||null, prevDutyId:t.prevDutyId||null, prevSituationId:t.prevSituationId||null,
-    dayEx:t.dayEx||[], nightEx:t.nightEx||[], bothEx:t.bothEx||[], slotEx:normSlotEx(t.slotEx) };
+    ...xmessEx(t), slotEx:normSlotEx(t.slotEx) };
   const dayIds = new Set(dayCandidates(ds, ctx).map(w=>w.id));
   const nightIds = new Set(nightCandidates(ds, ctx).map(w=>w.id));
   const eligible = (k, wid) => {
@@ -1648,13 +1726,15 @@ function repairKeyLabel(k){ return k==='P' ? '17:00 순찰' : k[0]==='D' ? k.sli
 /* 근무표 편집용 칸 키 — 'D:hh:mm' 주간, 'P' 17:00 순찰, 'E:hh:mm' 저녁 고정, 'N:b' 번초,
    'duty'·'sit' 역할 지정. (밥교대는 연쇄 조정이 필요해 repairRoleChange로 바꾼다) */
 const SCHED_KEYS = [...DAY_SLOTS.map(sl=>'D:'+sl), 'P', ...EVENING.map(sl=>'E:'+sl),
-                    ...NIGHT_BUNCHO.map(b=>'N:'+b.id), 'duty', 'sit', 'meal', 'nextMeal'];
+                    ...NIGHT_BUNCHO.map(b=>'N:'+b.id), 'duty', 'sit', 'meal', 'nextMeal', 'xmess', 'nextXmess'];
 function schedKeyGet(s, k){
   if(k==='P') return s.patrolExtra||null;
   if(k==='duty') return s.dutyId||null;
   if(k==='sit') return s.situationId||null;
   if(k==='meal') return s.mealId||null;
   if(k==='nextMeal') return s.nextMealId||null;
+  if(k==='xmess') return s.xmessId||null;
+  if(k==='nextXmess') return s.nextXmessId||null;
   const x=k.slice(2);
   if(k[0]==='D') return (s.assign&&s.assign[x]) || (s.fixed&&s.fixed[x]) || null;
   if(k[0]==='E') return (s.fixed&&s.fixed[x]) || null;
@@ -1669,6 +1749,9 @@ function schedKeySet(s, k, id, orig){
   if(k==='P'){ s.patrolExtra=id; return s; }
   if(k==='duty'){ s.dutyId=id; return s; }
   if(k==='sit'){ s.situationId=id; return s; }
+  // 추가배식조: 사람만 바꾼다(열외는 xmessId/nextXmessId에서 계산되므로 따로 고칠 것 없음). 과거 기록 추가도 이것으로
+  if(k==='xmess'){ s.xmessId=id; return s; }
+  if(k==='nextXmess'){ s.nextXmessId=id; s.nextXmessAuto=false; return s; }
   const x=k.slice(2);
   if(k[0]==='D'){
     const fixedHere = !!(s.fixed[x] || (orig && orig.fixed && orig.fixed[x]));
@@ -1697,6 +1780,7 @@ function personalKeys(s, wid){
   if(s.dutyId===wid) k.push('R:duty');
   if(s.situationId===wid) k.push('R:sit');
   if(s.mealId===wid) k.push('R:meal');
+  if(s.xmessId===wid) k.push('R:xmess');
   return k.sort();
 }
 /* 키 → 실제 근무 시각들 (역할 키는 시각 없음) */
@@ -1808,7 +1892,7 @@ function explainAssignment(s, key){
     dutyId:s.dutyId||null, situationId:s.situationId||null, nextDutyId:s.nextDutyId||null, nextSituationId:s.nextSituationId||null,
     next2DutyId:s.next2DutyId||null, next2SituationId:s.next2SituationId||null,
     prevDutyId:s.prevDutyId||null, prevSituationId:s.prevSituationId||null, mealId:s.mealId||null, nextMealId:s.nextMealId||null,
-    dayEx:s.dayEx||[], nightEx:s.nightEx||[], bothEx:s.bothEx||[], slotEx:normSlotEx(s.slotEx)};
+    ...xmessEx(s), slotEx:normSlotEx(s.slotEx)};
   ctx.stats=buildStats(ds);
   ctx._dayGrp=dayGroup(ds,ctx.workHoliday); ctx._nightGrp=nightGroup(ds,ctx.nextWorkHoliday);
   const prevNight=new Set(prev&&prev.night ? Object.values(prev.night).filter(Boolean) : []);
@@ -1844,6 +1928,19 @@ function explainAssignment(s, key){
     if(key[0]==='D') return rule(key.slice(2), '유조차 운전병의 토·일·휴일 오후 1칸입니다. 12:30~16:30 중 그 사람이 가장 적게 선 시간대로 들어갑니다.');
   }
 
+  // ----- 추가배식조 -----
+  if(key==='xmess'){
+    const tail='그날은 CCTV 근무(주간·순찰·저녁·야간·밥교대)에서 모두 빠지고 근무일수(분모)에서도 제외됩니다.';
+    return rule('추가배식조', prev && prev.nextXmessId===who ? md(prev.date)+' 근무표에서 ‘다음날 추가배식조’로 정해진 사람입니다 — 그 표의 카드를 누르면 선정 순서가 나옵니다.' : '직접 지정한 추가배식조입니다(과거 기록 입력 등).', tail);
+  }
+  if(key==='nextXmess'){
+    if(!s.nextXmessAuto) return rule('다음날 추가배식조','다음날 추가배식조를 직접 지정했습니다. 이 사람은 오늘 야간에서 빠지고, 다음날 CCTV 근무 전부 열외입니다.');
+    const nd=addDays(ds,1), rk=xmessRank(nd, {...ctx, xmessId:s.xmessId||null}, ctx.stats);   // 생성 때와 같이 오늘 추가배식조를 반영
+    return rule('다음날 추가배식조','추가배식조 가능(토글)인 사람 중 06:30처럼 순번으로 돕니다: ① 추가배식조 배정률(선 횟수 ÷ 평일 후보였던 날)이 낮은 사람 → ② 마지막으로 선 날이 오래된(한 적 없는) 사람.',
+      '다음날 당직·상황병, 오늘·모레 당직·상황병(다음날 저녁 고정칸), 그날 휴가·열외 일정이 있는 사람은 후보에서 빠집니다.',
+      ...rk.slice(0,8).map((e,i)=> (i+1)+'. '+nm(e.id)+(e.id===who?' ← 배정':'')+(e.id===s.xmessId?' (오늘 추가배식조 — 이틀 연속 피함)':'')+' — '+e.num+'/'+e.den+'일 ('+pct(e.rate)+') · 마지막 '+md(e.last)));
+  }
+
   // ----- 밥교대(당일·다음날) : assignMeal 순서 -----
   const mealRank=(title, mctx, mds, cur)=>{
     const mg=mealGroup(mds, mctx.workHoliday), mgKR=mg==='weekend'?'주말·휴일':'평일';
@@ -1857,6 +1954,7 @@ function explainAssignment(s, key){
       else if(w.roleReady===false) why='신병 — 밥교대는 역할 전환 후';
       else if(isNavigator(w)) why='운항병 — 밥교대 제외';
       else if(ex.has(w.id)) why=ex.get(w.id);
+      else if(mctx._xm && w.id===mctx._xm) why='추가배식조(그날 CCTV 전부 열외)';
       else if((mctx.bothEx||[]).includes(w.id)) why=exWhy(w.id,'종일 열외');
       else if((mctx.dayEx||[]).includes(w.id)) why= w.id===mctx._todayMeal ? '오늘 밥교대(이틀 연속 방지)' : exWhy(w.id,'주간 열외');
       else if(mealBlockedBySlotEx(mctx, w.id)) why='밥교대 시간대 열외';
@@ -1887,7 +1985,7 @@ function explainAssignment(s, key){
     const nctx={date:nd, workHoliday:ctx.nextWorkHoliday, dutyId:ctx.nextDutyId, situationId:ctx.nextSituationId,
       prevDutyId:ctx.dutyId, prevSituationId:ctx.situationId, nextDutyId:ctx.next2DutyId, nextSituationId:ctx.next2SituationId,
       prev2DutyId:prev?prev.dutyId||null:null, prev2SituationId:prev?prev.situationId||null:null,
-      dayEx:[...(ctx.dayEx||[]), ctx.mealId].filter(Boolean), bothEx:ctx.bothEx||[], slotEx:controllerSatSlotEx(nd), _todayMeal:ctx.mealId,
+      dayEx:[...(ctx.dayEx||[]), ctx.mealId, s.nextXmessId].filter(Boolean), bothEx:ctx.bothEx||[], slotEx:controllerSatSlotEx(nd), _todayMeal:ctx.mealId, _xm:s.nextXmessId,
       stats:null};
     // 생성 당시엔 오늘 표가 아직 없었다 — 오늘 표를 잠시 빼고 다음날 기준 통계를 계산해야 같은 순위가 나온다
     { const keep=DB.schedules[ds]; delete DB.schedules[ds]; invalidateStats();
@@ -1898,7 +1996,7 @@ function explainAssignment(s, key){
   }
   if(key==='meal'){
     if(prev && prev.nextMealId && prev.nextMealId===s.mealId) return rule('밥교대', md(prev.date)+' 근무표에서 ‘다음날 밥교대’로 정해진 사람입니다 — 그 날짜 표의 17:30 칸을 누르면 선정 이유가 나옵니다.');
-    return mealRank('밥교대', ctx, ds, s.mealId);
+    return mealRank('밥교대', {...ctx, _xm:s.xmessId}, ds, s.mealId);
   }
 
   // ----- 17:00 추가 순찰 : assignPatrol 순서 -----
@@ -1929,6 +2027,7 @@ function explainAssignment(s, key){
   // 주간 후보 탈락 사유 (dayCandidates와 같은 조건)
   function dayBlock(w){
     if(inInactive(w,ds)) return '근무 기간 아님(전입 전·전역 등)';
+    if(w.id===s.xmessId) return '추가배식조(그날 전부 열외)';
     if(ctx.bothEx.includes(w.id)) return exWhy(w.id,'종일 열외');
     if(ctx.dayEx.includes(w.id)) return exWhy(w.id,'주간 열외');
     const r=[[ctx.dutyId,'오늘 당직'],[ctx.situationId,'오늘 상황병'],[ctx.prevDutyId,'전날 당직'],[ctx.prevSituationId,'전날 상황병'],[ctx.mealId,'오늘 밥교대']].find(([id])=>id===w.id);
@@ -1960,6 +2059,8 @@ function explainAssignment(s, key){
     if(!isNight){ if(!dayCandidates(ds,ctx).some(x=>x.id===w.id)) why=dayBlock(w); }
     else{
       if(inInactive(w,ds)) why='근무 기간 아님(전입 전·전역 등)';
+      else if(w.id===s.xmessId) why='추가배식조(그날 전부 열외)';
+      else if(w.id===s.nextXmessId) why='다음날 추가배식조(오늘 야간 열외)';
       else if(ctx.bothEx.includes(w.id)) why=exWhy(w.id,'종일 열외');
       else if(ctx.nightEx.includes(w.id)) why='야간 열외';
       else { const r=nightRole.find(([id])=>id===w.id); if(r) why=r[1]; }
@@ -2099,6 +2200,7 @@ function autoInputFor(ds){
     next2SituationId: pbPick(pbNext2,'situation')||null,
     nextMealId: '',                                   // 자동 배정
     mealId: (prev?prev.nextMealId:null) || null,
+    xmessId: (prev?prev.nextXmessId:null) || null, nextXmessId: '',   // 추가배식조: 오늘=전날 표에서, 다음날=자동
     prevDutyId: prev?prev.dutyId:null, prevSituationId: prev?prev.situationId:null,
     // 휴가 마지막날(복귀일)은 주간만 열외 — [근무표 생성] 탭과 동일 규칙
     dayEx: pb.filter(p=> p.kind==='exday' || (p.kind==='vacation' && ds===p.end)).map(p=>p.wid),
@@ -2123,7 +2225,7 @@ function applyFuelTruckEx(ds, out, pb){
 /* 근무자가 등장하는 생성된 표 날짜 수 — 삭제 전 '보관 권장' 안내용 */
 function scheduleRefCount(wid){
   return Object.values(DB.schedules).filter(s=>
-    [s.dutyId,s.situationId,s.mealId,s.patrolExtra,s.nextDutyId,s.nextSituationId,s.nextMealId,s.prevDutyId,s.prevSituationId].includes(wid)
+    [s.dutyId,s.situationId,s.mealId,s.patrolExtra,s.nextDutyId,s.nextSituationId,s.nextMealId,s.prevDutyId,s.prevSituationId,s.xmessId,s.nextXmessId].includes(wid)
     || Object.values(s.assign||{}).includes(wid)
     || Object.values(s.night||{}).includes(wid)
     || Object.values(s.fixed||{}).includes(wid)
@@ -2154,7 +2256,7 @@ if(typeof module!=='undefined' && module.exports){
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,
-    SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment,
+    SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment, isXmessDay, xmessRank, xmessCandidates, xmessEx,
     OFFICER_ROLES, normOfficers,
     realDateOf, personalKeys, keyTimes, personalItems, holderAt, cctvNeighbor, personalSnap, diffPersonal, ackPersonal, rollPersonal
   };

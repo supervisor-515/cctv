@@ -1550,3 +1550,42 @@ test('추가배식조 설명: 1순위가 실제 배정자', () => {
     assert.ok(first && first.includes('← 배정'), s.date + ' ' + first);
   });
 });
+
+/* ---------- 전역 탭: 남은 근무 예상 · 근무 잔디 ---------- */
+test('remainingForecast: 확정(생성된 표) + 예상(표 없는 근무일 × 최근 비율), 휴가 날 제외', () => {
+  const ws = roster(14, 0, 'rf');
+  const me = ws[4]; me.enlistDate = '2025-01-05';   // 전역 2026-07-04
+  E.setDB(freshDB({ workers: ws.map((w, i) => E.normWorker(w, i)) }));
+  genRun(ws, '2026-05-01', 40);                       // 5/1 ~ 6/9 생성
+  const today = '2026-06-01';
+  E.getDB().prebook.push(E.normPrebook({ kind: 'vacation', wid: me.id, start: '2026-06-20', end: '2026-06-24' }));
+  const f = E.remainingForecast(me.id, today);
+  assert.equal(f.discharge, '2026-07-04');
+  // 확정: 6/1~6/9 표에서 실제 시간 합
+  let fixed = 0; for (let d = today; d <= '2026-06-09'; d = E.addDays(d, 1)) fixed += E.schedHoursByWorker(E.getDB().schedules[d])[me.id] || 0;
+  assert.ok(Math.abs(f.fixedH - fixed) < 1e-9);
+  // 예상 근무일: 6/10 ~ 7/3 (24일) - 휴가 5일 = 19
+  assert.equal(f.estDays, 19);
+  assert.equal(f.basis, 'mine');
+  assert.ok(f.estH > 0 && Math.abs(f.estH - 19 * f.rate.h) < 1e-9);
+  // 기록 부족(신규 입대) → 부대 평균
+  const nw = E.normWorker({ id: 'rf-new', name: '신규', enlistDate: '2026-05-30' }, 99);
+  E.getDB().workers.push(nw); E.invalidateStats();
+  assert.equal(E.remainingForecast(nw.id, today).basis, 'unit');
+  assert.equal(E.remainingForecast(me.id, '2026-07-04').done, true);
+});
+test('workHeatmap: 근무·휴가·기록 없음·앞으로 상태와 요약', () => {
+  const ws = roster(14, 0, 'hm');
+  const me = ws[2];
+  E.setDB(freshDB({ workers: ws.map((w, i) => E.normWorker(w, i)) }));
+  genRun(ws, '2026-05-05', 10);   // 5/5 ~ 5/14
+  E.getDB().prebook.push(E.normPrebook({ kind: 'vacation', wid: me.id, start: '2026-05-02', end: '2026-05-03' }));
+  const { days, sum } = E.workHeatmap(me.id, '2026-05-01', '2026-05-20', '2026-05-12');
+  assert.equal(days['2026-05-01'].state, 'none');
+  assert.equal(days['2026-05-02'].state, 'off');
+  assert.equal(days['2026-05-20'].state, 'future');
+  assert.ok(['work', 'zero'].includes(days['2026-05-06'].state));
+  assert.ok(days['2026-05-13'].gen);   // 오늘 이후지만 표가 있음
+  let h = 0; for (let d = '2026-05-05'; d < '2026-05-12'; d = E.addDays(d, 1)) h += days[d].h;
+  assert.ok(Math.abs(sum.h - h) < 1e-9 && sum.recDays === 7);
+});

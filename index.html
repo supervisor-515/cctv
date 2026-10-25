@@ -405,6 +405,49 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .svc-out>div{background:var(--panel2);border-radius:9px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .svc-out span{font-size:11px;color:var(--ink-faint)}
 .svc-out b{font-size:14px}
+.svc-fc .big{font-size:15px;color:var(--ink-dim)} .svc-fc .big b{font-family:var(--mono);font-size:30px;font-weight:800;color:var(--ink);margin-right:2px}
+.fbar{height:8px;border-radius:5px;background:color-mix(in srgb,var(--acc) 25%,var(--panel2));overflow:hidden;margin:8px 0 4px}
+.fbar i{display:block;height:100%;background:var(--acc)}
+.fleg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-faint);margin-bottom:8px}
+.fleg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:color-mix(in srgb,var(--acc) 25%,var(--panel2))}
+.fleg i.fx{background:var(--acc)}
+.hleg{display:flex;gap:8px;flex-wrap:wrap;font-size:10.5px;color:var(--ink-faint);margin-bottom:8px}
+.hleg span{display:inline-flex;align-items:center;gap:3px}
+.hleg i{display:inline-block;width:9px;height:9px;border-radius:2px}
+.heat{display:flex;flex-direction:column;gap:2px}
+.hrow{display:flex;align-items:center;gap:6px}
+.hmo{flex:none;width:34px;font-family:var(--mono);font-size:10px;color:var(--ink-faint)}
+.hcells{display:grid;grid-template-columns:repeat(31,8px);grid-auto-rows:8px;gap:1px;flex:none}
+.hc{padding:0;margin:0;border:0;width:8px;height:8px;min-width:0;min-height:0;font-size:0;line-height:0;border-radius:2px;cursor:pointer;position:relative;background:var(--panel2)}
+.hc.pad{visibility:hidden}
+.hc.c0,.hleg .c0{background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line)}
+.hc.c1,.hleg .c1{background:color-mix(in srgb,var(--acc) 35%,var(--panel2))}
+.hc.c2,.hleg .c2{background:color-mix(in srgb,var(--acc) 62%,var(--panel2))}
+.hc.c3,.hleg .c3{background:var(--acc)}
+.hc.off,.hleg .off{background:repeating-linear-gradient(135deg,var(--line2) 0 2px,transparent 2px 4px)}
+.hc.none,.hleg .none{background:transparent;box-shadow:inset 0 0 0 1px var(--line);opacity:.6}
+.hc.future{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.hc.gen{opacity:.55}
+.hc.n::after,.hleg .n::after{content:'';position:absolute;left:50%;top:50%;width:2px;height:2px;margin:-1px 0 0 -1px;border-radius:50%;background:var(--ink)}
+.hleg i.n{position:relative}
+.hc.today{outline:1.5px solid var(--ink);outline-offset:0;z-index:1}
+.hc.dis{background:var(--warn)!important;opacity:1}
+.hc.sel{outline:2px solid var(--duty);z-index:2}
+.hdet{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;margin-top:8px;min-height:30px}
+.unit-tiles{margin-bottom:10px}
+@media(min-width:700px){ .unit-tiles{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.svc-seg{margin-bottom:8px}
+.tl-dis{position:relative;padding-left:14px}
+.tl-dis::before{content:'';position:absolute;left:4px;top:4px;bottom:4px;width:2px;background:var(--line)}
+.tl-dis .tm{font-size:11.5px;font-weight:700;color:var(--ink-dim);margin:10px 0 4px}
+.tl-dis .ti{position:relative;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;font-size:13px}
+.tl-dis .ti::before{content:'';position:absolute;left:-14px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--line2);box-shadow:0 0 0 2px var(--panel)}
+.tl-dis .ti .dt{flex:none;width:70px;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+.tl-dis .ti .nm{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-dis .ti .dd{flex:none;font-family:var(--mono);font-size:11.5px;color:var(--ink-dim)}
+.tl-dis .ti.me{background:color-mix(in srgb,var(--acc) 12%,transparent)} .tl-dis .ti.me::before{background:var(--acc)} .tl-dis .ti.me .dd{color:var(--acc);font-weight:700}
+.tl-dis .ti.td::before{background:var(--warn)}
+.tl-done summary{font-size:12px;color:var(--ink-faint);cursor:pointer;margin:2px 0}
 .svc-list{list-style:none;margin:6px 0 0;padding:0}
 .svc-list li{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--line);border-radius:8px}
 .svc-list li:last-child{border-bottom:0}
@@ -710,7 +753,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v7.9.3</span>
+    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v8.0.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1195,7 +1238,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=7.9.3"></script>
+<script src="engine.js?v=8.0.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -4051,6 +4094,7 @@ function tickService(){
   const now=Date.now(), pc=e=>{ const p=serviceProgress(e, now); return p ? p.pct : null; };
   $$('.view.on [data-enlist]').forEach(v=>{ const x=pc(v.dataset.enlist); if(x!=null) v.textContent=x.toFixed(7)+'%'; });
   $$('.view.on [data-enlist-w]').forEach(v=>{ const x=pc(v.dataset.enlistW); if(x!=null) v.style.width=x+'%'; });
+  $$('.view.on [data-unitavg]').forEach(v=>{ const xs=v.dataset.unitavg.split(',').map(pc).filter(x=>x!=null); if(xs.length) v.textContent=(xs.reduce((a,b)=>a+b,0)/xs.length).toFixed(7)+'%'; });
 }
 setInterval(tickService, 100);
 
@@ -4058,7 +4102,7 @@ setInterval(tickService, 100);
 function renderSvc(){
   const box=$('#svcBody'); if(!box) return; box.innerHTML='';
   const meId=window.MY_WORKER || meGet(), me=meId && DB.workers.find(w=>w.id===meId);
-  if(me) box.appendChild(renderService(me));
+  if(me){ box.appendChild(renderService(me)); box.appendChild(renderForecastCard(me)); box.appendChild(renderHeatCard(me)); }
   // 계산기: 아무 입대일이나 넣어 보기
   const calc=el('section','mcard svc-calc'); calc.appendChild(el('h3',null,'전역일 계산'));
   const row=el('div','svc-in'); row.appendChild(el('label',null,'입대일'));
@@ -4073,15 +4117,117 @@ function renderSvc(){
   inp.addEventListener('change',show); inp.addEventListener('input',show); show();
   calc.appendChild(el('p','smallnote','전역일 = 입대일 + 18개월 - 1일 (예: 2026-01-05 입대 → 2027-07-04 전역)'));
   box.appendChild(calc);
-  // 순위
-  const now=Date.now();
-  const rows=activeWorkers().map(w=>({w, p:serviceProgress(w.enlistDate, now)})).filter(x=>x.p).sort((a,b)=>b.p.pct-a.p.pct || a.w.name.localeCompare(b.w.name));
+  box.appendChild(renderUnitCard(meId));
+}
+/* ----- 전역까지 남은 근무 (확정 + 예상) ----- */
+function renderForecastCard(w){
+  const sec=el('section','mcard svc-fc'); sec.setAttribute('aria-label','전역까지 남은 근무');
+  sec.appendChild(el('h3',null,'전역까지 남은 근무'));
+  const f=remainingForecast(w.id, todayStr());
+  if(!f){ sec.appendChild(el('div','muted','입대일이 등록되면 전역까지 남은 근무를 계산합니다.')); return sec; }
+  if(f.done){ sec.appendChild(el('div','muted','전역했습니다. 수고 많으셨습니다 🎖')); return sec; }
+  const tot=f.fixedH+f.estH, r1=x=>Math.round(x);
+  sec.appendChild(el('div','big','약 <b>'+r1(tot)+'</b>시간'));
+  const bar=el('div','fbar'); const fi=el('i','fx'); fi.style.width=(tot>0?f.fixedH/tot*100:0)+'%'; bar.appendChild(fi); sec.appendChild(bar);
+  sec.appendChild(el('div','fleg','<span><i class="fx"></i>확정 '+(Math.round(f.fixedH*10)/10)+'h'+(f.genTo?' (~'+esc(calMd(f.genTo))+' 근무표)':'')+'</span><span><i></i>예상 '+r1(f.estH)+'h</span>'));
+  const tl=el('div','svc-out');
+  [['야간 번초','약 '+r1(f.nights)+'번'],['06:30','약 '+r1(f.rot)+'번'],['밥교대','약 '+r1(f.meals)+'번'],['남은 근무일',f.workDays+'일']].forEach(([k,v])=>tl.appendChild(el('div',null,'<span>'+k+'</span><b>'+v+'</b>')));
+  sec.appendChild(tl);
+  if(f.lastNight || f.lastWork) sec.appendChild(el('p','smallnote','나온 근무표 기준 '+(f.lastNight?'마지막 야간 '+esc(mdw(f.lastNight)):'')+(f.lastNight&&f.lastWork?' · ':'')+(f.lastWork?'마지막 근무 '+esc(mdw(f.lastWork)):'')));
+  const det=el('details','adv');
+  det.appendChild(el('summary',null,'계산 기준'));
+  det.appendChild(el('p','smallnote','오늘부터 전역 전날까지. 확정 = 이미 나온 근무표의 실제 배정(07:30·17:30·순찰 가중 포함, 공정성과 같은 기준). '
+    +'예상 = 근무표가 아직 없는 날 중 휴가·열외·유조차·배식조 일정이 없는 날 '+f.estDays+'일 × '
+    +(f.basis==='mine' ? '내 최근 8주 비율' : '부대 평균 비율(내 최근 8주 기록이 7일 미만)')
+    +' — 하루 '+f.rate.h.toFixed(2)+'h, 야간 '+(f.rate.n*100).toFixed(0)+'%, 06:30 '+(f.rate.rot*100).toFixed(0)+'%, 밥교대 '+(f.rate.meal*100).toFixed(0)+'%. 앞으로 일정이 등록되면 바뀝니다.'));
+  sec.appendChild(det);
+  return sec;
+}
+/* ----- 내 근무 잔디 — 입대월~전역월, 한 달 = 한 줄(1~31일) ----- */
+function renderHeatCard(w){
+  const sec=el('section','mcard svc-heat'); sec.setAttribute('aria-label','내 근무 잔디');
+  sec.appendChild(el('h3',null,'내 근무 잔디'));
+  const today=todayStr(), ks=Object.keys(DB.schedules).sort();
+  const from=w.enlistDate || ks[0], to=(w.enlistDate && dischargeDate(w.enlistDate)) || (ks.length ? (ks[ks.length-1]>today?ks[ks.length-1]:today) : today);
+  if(!from){ sec.appendChild(el('div','muted','아직 근무표가 없습니다.')); return sec; }
+  const dis=w.enlistDate ? dischargeDate(w.enlistDate) : null;
+  const {days, sum}=workHeatmap(w.id, from, to, today);
+  sec.appendChild(el('div','hleg','<span><i class="c0"></i>0</span><span><i class="c1"></i>1h</span><span><i class="c2"></i>2h</span><span><i class="c3"></i>3h+</span><span><i class="c1 n"></i>야간</span><span><i class="off"></i>휴가·열외</span><span><i class="none"></i>기록 없음</span>'));
+  const grid=el('div','heat');
+  const detail=el('div','hdet muted','칸을 누르면 그날 근무가 나옵니다.');
+  let ym=from.slice(0,7);
+  while(ym<=to.slice(0,7)){
+    const row=el('div','hrow'); row.appendChild(el('span','hmo', ym.slice(2,4)+'.'+ym.slice(5)));
+    const cells=el('div','hcells');
+    const n=new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate();
+    for(let d=1; d<=31; d++){
+      const ds=ym+'-'+String(d).padStart(2,'0');
+      const e = d<=n ? days[ds] : null;
+      const c=el('button','hc'); c.type='button';
+      if(!e){ c.classList.add('pad'); c.disabled=true; cells.appendChild(c); continue; }
+      const lv = e.state==='work' ? (e.h>=3?'c3':e.h>=2?'c2':'c1') : e.state==='zero' ? 'c0' : e.state;
+      c.classList.add(lv); if(e.nights) c.classList.add('n'); if(e.gen) c.classList.add('gen');
+      if(ds===today) c.classList.add('today'); if(ds===dis) c.classList.add('dis');
+      c.setAttribute('aria-label', ds);
+      c.addEventListener('click',()=>{
+        $$('.heat .hc.sel').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
+        const s2=DB.schedules[ds]; detail.innerHTML=''; detail.classList.remove('muted');
+        let t=mdw(ds)+' · ';
+        if(ds===dis) t+='🎖 전역일';
+        else if(e.state==='off') t+='휴가·열외 등으로 빠진 날';
+        else if(e.state==='none') t+='근무표 기록 없음';
+        else if(e.state==='future') t+='아직 근무표 없음';
+        else { const mk=workerDayMarks(s2, w.id); t+=(Math.round(e.h*10)/10)+'h'+(mk.roles.length?' · '+mk.roles.join('·'):'')+(mk.slots.length?' · '+mk.slots.join(', '):' · 근무 없음'); }
+        detail.appendChild(el('span',null,esc(t)));
+        if(s2){ const go=el('button','btn ghost sm','근무표 보기'); go.type='button'; go.addEventListener('click',()=>{ $('#vDate').value=ds; vMode='view'; renderView(); showView('view'); }); detail.appendChild(go); }
+      });
+      cells.appendChild(c);
+    }
+    row.appendChild(cells); grid.appendChild(row);
+    const [y,m]=ym.split('-').map(Number); ym = m===12 ? (y+1)+'-01' : y+'-'+String(m+1).padStart(2,'0');
+  }
+  sec.appendChild(grid); sec.appendChild(detail);
+  sec.appendChild(el('p','smallnote','지금까지 근무표 '+sum.recDays+'일 · 근무 '+Math.round(sum.h)+'h · 야간 '+sum.nights+'번 · 06:30 '+sum.rot+'번 · 밥교대 '+sum.meals+'번'
+    +(sum.topSlot?' · 가장 많이 선 주간 칸 '+esc(sum.topSlot.slot)+'('+sum.topSlot.n+'회)':'')+' — 시간은 근무표 날짜 기준(새벽 번초는 전날 표).'));
+  return sec;
+}
+/* ----- 우리 부대 — 통계 타일 + 전역 타임라인 / 복무율 순위 ----- */
+const SVC_VIEW_KEY='cctv_svc_view';
+function renderUnitCard(meId){
+  const now=Date.now(), today=todayStr();
+  const rows=activeWorkers().map(w=>({w, p:serviceProgress(w.enlistDate, now)})).filter(x=>x.p);
   const none=activeWorkers().filter(w=>!w.enlistDate);
-  const rk=el('section','mcard svc-rank');
-  rk.appendChild(el('h3',null,'복무율 순위 <span class="cnt">'+rows.length+'명</span>'));
-  if(!rows.length) rk.appendChild(el('div','muted','입대일이 등록된 구성원이 없습니다. 관리자가 [근무자 관리]에서 입대일을 넣으면 여기에 나옵니다.'));
+  const sec=el('section','mcard svc-rank');
+  sec.appendChild(el('h3',null,'우리 부대 <span class="cnt">입대일 등록 '+rows.length+'명</span>'));
+  if(!rows.length){
+    sec.appendChild(el('div','muted','입대일이 등록된 구성원이 없습니다. 관리자가 [근무자 관리]에서 입대일을 넣으면 여기에 나옵니다.'));
+    if(none.length && !document.body.classList.contains('ro')) sec.appendChild(el('p','smallnote','입대일 미등록 '+none.length+'명: '+none.map(w=>esc(w.name)).join(', ')));
+    return sec;
+  }
+  // 통계 타일
+  const ahead=rows.filter(x=>x.p.left>=0).sort((a,b)=>a.p.discharge<b.p.discharge?-1:1);
+  const next=ahead[0], ym=today.slice(0,7);
+  const avg=rows.reduce((a,x)=>a+x.p.pct,0)/rows.length;
+  const tiles=el('div','svc-out unit-tiles');
+  tiles.appendChild(el('div',null,'<span>부대 평균 복무율</span><b class="mono" data-unitavg="'+esc(rows.map(x=>x.w.enlistDate).join(','))+'">'+avg.toFixed(7)+'%</b>'));
+  tiles.appendChild(el('div',null,'<span>남은 복무 합계</span><b>'+ahead.reduce((a,x)=>a+x.p.left,0).toLocaleString()+'일</b>'));
+  tiles.appendChild(el('div',null,'<span>이번 달 전역</span><b>'+rows.filter(x=>x.p.discharge.slice(0,7)===ym).length+'명</b>'));
+  tiles.appendChild(el('div',null,'<span>다음 전역</span><b>'+(next ? (next.p.left===0?'오늘':'D-'+next.p.left)+' · '+esc(next.w.name.replace(/^(이병|일병|상병|병장)\s+/,'')) : '—')+'</b>'));
+  sec.appendChild(tiles);
+  // 보기 전환
+  let mode='tl'; try{ mode=localStorage.getItem(SVC_VIEW_KEY)||'tl'; }catch(e){}
+  const seg=el('div','seg svc-seg'), body=el('div');
+  const draw=()=>{ body.innerHTML=''; body.appendChild(mode==='rank' ? svcRankList(rows, meId) : svcTimeline(rows, meId, today));
+    seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.m===mode)); };
+  [['tl','전역 타임라인'],['rank','복무율 순위']].forEach(([m,l])=>{ const b=el('button',null,l); b.type='button'; b.dataset.m=m;
+    b.addEventListener('click',()=>{ mode=m; try{ localStorage.setItem(SVC_VIEW_KEY,m); }catch(e){} draw(); }); seg.appendChild(b); });
+  sec.appendChild(seg); sec.appendChild(body); draw();
+  if(none.length) sec.appendChild(el('p','smallnote','입대일 미등록 '+none.length+'명'+(document.body.classList.contains('ro')?'':': '+none.map(w=>esc(w.name)).join(', '))));
+  return sec;
+}
+function svcRankList(rows, meId){
   const list=el('ol','svc-list');
-  rows.forEach((x,i)=>{
+  rows.slice().sort((a,b)=>b.p.pct-a.p.pct || a.w.name.localeCompare(b.w.name)).forEach((x,i)=>{
     const li=el('li', x.w.id===meId?'me':'');
     li.appendChild(el('span','rn', String(i+1)));
     const mid=el('div','md');
@@ -4091,9 +4237,34 @@ function renderSvc(){
     const v=el('span','pv'); v.dataset.enlist=x.w.enlistDate; v.textContent=x.p.pct.toFixed(7)+'%'; li.appendChild(v);
     list.appendChild(li);
   });
-  rk.appendChild(list);
-  if(none.length) rk.appendChild(el('p','smallnote','입대일 미등록 '+none.length+'명'+(document.body.classList.contains('ro')?'':': '+none.map(w=>esc(w.name)).join(', '))));
-  box.appendChild(rk);
+  return list;
+}
+function svcTimeline(rows, meId, today){
+  const box=el('div','tl-dis');
+  const sorted=rows.slice().sort((a,b)=> a.p.discharge<b.p.discharge?-1 : a.p.discharge>b.p.discharge?1 : a.w.name.localeCompare(b.w.name));
+  const done=sorted.filter(x=>x.p.left<0), ahead=sorted.filter(x=>x.p.left>=0);
+  const item=x=>{
+    const me=x.w.id===meId, d=x.p.left;
+    const r=el('div','ti'+(me?' me':'')+(d===0?' td':''));
+    r.appendChild(el('span','dt', esc(mdw(x.p.discharge))));
+    r.appendChild(el('span','nm', esc(x.w.name)+(me?' <span class="tag kind">나</span>':'')));
+    r.appendChild(el('span','dd', d>0?'D-'+d : d===0?'🎉 오늘 전역' : '전역'));
+    return r;
+  };
+  if(done.length){ const dt=el('details','tl-done'); dt.appendChild(el('summary',null,'전역 완료 '+done.length+'명')); done.forEach(x=>dt.appendChild(item(x))); box.appendChild(dt); }
+  let cur='';
+  ahead.forEach(x=>{
+    const ym=x.p.discharge.slice(0,7);
+    if(ym!==cur){ cur=ym; box.appendChild(el('div','tm', ym.slice(0,4)+'년 '+Number(ym.slice(5))+'월')); }
+    box.appendChild(item(x));
+  });
+  const mine=rows.find(x=>x.w.id===meId);
+  if(mine && mine.p.left>=0){
+    const before=ahead.filter(x=>x.w.id!==meId && x.p.discharge<mine.p.discharge).length;
+    const after=ahead.filter(x=>x.w.id!==meId && x.p.discharge>mine.p.discharge).length;
+    box.appendChild(el('p','smallnote','나보다 먼저 전역 '+before+'명 · 내가 전역할 때 남는 사람 '+after+'명'));
+  }
+  return box;
 }
 const SVC={calc:null};
 /* 남은 시간 — 화면을 켜 둔 동안 30초마다 글자만 갱신(통계는 다시 계산하지 않음), 다음 근무 시각이 지나거나 날짜가 바뀌면 다시 그림 */
@@ -4156,11 +4327,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=7.9.3"></script>
+<script src="firebase-config.js?v=8.0.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=7.9.3"></script>
+<script src="sync.js?v=8.0.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

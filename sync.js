@@ -14,7 +14,7 @@
   const CFG_KEY='cctv_sync_cfg_v1';
   /* 앱 버전 — 서버 meta에 함께 기록. 서버가 더 새 버전 앱으로 저장돼 있으면 이 기기는 올리지 않는다
      (구버전이 모르는 필드(예: 입대일)를 빼고 덮어쓰는 사고 방지). 버전을 올릴 때 index.html·sw.js와 같이 바꾼다. */
-  const APP_VER='8.0.0';
+  const APP_VER='8.0.1';
   const verCmp=(a,b)=>{ const x=String(a).split('.').map(Number), y=String(b).split('.').map(Number);
     for(let i=0;i<3;i++){ const d=(x[i]||0)-(y[i]||0); if(d) return d; } return 0; };
   const MTIME_KEY='cctv_local_mtime_v1';   // 로컬 마지막 수정시각 — index.html save()가 기록

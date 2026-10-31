@@ -1579,21 +1579,21 @@ function validateSchedule(s){
 
   // 4-1) 시간대 열외가 밥교대·17:00 순찰 근무시간과 겹치는데 배정된 경우
   if(s.mealId && mealBlockedBySlotEx(s, s.mealId))
-    push('밥교대('+nameOf(s.mealId)+')가 밥교대 근무시간(07:00~08:30·13:00~15:00)에 시간대 열외입니다.');
+    push('밥교대('+nameOf(s.mealId)+') 밥교대 시간(07:00~08:30·13:00~15:00) 시간대 열외인데 배정됨');
   if(s.patrolExtra && sEx[s.patrolExtra] && sEx[s.patrolExtra].includes(PATROL_SLOT))
-    push('순찰('+nameOf(s.patrolExtra)+')이 '+PATROL_SLOT+' 시간대 열외인데 배정되었습니다.');
+    push('순찰('+nameOf(s.patrolExtra)+') '+PATROL_SLOT+' 시간대 열외인데 배정됨');
 
   // 4-2) 같은 날 야간 번초 2개 이상 (이중 야간 금지 — 하드 규칙)
   const nightCnt={};
   NIGHT_BUNCHO.forEach(b=>{ const id=night[b.id]; if(id) nightCnt[id]=(nightCnt[id]||0)+1; });
-  Object.keys(nightCnt).forEach(id=>{ if(nightCnt[id]>=2) push(nameOf(id)+' 같은 날 야간 번초 '+nightCnt[id]+'개 배정(이중 야간 금지)'); });
+  Object.keys(nightCnt).forEach(id=>{ if(nightCnt[id]>=2) push(nameOf(id)+' 같은 날 야간 번초 '+nightCnt[id]+'개 배정 (이중 야간 금지)'); });
 
   // 5) 당일 밥교대는 기본적으로 야간 제외 — 야간 후보 부족 폴백으로만 투입되므로 별도 경고 없음.
   //    단, 야간열외(다음날 당직/상황병 등) 대상인데 야간에 들어가 있으면 경고.
   if(s.mealId){
     const mealNightEx = new Set([s.prevDutyId,s.dutyId,s.nextDutyId,s.prevSituationId,s.situationId,s.nextSituationId,...(s.nightEx||[]),...(s.bothEx||[])].filter(Boolean)).has(s.mealId);
     const inNight = Object.values(night).includes(s.mealId);
-    if(mealNightEx && inNight) push('밥교대('+nameOf(s.mealId)+')가 야간 열외 대상인데 야간 번초에 배정되었습니다.');
+    if(mealNightEx && inNight) push('밥교대('+nameOf(s.mealId)+') 야간 열외인데 야간 번초 배정됨');
   }
 
   // 5-1) 추가배식조(그날 CCTV 전부 열외)인데 고정칸·밥교대·순찰·역할에 걸린 경우
@@ -1910,35 +1910,35 @@ function explainAssignment(s, key){
   };
 
   // ----- 규칙으로 정해지는 자리 -----
-  if(key==='duty') return rule('당직','당직은 자동으로 뽑지 않습니다. [근무표 생성]에서 지정한 값(당직 예약 또는 전날 표의 ‘다음날 당직’)입니다.');
-  if(key==='sit') return rule('상황병','상황병은 자동으로 뽑지 않습니다. [근무표 생성]에서 지정한 값(상황병 예약 또는 전날 표의 ‘다음날 상황’)입니다.');
-  const EV={'18:30':'다음날 상황병은 18:30에 고정으로 섭니다.','19:30':'다음날 당직은 19:30에 고정으로 섭니다.',
-            '20:30':'전날 상황병은 20:30에 고정으로 섭니다.','21:30':'전날 당직은 21:30에 고정으로 섭니다.'};
-  if(key[0]==='E' && EV[key.slice(2)]) return rule(key.slice(2), EV[key.slice(2)], '역할에 따라 정해지는 칸이라 순위 경쟁이 없습니다.');
+  if(key==='duty') return rule('당직','당직은 자동 편성되지 않습니다. [근무표 생성]에서 지정한 당직 예약 또는 전날 표의 ‘다음날 당직’입니다.');
+  if(key==='sit') return rule('상황병','상황병은 자동 편성되지 않습니다. [근무표 생성]에서 지정한 상황병 예약 또는 전날 표의 ‘다음날 상황’입니다.');
+  const EV={'18:30':'다음날 상황병 고정 근무(18:30)입니다.','19:30':'다음날 당직 고정 근무(19:30)입니다.',
+            '20:30':'전날 상황병 고정 근무(20:30)입니다.','21:30':'전날 당직 고정 근무(21:30)입니다.'};
+  if(key[0]==='E' && EV[key.slice(2)]) return rule(key.slice(2), EV[key.slice(2)], '역할 지정에 따른 고정 배정으로 순위 경쟁이 없습니다.');
   if((key==='D:13:30'||key==='D:14:30') && s.fixed && s.fixed[key.slice(2)] && who===s.situationId)
-    return rule(key.slice(2), '오늘 상황병의 고정 칸입니다(평일 14:30, 금요일은 13:30).');
+    return rule(key.slice(2), '당일 상황병 고정 근무입니다 (평일 14:30, 금요일 13:30).');
   const nav=activeNavigator();
   if(who && nav && who===nav.id){
-    if(key[0]==='D' && navFixedDaySlots(ds, ctx.workHoliday).includes(key.slice(2))) return rule(key.slice(2), '운항병의 주중 고정 칸입니다([기본 설정]의 운항병 고정 슬롯).');
-    if(key[0]==='N') return rule(key.slice(2)+'번초', '운항병은 금·토 중 하루 야간 1회를 맡고, 그동안 가장 적게 선 번초로 들어갑니다.');
+    if(key[0]==='D' && navFixedDaySlots(ds, ctx.workHoliday).includes(key.slice(2))) return rule(key.slice(2), '운항병 주중 고정 근무입니다 ([기본 설정] 운항병 고정 슬롯).');
+    if(key[0]==='N') return rule(key.slice(2)+'번초', '운항병은 금·토 중 주 1회 야간을 맡으며, 누적 횟수가 가장 적은 번초에 우선 배정됩니다.');
   }
   const fkx=fuelAllowedKey(s);
   if(who && fkx && fkx.wid===who && fkx.key===key){
-    if(key[0]==='N') return rule(key.slice(2)+'번초', '유조차 운전병의 금요일 야간 1회입니다. 그동안 가장 적게 선 번초로 들어갑니다.');
-    if(key[0]==='D') return rule(key.slice(2), '유조차 운전병의 토·일·휴일 오후 1칸입니다. 12:30~16:30 중 그 사람이 가장 적게 선 시간대로 들어갑니다.');
+    if(key[0]==='N') return rule(key.slice(2)+'번초', '유조차 운전병 금요일 야간 1회 근무입니다. 누적 횟수가 가장 적은 번초에 우선 배정됩니다.');
+    if(key[0]==='D') return rule(key.slice(2), '유조차 운전병 토·일·휴일 오후 1개 슬롯 근무입니다. 12:30~16:30 중 누적 횟수가 가장 적은 시간대에 우선 배정됩니다.');
   }
 
   // ----- 추가배식조 -----
   if(key==='xmess'){
-    const tail='그날은 CCTV 근무(주간·순찰·저녁·야간·밥교대)에서 모두 빠지고 근무일수(분모)에서도 제외됩니다.';
-    return rule('추가배식조', prev && prev.nextXmessId===who ? md(prev.date)+' 근무표에서 ‘다음날 추가배식조’로 정해진 사람입니다 — 그 표의 카드를 누르면 선정 순서가 나옵니다.' : '직접 지정한 추가배식조입니다(과거 기록 입력 등).', tail);
+    const tail='당일 CCTV 전 근무(주간, 순찰, 저녁, 야간, 밥교대) 열외 및 근무일수(분모)에서 제외됩니다.';
+    return rule('추가배식조', prev && prev.nextXmessId===who ? md(prev.date)+' 근무표에서 ‘다음날 추가배식조’로 지정된 인원입니다. 해당 일자 카드에서 선정 순위를 확인할 수 있습니다.' : '직접 지정된 추가배식조입니다 (과거 기록 직접 입력 등).', tail);
   }
   if(key==='nextXmess'){
-    if(!s.nextXmessAuto) return rule('다음날 추가배식조','다음날 추가배식조를 직접 지정했습니다. 이 사람은 오늘 야간에서 빠지고, 다음날 CCTV 근무 전부 열외입니다.');
+    if(!s.nextXmessAuto) return rule('다음날 추가배식조','다음날 추가배식조가 수동 지정되었습니다. 당일 야간 제외 및 익일 CCTV 전 근무가 열외됩니다.');
     const nd=addDays(ds,1), rk=xmessRank(nd, {...ctx, xmessId:s.xmessId||null}, ctx.stats);   // 생성 때와 같이 오늘 추가배식조를 반영
-    return rule('다음날 추가배식조','추가배식조 가능(토글)인 사람 중 06:30처럼 순번으로 돕니다: ① 추가배식조 배정률(선 횟수 ÷ 평일 후보였던 날)이 낮은 사람 → ② 마지막으로 선 날이 오래된(한 적 없는) 사람.',
-      '다음날 당직·상황병, 오늘·모레 당직·상황병(다음날 저녁 고정칸), 그날 휴가·열외 일정이 있는 사람은 후보에서 빠집니다.',
-      ...rk.slice(0,8).map((e,i)=> (i+1)+'. '+nm(e.id)+(e.id===who?' ← 배정':'')+(e.id===s.xmessId?' (오늘 추가배식조 — 이틀 연속 피함)':'')+' — '+e.num+'/'+e.den+'일 ('+pct(e.rate)+') · 마지막 '+md(e.last)));
+    return rule('다음날 추가배식조','추가배식조 대상자 중 06:30과 동일하게 순번제로 편성됩니다: ① 추가배식조 배정률(근무 횟수 ÷ 평일 대상 일수) 낮은 순 → ② 최근 근무일이 오래된 순.',
+      '다음날 당직·상황병, 당일 및 모레 당직·상황병(익일 저녁 고정), 당일 휴가·열외자는 후보에서 제외됩니다.',
+      ...rk.slice(0,8).map((e,i)=> (i+1)+'. '+nm(e.id)+(e.id===who?' ← 배정':'')+(e.id===s.xmessId?' (오늘 추가배식조 — 이틀 연속 제외)':'')+' — '+e.num+'/'+e.den+'일 ('+pct(e.rate)+') · 최근 '+md(e.last)));
   }
 
   // ----- 밥교대(당일·다음날) : assignMeal 순서 -----
@@ -1949,21 +1949,21 @@ function explainAssignment(s, key){
     const base=[];
     activeWorkers().forEach(w=>{
       let why=null;
-      if(inInactive(w,mds)) why='근무 기간 아님';
+      if(inInactive(w,mds)) why='근무 대상 기간 아님';
       else if(!w.canMeal) why='밥교대 불가 설정';
-      else if(w.roleReady===false) why='신병 — 밥교대는 역할 전환 후';
-      else if(isNavigator(w)) why='운항병 — 밥교대 제외';
+      else if(w.roleReady===false) why='신병 (역할 전환 전)';
+      else if(isNavigator(w)) why='운항병 (밥교대 제외)';
       else if(ex.has(w.id)) why=ex.get(w.id);
-      else if(mctx._xm && w.id===mctx._xm) why='추가배식조(그날 CCTV 전부 열외)';
+      else if(mctx._xm && w.id===mctx._xm) why='추가배식조 (당일 CCTV 전체 열외)';
       else if((mctx.bothEx||[]).includes(w.id)) why=exWhy(w.id,'종일 열외');
-      else if((mctx.dayEx||[]).includes(w.id)) why= w.id===mctx._todayMeal ? '오늘 밥교대(이틀 연속 방지)' : exWhy(w.id,'주간 열외');
+      else if((mctx.dayEx||[]).includes(w.id)) why= w.id===mctx._todayMeal ? '오늘 밥교대 (이틀 연속 제한)' : exWhy(w.id,'주간 열외');
       else if(mealBlockedBySlotEx(mctx, w.id)) why='밥교대 시간대 열외';
       if(why) out.blocked.push({id:w.id, reason:why}); else base.push(w);
     });
     const pN=mctx._prevNight||new Set(), nR=new Set([mctx.nextDutyId,mctx.nextSituationId].filter(Boolean)), p2R=new Set([mctx.prev2DutyId,mctx.prev2SituationId].filter(Boolean));
     let pool=base;
     const rM=recentMeals(mds);
-    [[w=>!rM.has(w.id),w=>md(rM.get(w.id))+' 밥교대 — 최소 7일 텀'],[w=>!pN.has(w.id),'전날 야간 — 피함'],[w=>!nR.has(w.id),'다음날 당직/상황병 — 피함'],[w=>!p2R.has(w.id),'이틀 전 당직/상황병 — 피함']].forEach(([f,why])=>{
+    [[w=>!rM.has(w.id),w=>md(rM.get(w.id))+' 밥교대 (최소 7일 간격 유지)'],[w=>!pN.has(w.id),'전날 야간 (연속 배정 제외)'],[w=>!nR.has(w.id),'다음날 당직/상황병 (전야 제외)'],[w=>!p2R.has(w.id),'이틀 전 당직/상황병 (휴식 간격 유지)']].forEach(([f,why])=>{
       const nx=pool.filter(f); if(nx.length){ pool.filter(w=>!f(w)).forEach(w=>out.blocked.push({id:w.id, reason:typeof why==='function'?why(w):why})); pool=nx; }
     });
     const E=pool.map(w=>{ const r=mctx.stats[w.id]||{mealGNum:{},mealGDen:{}};
@@ -1973,14 +1973,14 @@ function explainAssignment(s, key){
     }).sort((a,b)=>(a.g-b.g)||(a.t-b.t)||(a.last<b.last?-1:a.last>b.last?1:0)||(a.sc-b.sc));
     const diff=(a,b)=> a.g!==b.g ? '밥교대('+mgKR+') '+b.g+'회 ('+nm(a.id)+' '+a.g+'회)'
       : a.t!==b.t ? '밥교대 전체 '+b.t+'회 ('+nm(a.id)+' '+a.t+'회)'
-      : a.last!==b.last ? '마지막 밥교대 '+md(b.last)+' ('+nm(a.id)+' '+md(a.last)+')'
+      : a.last!==b.last ? '최종 밥교대 '+md(b.last)+' ('+nm(a.id)+' '+md(a.last)+')'
       : '평균 근무시간 '+b.avg.toFixed(2)+'h/일 ('+nm(a.id)+' '+a.avg.toFixed(2)+'h/일)';
-    return finishRank(out, E, diff, cur, e=>'밥교대('+mgKR+') '+e.g+'회 · 전체 '+e.t+'회 · 마지막 '+md(e.last));
+    return finishRank(out, E, diff, cur, e=>'밥교대('+mgKR+') '+e.g+'회 · 전체 '+e.t+'회 · 최종 '+md(e.last));
   };
   if(key==='nextMeal' || key==='E:17:30'){
     const cur=key==='E:17:30' ? (s.fixed&&s.fixed['17:30'])||null : s.nextMealId;
-    if(key==='E:17:30' && cur!==s.nextMealId) return rule('17:30','다음날 밥교대('+nm(s.nextMealId)+')와 다른 사람이 들어가 있습니다. 자동 배정에서는 17:30에 다음날 밥교대가 서므로, 생성 뒤 이 칸만 따로 바뀌었을 수 있습니다.');
-    if(!s.nextMealAuto) return rule('다음날 밥교대','다음날 밥교대를 [근무표 생성]에서 직접 지정했습니다. 다음날 밥교대는 17:30(밥교대 근무+순찰)을 섭니다.');
+    if(key==='E:17:30' && cur!==s.nextMealId) return rule('17:30','다음날 밥교대('+nm(s.nextMealId)+')와 다른 인원이 편성되어 있습니다. 자동 편성 시 17:30은 다음날 밥교대 고정이므로 수동 변경 여부를 확인하십시오.');
+    if(!s.nextMealAuto) return rule('다음날 밥교대','[근무표 생성]에서 다음날 밥교대를 직접 지정했습니다. 다음날 밥교대는 17:30(밥교대+순찰) 근무를 수행합니다.');
     const nd=addDays(ds,1);
     const nctx={date:nd, workHoliday:ctx.nextWorkHoliday, dutyId:ctx.nextDutyId, situationId:ctx.nextSituationId,
       prevDutyId:ctx.dutyId, prevSituationId:ctx.situationId, nextDutyId:ctx.next2DutyId, nextSituationId:ctx.next2SituationId,
@@ -1991,11 +1991,11 @@ function explainAssignment(s, key){
     { const keep=DB.schedules[ds]; delete DB.schedules[ds]; invalidateStats();
       try{ nctx.stats=buildStats(nd); } finally { if(keep) DB.schedules[ds]=keep; invalidateStats(); } }
     const o=mealRank(key==='E:17:30'?'17:30 (다음날 밥교대)':'다음날 밥교대', nctx, nd, cur);
-    o.lines.push('다음날 밥교대는 17:30(밥교대 근무+순찰)을 서고, 다음날 밥교대를 맡습니다.');
+    o.lines.push('다음날 밥교대는 당일 17:30(밥교대+순찰)을 서고 익일 밥교대를 전담합니다.');
     return o;
   }
   if(key==='meal'){
-    if(prev && prev.nextMealId && prev.nextMealId===s.mealId) return rule('밥교대', md(prev.date)+' 근무표에서 ‘다음날 밥교대’로 정해진 사람입니다 — 그 날짜 표의 17:30 칸을 누르면 선정 이유가 나옵니다.');
+    if(prev && prev.nextMealId && prev.nextMealId===s.mealId) return rule('밥교대', md(prev.date)+' 근무표에서 ‘다음날 밥교대’로 지정된 인원입니다. 해당 일자 17:30 칸에서 선정 이유를 확인할 수 있습니다.');
     return mealRank('밥교대', {...ctx, _xm:s.xmessId}, ds, s.mealId);
   }
 
@@ -2008,10 +2008,10 @@ function explainAssignment(s, key){
     const pool=[];
     activeWorkers().forEach(w=>{
       let why=null;
-      if(w.id===a1630) why='16:30 근무자(순찰은 16:30 칸 안)';
-      else if(w.id===f1730) why='17:30 근무자';
+      if(w.id===a1630) why='16:30 근무자 (순찰 시간대 포함)';
+      else if(w.id===f1730) why='17:30 근무자 (중복 근무 불가)';
       else if(!dc.has(w.id)) why=dayBlock(w);
-      else if(slotExcluded(ctx, w.id, PATROL_SLOT)) why='이 시간대 열외';
+      else if(slotExcluded(ctx, w.id, PATROL_SLOT)) why='해당 시간대 열외';
       if(why) out.blocked.push({id:w.id, reason:why}); else pool.push(w);
     });
     const E=pool.map(w=>{ const r=ctx.stats[w.id];
@@ -2021,23 +2021,23 @@ function explainAssignment(s, key){
     }).sort((a,b)=>(a.sc-b.sc)||lastCmp(a,b));
     const diff=(a,b)=> Math.abs(a.sc-b.sc)>1e-9
       ? '순찰 배정률('+pgKR+') '+pct(b.pr)+' · 평균 '+b.avg.toFixed(2)+'h/일 ('+nm(a.id)+' '+pct(a.pr)+' · '+a.avg.toFixed(2)+'h/일)'
-      : '마지막 순찰 '+md(b.last)+' ('+nm(a.id)+' '+md(a.last)+')';
+      : '최종 순찰 '+md(b.last)+' ('+nm(a.id)+' '+md(a.last)+')';
     return finishRank(out, E, diff, who, e=>'순찰 배정률('+pgKR+') '+pct(e.pr)+' · 평균 근무시간 '+e.avg.toFixed(2)+'h/일');
   }
   // 주간 후보 탈락 사유 (dayCandidates와 같은 조건)
   function dayBlock(w){
-    if(inInactive(w,ds)) return '근무 기간 아님(전입 전·전역 등)';
-    if(w.id===s.xmessId) return '추가배식조(그날 전부 열외)';
+    if(inInactive(w,ds)) return '근무 대상 기간 아님 (전입 전·전역 등)';
+    if(w.id===s.xmessId) return '추가배식조 (당일 전체 열외)';
     if(ctx.bothEx.includes(w.id)) return exWhy(w.id,'종일 열외');
     if(ctx.dayEx.includes(w.id)) return exWhy(w.id,'주간 열외');
     const r=[[ctx.dutyId,'오늘 당직'],[ctx.situationId,'오늘 상황병'],[ctx.prevDutyId,'전날 당직'],[ctx.prevSituationId,'전날 상황병'],[ctx.mealId,'오늘 밥교대']].find(([id])=>id===w.id);
     if(r) return r[1];
-    if(isNavigator(w) && dayGroup(ds,ctx.workHoliday)!=='weekend') return '운항병 — 주중엔 고정 칸만';
-    return '주간 후보 아님';
+    if(isNavigator(w) && dayGroup(ds,ctx.workHoliday)!=='weekend') return '운항병 (주중 고정 슬롯만 편성)';
+    return '주간 후보 제외';
   }
 
   // ----- 주간 칸·야간 번초 : solve의 후보 조건과 정렬 -----
-  if(key[0]!=='D' && key[0]!=='N') return rule(key, '이 칸은 설명할 수 있는 배정 규칙이 없습니다.');
+  if(key[0]!=='D' && key[0]!=='N') return rule(key, '배정 설명 규칙이 없는 슬롯입니다.');
   const isNight=key[0]==='N';
   const v=isNight ? {type:'night', bunchoId:Number(key.slice(2))} : {type:'day', key:key.slice(2)};
   const sl=slotsOf(v), unit=exUnitOf(v);
@@ -2051,27 +2051,27 @@ function explainAssignment(s, key){
   EVENING.forEach(x=> add(s.fixed&&s.fixed[x], [x], x==='17:30'?1+DB.settings.patrolBonus:1));
   NIGHT_BUNCHO.forEach(b=>{ if('N:'+b.id!==key) add(s.night&&s.night[b.id], b.slots, 1); });
   const nightRole=[[ctx.dutyId,'오늘 당직'],[ctx.situationId,'오늘 상황병'],[ctx.prevDutyId,'전날 당직'],[ctx.prevSituationId,'전날 상황병'],
-    [ctx.nextDutyId,'다음날 당직'],[ctx.nextSituationId,'다음날 상황병'],[ctx.nextMealId,'다음날 밥교대(야간 연속 방지)']];
+    [ctx.nextDutyId,'다음날 당직'],[ctx.nextSituationId,'다음날 상황병'],[ctx.nextMealId,'다음날 밥교대 (야간 연속 방지)']];
   const dg=ctx._dayGrp, ng=ctx._nightGrp, ngKR=ng==='holiday'?'휴일전야':'평일전야';
   const pool=[];
   activeWorkers().forEach(w=>{
     let why=null;
     if(!isNight){ if(!dayCandidates(ds,ctx).some(x=>x.id===w.id)) why=dayBlock(w); }
     else{
-      if(inInactive(w,ds)) why='근무 기간 아님(전입 전·전역 등)';
-      else if(w.id===s.xmessId) why='추가배식조(그날 전부 열외)';
-      else if(w.id===s.nextXmessId) why='다음날 추가배식조(오늘 야간 열외)';
+      if(inInactive(w,ds)) why='근무 대상 기간 아님 (전입 전·전역 등)';
+      else if(w.id===s.xmessId) why='추가배식조 (당일 전체 열외)';
+      else if(w.id===s.nextXmessId) why='다음날 추가배식조 (당일 야간 열외)';
       else if(ctx.bothEx.includes(w.id)) why=exWhy(w.id,'종일 열외');
       else if(ctx.nightEx.includes(w.id)) why='야간 열외';
       else { const r=nightRole.find(([id])=>id===w.id); if(r) why=r[1]; }
-      if(!why && isNavigator(w)) why='운항병 — 야간은 금·토 사전배정만';
-      if(!why && w.id===ctx.mealId) why='오늘 밥교대 — 야간은 인원이 모자랄 때만';
+      if(!why && isNavigator(w)) why='운항병 (야간은 금·토 사전배정만)';
+      if(!why && w.id===ctx.mealId) why='당일 밥교대 (야간 인원 부족 시에만 투입)';
     }
-    if(!why && slotExcluded(ctx, w.id, unit)) why='이 시간대 열외';
-    if(!why && !isNight && MORNING_AFTER_NIGHT.includes(v.key) && prevNight.has(w.id)) why='전날 야간 → 아침 근무 금지';
-    if(!why && isNight && twoConsec.has(w.id)) why='이틀 연속 야간 → 3일 연속 금지';
-    if(!why && isNight){ const b=NIGHT_BUNCHO.find(b=>'N:'+b.id!==key && s.night && s.night[b.id]===w.id); if(b) why='이미 '+b.id+'번초 근무(야간은 하루 1번초)'; }
-    if(!why && occ[w.id]){ const a=occ[w.id].find(x=>adjacent([x], sl)); if(a) why='바로 붙은 '+a+' 근무 — 연속 근무 금지'; }
+    if(!why && slotExcluded(ctx, w.id, unit)) why='해당 시간대 열외';
+    if(!why && !isNight && MORNING_AFTER_NIGHT.includes(v.key) && prevNight.has(w.id)) why='전날 야간 (익일 아침 연속 금지)';
+    if(!why && isNight && twoConsec.has(w.id)) why='2일 연속 야간 (3일 연속 야간 금지)';
+    if(!why && isNight){ const b=NIGHT_BUNCHO.find(b=>'N:'+b.id!==key && s.night && s.night[b.id]===w.id); if(b) why='이미 당일 '+b.id+'번초 배정 (야간 1인 1번초)'; }
+    if(!why && occ[w.id]){ const a=occ[w.id].find(x=>adjacent([x], sl)); if(a) why='인접 슬롯('+a+') 근무 중 (연속 근무 금지)'; }
     if(why) out.blocked.push({id:w.id, reason:why}); else pool.push(w);
   });
   const E=pool.map(w=>{
@@ -2092,37 +2092,37 @@ function explainAssignment(s, key){
     const A=nm(a.id);
     if(isRotationVar(v) && a.rotRate!==b.rotRate) return '06:30 배정률 '+pct(b.rotRate)+' ('+A+' '+pct(a.rotRate)+') — 06:30은 배정률 낮은 순번제';
     if(isRotationVar(v) && a.rotLast!==b.rotLast) return '마지막 06:30 '+md(b.rotLast)+' ('+A+' '+md(a.rotLast)+') — 06:30은 오래된 순번';
-    if(a.recentNight!==b.recentNight) return '전날 야간 — 연속 야간을 피함';
-    if(a.cnt!==b.cnt) return a.raw!==b.raw ? '오늘 이미 '+b.raw+'칸 ('+A+' '+a.raw+'칸) — 하루 근무를 고르게'
-      : '오늘 칸 수는 같지만 신병은 하루 2칸이 기준이라 1칸을 덜 센다 — '+(b.isRec?nm(b.id)+'(신병)':A+'(신병)')+' 쪽이 '+(b.isRec?'뒤로':'먼저');
-    if(a.fair!==b.fair) return '이 시간대를 더 많이 섬: '+slotTxt(b)+' ('+A+' '+slotTxt(a)+')';
-    if(a.rec!==b.rec) return b.isRec ? '신병은 하루 2칸이 기준이라 3칸째는 뒤로' : '오늘 첫 칸은 신병이 먼저(신병 하루 2칸 기준)';
+    if(a.recentNight!==b.recentNight) return '전날 야간 (연속 야간 제한)';
+    if(a.cnt!==b.cnt) return a.raw!==b.raw ? '당일 근무 '+b.raw+'회 배정됨 ('+A+' '+a.raw+'회) — 당일 근무 균등 배분'
+      : '당일 근무 횟수는 같으나 신병 일 2회 기준 적용 — '+(b.isRec?nm(b.id)+'(신병)':A+'(신병)')+' 후순위';
+    if(a.fair!==b.fair) return '해당 시간대 누적 배정 많음: '+slotTxt(b)+' ('+A+' '+slotTxt(a)+')';
+    if(a.rec!==b.rec) return b.isRec ? '신병 일 2회 기준에 따라 3회차 배정은 후순위' : '신병 일 2회 기준에 따라 1회차 배정 우선';
     if(Math.abs(a.sc-b.sc)>1e-9) return isNight
       ? '야간 배정률('+ngKR+') '+pct(b.nRate)+' · '+v.bunchoId+'번초 '+b.bCnt+'회 · 평균 '+b.avg.toFixed(2)+'h/일 ('+A+' '+pct(a.nRate)+' · '+a.bCnt+'회 · '+a.avg.toFixed(2)+'h/일)'
       : '평균 근무시간 '+b.avg.toFixed(2)+'h/일 · '+slotTxt(b)+' ('+A+' '+a.avg.toFixed(2)+'h/일 · '+slotTxt(a)+')';
-    return '이 칸을 더 최근에 섬: '+md(b.last)+' ('+A+' '+md(a.last)+')';
+    return '해당 슬롯 최근 배정 이력: '+md(b.last)+' ('+A+' '+md(a.last)+')';
   };
   return finishRank(out, E, diff, who, e=> isNight
-    ? '야간 배정률('+ngKR+') '+pct(e.nRate)+' · '+v.bunchoId+'번초 '+e.bCnt+'회 · 평균 근무시간 '+e.avg.toFixed(2)+'h/일 · 오늘 다른 칸 '+e.raw+'개'
-    : (isRotationVar(v)?'06:30 배정률 '+pct(e.rotRate)+' · 마지막 '+md(e.rotLast)+' · ':'')+slotTxt(e)+' · 평균 근무시간 '+e.avg.toFixed(2)+'h/일 · 오늘 다른 칸 '+e.raw+'개');
+    ? '야간 배정률('+ngKR+') '+pct(e.nRate)+' · '+v.bunchoId+'번초 '+e.bCnt+'회 · 평균 근무시간 '+e.avg.toFixed(2)+'h/일 · 당일 타 슬롯 '+e.raw+'개'
+    : (isRotationVar(v)?'06:30 배정률 '+pct(e.rotRate)+' · 마지막 '+md(e.rotLast)+' · ':'')+slotTxt(e)+' · 평균 근무시간 '+e.avg.toFixed(2)+'h/일 · 당일 타 슬롯 '+e.raw+'개');
 
   /* 순위 목록을 설명으로 정리 */
   function finishRank(o, E, diff, cur, metric){
     const i=E.findIndex(e=>e.id===cur);
     const me=E[i];
-    if(!cur){ o.lines.push('미배정 — 규칙을 지키면서 이 칸에 설 수 있는 사람이 없었거나 비워 둔 칸입니다.'); }
+    if(!cur){ o.lines.push('미배정: 가용 인원이 없거나 수동으로 비워둔 슬롯입니다.'); }
     else if(i<0){
       const b=o.blocked.find(x=>x.id===cur);
-      o.lines.push('규칙상 이 칸 후보가 아닌 사람입니다'+(b?' ('+b.reason+')':'')+' — 직접 수정했거나 인원이 부족해 규칙을 완화한 결과일 수 있습니다.');
+      o.lines.push('배정 제외 대상 인원입니다'+(b?' ('+b.reason+')':'')+' — 수동 수정 또는 인원 부족에 따른 완화 편성입니다.');
     }else{
       o.lines.push(metric(me));
-      if(i===0 && E[1]) o.lines.push('다음 후보 '+nm(E[1].id)+'보다 앞선 이유: '+diff(me, E[1]));
-      else if(i===0) o.lines.push('이 칸에 설 수 있는 사람이 이 사람뿐이었습니다.');
-      else o.lines.push('우선순위로는 '+(i+1)+'위입니다. 앞선 '+E.slice(0,i).map(e=>nm(e.id)).join(', ')+'은(는) 다른 칸과의 조합(연속 근무 금지 등)을 맞추는 과정에서 빠졌거나, 이 칸이 직접 수정됐을 수 있습니다.');
+      if(i===0 && E[1]) o.lines.push('차순위 후보('+nm(E[1].id)+') 대비 우선 이유: '+diff(me, E[1]));
+      else if(i===0) o.lines.push('해당 슬롯 가용 인원이 단독 1명입니다.');
+      else o.lines.push('우선순위 '+(i+1)+'위입니다. 상위 순번('+E.slice(0,i).map(e=>nm(e.id)).join(', ')+')은 타 슬롯 조합(연속 근무 방지 등)에서 제외되었거나 수동 변경되었습니다.');
     }
     E.forEach((e,k)=>{ if(e.id===cur) return;
-      const busy = todayOf && todayOf[e.id] ? ' — 오늘 '+todayOf[e.id].filter((x,j,arr)=>arr.indexOf(x)===j).join('·')+' 근무' : '';
-      o.ranked.push({id:e.id, ahead:me?k<i:false, reason: me ? (k<i ? '우선순위는 앞섰지만 다른 칸 조합 때문에 빠짐'+busy : diff(me,e)) : metric(e)});
+      const busy = todayOf && todayOf[e.id] ? ' — 당일 '+todayOf[e.id].filter((x,j,arr)=>arr.indexOf(x)===j).join('·')+' 배정' : '';
+      o.ranked.push({id:e.id, ahead:me?k<i:false, reason: me ? (k<i ? '우선순위는 앞서나 타 슬롯 조합으로 제외됨'+busy : diff(me,e)) : metric(e)});
     });
     return o;
   }
@@ -2132,11 +2132,11 @@ function prebookConflictsFor(p, s){
   const out=[];
   const who=nameOf(p.wid);
   if(p.kind==='duty'){
-    if(s.dutyId!==p.wid) out.push('사전등록 충돌: 당직 예약('+who+')과 표의 당직('+nameOf(s.dutyId)+')이 다릅니다');
+    if(s.dutyId!==p.wid) out.push('사전등록 충돌: 당직 예약('+who+')과 표의 당직('+nameOf(s.dutyId)+') 불일치');
     return out;
   }
   if(p.kind==='situation'){
-    if(s.situationId!==p.wid) out.push('사전등록 충돌: 상황병 예약('+who+')과 표의 상황병('+nameOf(s.situationId)+')이 다릅니다');
+    if(s.situationId!==p.wid) out.push('사전등록 충돌: 상황병 예약('+who+')과 표의 상황병('+nameOf(s.situationId)+') 불일치');
     return out;
   }
   // 유조차 운전병(정)·대체자(부)·배식조: 그날 당직/상황병 역할이면 정상 근무이므로 충돌 아님

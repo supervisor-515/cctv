@@ -753,7 +753,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 이 표시가 없으면 브라우저가 구버전을 캐시 중입니다 (Ctrl+Shift+R)">v8.0.0</span>
+    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.0.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -801,7 +801,7 @@ body.ro .no-ro{display:none!important}
       <button class="btn ghost sm" id="calNext">▶</button>
       <button class="btn ghost sm" id="calToday">오늘</button>
       <div class="spacer"></div>
-      <button class="btn ghost sm" id="calWeekBtn" title="선택한 날짜가 있는 주만 보기">한 주만 보기</button>
+      <button class="btn ghost sm" id="calWeekBtn" title="선택한 일자 주간만 표시">주간 보기</button>
     </div>
     <div class="cal-modes">
       <div class="seg" id="calMode"><button data-m="status">근무 상태</button><button data-m="leave">휴가·열외</button><button data-m="person">개인 근무</button></div>
@@ -812,16 +812,16 @@ body.ro .no-ro{display:none!important}
     <div id="calDetail"></div>
 
     <details class="adv" id="calLists" style="margin-top:18px">
-      <summary>등록된 일정 전체 · 휴무일 관리</summary>
+      <summary>전체 등록 일정 및 휴무일 관리</summary>
       <div class="flexgap" style="margin-bottom:10px"><label class="chk"><input type="checkbox" id="pbHidePast" checked> 지난 일정·휴무일 숨기기</label></div>
       <div class="panel">
         <h2>등록된 일정</h2>
-        <p class="desc">휴가·열외·당직/상황 예약·유조차는 [근무표 생성]에서 그 날짜를 열 때 자동 반영됩니다. 이미 생성된 표에는 소급 적용되지 않습니다.</p>
+        <p class="desc">휴가·열외·당직/상황 예약·유조차는 [근무표 생성] 시 자동 반영됩니다. 기 생성된 근무표에는 소급 적용되지 않습니다.</p>
         <div class="tbl-wrap"><table id="pbTable"></table></div>
       </div>
       <div class="panel">
         <h2>휴무일</h2>
-        <p class="desc">지정한 휴무일은 [근무표 생성]에서 ‘직장 휴무일’·‘다음날 휴무일’이 자동으로 켜집니다. 대한민국 공휴일(2025~2027)은 자동 반영됩니다.</p>
+        <p class="desc">지정 휴무일은 [근무표 생성] 시 직장 휴무일 여부로 자동 적용됩니다. 법정공휴일(2025~2027)은 자동 반영됩니다.</p>
         <div class="tbl-wrap"><table id="hdTable"></table></div>
       </div>
     </details>
@@ -851,16 +851,16 @@ body.ro .no-ro{display:none!important}
         <option value="exboth">모두 열외 (분모 제외)</option>
         <option value="duty">당직 예약</option>
         <option value="situation">상황병 예약</option>
-        <option value="fueltruck">유조차 운전병 (그 주 월~일)</option>
-        <option value="fuelsub">유조차 대체 (부 운전병)</option>
-        <option value="mess">배식조 (그 주 월~일)</option>
+        <option value="fueltruck">유조차 운전병 (주간 월~일)</option>
+        <option value="fuelsub">유조차 대체 (부)</option>
+        <option value="mess">배식조 (주간 월~일)</option>
       </select>
     </div>
     <div id="pbForm">
       <div class="field"><label>근무자</label><select id="pbWho"></select></div>
       <div class="two">
         <div class="field"><label>시작일</label><input type="date" id="pbStart"></div>
-        <div class="field" id="pbEndField"><label>종료일 (비우면 하루)</label><input type="date" id="pbEnd"></div>
+        <div class="field" id="pbEndField"><label>종료일 (미입력 시 당일 1일)</label><input type="date" id="pbEnd"></div>
       </div>
       <p class="smallnote" id="pbKindNote"></p>
       <div id="pbStatus" style="margin-bottom:10px"></div>
@@ -870,9 +870,9 @@ body.ro .no-ro{display:none!important}
       <div class="field"><label>휴무 이름</label><input id="hdName" placeholder="예: 전투휴무"></div>
       <div class="two">
         <div class="field"><label>시작일</label><input type="date" id="hdStart"></div>
-        <div class="field"><label>종료일 (비우면 하루)</label><input type="date" id="hdEnd"></div>
+        <div class="field"><label>종료일 (미입력 시 당일 1일)</label><input type="date" id="hdEnd"></div>
       </div>
-      <p class="smallnote">이미 생성된 표에는 소급 적용되지 않습니다.</p>
+      <p class="smallnote">기 생성된 근무표에는 소급 적용되지 않습니다.</p>
       <div id="hdStatus" style="margin-bottom:10px"></div>
       <button class="btn full" id="hdAdd">휴무일 등록</button>
     </div>
@@ -882,7 +882,7 @@ body.ro .no-ro{display:none!important}
   <div class="sheet-bg" id="whySheetBg"></div>
   <div class="sheet" id="whySheet" role="dialog" aria-label="배정 이유">
     <div class="grab"></div>
-    <div class="sh-h"><b id="whyTitle">배정 이유</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b id="whyTitle">배정 사유</b><div class="sp"></div><button class="x" data-close>✕</button></div>
     <div id="whyBody"></div>
   </div>
 
@@ -921,17 +921,17 @@ body.ro .no-ro{display:none!important}
           <div id="gCtrlNotice"></div>
         </div>
         <div class="step">
-          <div class="step-h"><span class="no">2</span>역할<div class="sp"></div><small>전날 표가 있으면 자동으로 채워집니다</small></div>
+          <div class="step-h"><span class="no">2</span>역할<div class="sp"></div><small>전날 근무표 기준 자동 입력</small></div>
           <table class="matrix">
             <thead><tr><th class="rh"></th><th>전날<small>20:30·21:30</small></th><th>당일</th><th>다음날<small>17:30~19:30</small></th><th>이틀 뒤<small>밥교대 제외</small></th></tr></thead>
             <tbody>
               <tr><th class="rh"><span class="rl"><i style="background:var(--duty)"></i>당직</span></th>
-                <td><select id="gPrevDuty" title="전날 당직 (21:30·당일 전부 열외)"></select></td>
+                <td><select id="gPrevDuty" title="전날 당직 (21:30 및 당일 전체 열외)"></select></td>
                 <td><select id="gDuty" title="당일 당직"></select></td>
                 <td><select id="gNextDuty" title="다음날 당직 (19:30)"></select></td>
                 <td><select id="gNext2Duty" title="이틀 뒤 당직 (밥교대 제외용)"></select></td></tr>
               <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>상황</span></th>
-                <td><select id="gPrevSit" title="전날 상황병 (20:30·당일 전부 열외)"></select></td>
+                <td><select id="gPrevSit" title="전날 상황병 (20:30 및 당일 전체 열외)"></select></td>
                 <td><select id="gSit" title="당일 상황병"></select></td>
                 <td><select id="gNextSit" title="다음날 상황병 (18:30)"></select></td>
                 <td><select id="gNext2Sit" title="이틀 뒤 상황병 (밥교대 제외용)"></select></td></tr>
@@ -942,8 +942,8 @@ body.ro .no-ro{display:none!important}
                 <td class="na"></td></tr>
               <tr id="gXmessRow"><th class="rh"><span class="rl"><i style="background:var(--patrol)"></i>추가배식</span></th>
                 <td class="na"></td>
-                <td><select id="gXmess" title="당일 추가배식조 (CCTV 전부 열외)"></select></td>
-                <td><select id="gNextXmess" title="다음날 추가배식조 (오늘 야간 열외)"></select></td>
+                <td><select id="gXmess" title="당일 추가배식조 (CCTV 전체 열외)"></select></td>
+                <td><select id="gNextXmess" title="다음날 추가배식조 (당일 야간 열외)"></select></td>
                 <td class="na"></td></tr>
             </tbody>
           </table>
@@ -953,8 +953,8 @@ body.ro .no-ro{display:none!important}
           <div class="step-h"><span class="no">3</span>열외</div>
           <div class="exsum" id="gExSummary"></div>
           <div class="chips" id="gExChips"></div>
-          <p class="smallnote" style="margin:10px 0 0">이름을 누르면 시간대 선택이 펼쳐집니다. 이름 옆 막대는 왼쪽부터 <b>아침·오전·오후·야간</b> 열외 여부입니다.
-            저녁(17:30~21:30)은 역할 고정이라 열외 대상이 아닙니다. ‘분모에서 제외’는 종일 열외일 때만 켤 수 있습니다.</p>
+          <p class="smallnote" style="margin:10px 0 0">근무자 선택 시 시간대 열외 설정이 표시됩니다. 표시 막대는 좌측부터 <b>아침·오전·오후·야간</b> 열외 상태입니다.
+            저녁(17:30~21:30)은 역할 고정 슬롯이므로 열외 대상이 아닙니다. ‘분모 제외’는 종일 열외 시에만 적용됩니다.</p>
         </div>
       </div>
       <div>
@@ -964,24 +964,24 @@ body.ro .no-ro{display:none!important}
         </div>
         <div class="runbar">
           <button class="btn" id="gRun">자동 배정 실행</button>
-          <button class="btn ghost" id="gReload">전날값 다시 불러오기</button>
+          <button class="btn ghost" id="gReload">전날 데이터 다시 불러오기</button>
           <span class="muted" id="gStatus"></span>
         </div>
         <div id="gResult" style="margin-top:6px"></div>
         <div class="panel" style="margin-top:14px">
           <h2>기간 일괄 생성</h2>
-          <p class="desc">시작일부터 종료일까지 하루씩 차례로 자동 생성합니다. 휴무일·사전등록이 자동 반영되고, 전날 표의 당직·상황병·밥교대가 다음날로 이어집니다. 한 번에 최대 31일.</p>
+          <p class="desc">지정 기간의 근무표를 1일 단위로 순차 생성합니다. 휴무일 및 사전등록 일정이 자동 반영되며, 전일자 역할이 익일로 연계됩니다. (1회 최대 31일)</p>
           <div class="row">
             <div class="field"><label>시작일</label><input type="date" id="bgStart"></div>
             <div class="field"><label>종료일</label><input type="date" id="bgEnd"></div>
-            <label class="sw"><input type="checkbox" id="bgSkip" checked> 이미 생성된 날은 건너뛰기</label>
+            <label class="sw"><input type="checkbox" id="bgSkip" checked> 기 생성 일자 건너뛰기</label>
             <button class="btn" id="bgRun">일괄 생성 실행</button>
           </div>
           <div id="bgResult" style="margin-top:12px"></div>
         </div>
         <div class="panel" style="margin-top:14px">
           <h2>근무표 삭제</h2>
-          <p class="desc">고른 날짜(또는 기간)의 근무표를 지웁니다. 종료일을 비우면 시작일 하루만 지웁니다. 서버에 연결된 관리자면 지우기 직전 상태를 서버 백업에 먼저 올려 두므로 [서버 백업]에서 되돌릴 수 있습니다.</p>
+          <p class="desc">선택 일자(또는 기간)의 근무표를 삭제합니다. 종료일 미입력 시 시작일 1일만 삭제합니다. 관리자 계정은 삭제 직전 상태가 서버 백업에 자동 저장되며 [서버 백업]에서 복구 가능합니다.</p>
           <div class="row">
             <div class="field"><label>시작일</label><input type="date" id="bdStart"></div>
             <div class="field"><label>종료일 (선택)</label><input type="date" id="bdEnd"></div>
@@ -1040,33 +1040,33 @@ body.ro .no-ro{display:none!important}
     </div></div>
 
     <div class="cpane" data-p="sum">
-      <div class="pane-h"><span class="muted" style="font-size:12px">평균은 각자 카운트 기준 이후 실제 생성된 근무표 수를 분모로 합니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cCsv">CSV</button></div>
+      <div class="pane-h"><span class="muted" style="font-size:12px">평균 분모: 개인별 카운트 기준일 이후 생성된 근무표 수</span><div class="sp"></div><button class="btn ghost sm no-print" id="cCsv">CSV</button></div>
       <div class="tbl-wrap stick1"><table id="cTable"></table></div>
-      <p class="hint">배정률 = (그 그룹/슬롯에서 배정된 횟수) ÷ (그가 겪은 동일 그룹 근무표 수). 비활성·전체열외 날은 분모에서 제외됩니다.</p>
+      <p class="hint">배정률 = (해당 그룹/슬롯 배정 횟수) ÷ (해당 그룹 근무표 수). 비활성 및 전체 열외 일자는 분모에서 제외됩니다.</p>
     </div>
     <div class="cpane on" data-p="night">
       <div class="subchips" id="cNightSub"></div>
       <div id="cNight"></div>
-      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">분모 = 각자 겪은 해당(야간/그룹) 근무표 수</span><div class="sp"></div><button class="btn ghost sm no-print" id="cNightCsv">CSV</button></div>
+      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">분모: 대상(야간/그룹) 근무표 수</span><div class="sp"></div><button class="btn ghost sm no-print" id="cNightCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="meal">
       <div class="subchips" id="cMealSub"></div>
       <div id="cMeal"></div>
-      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">분모 = 밥교대 카운트 기준(전환 시에도 유지)</span><div class="sp"></div><button class="btn ghost sm no-print" id="cMealCsv">CSV</button></div>
+      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">분모: 밥교대 카운트 기준일 이후 근무표 수 (역할 전환 시에도 유지)</span><div class="sp"></div><button class="btn ghost sm no-print" id="cMealCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="patrol">
       <div class="subchips" id="cPatrolSub"></div>
       <div id="cPatrol"></div>
-      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">17:00 순찰(0.5h) — 다음날 밥교대자 외에 ‘순찰만’ 도는 1명. 평일과 주말·휴일을 따로 셉니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPatrolCsv">CSV</button></div>
+      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">17:00 순찰(0.5h): 익일 밥교대자 외 전담 1명 배정. 평일과 주말·휴일을 구분하여 집계합니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPatrolCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="slot">
       <div class="subchips" id="cSlotSub"></div>
       <select id="cSlotGrp" style="display:none"></select>
       <div id="cSlot"></div>
-      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">‘전체’는 분모=총 근무표 수, 그룹 선택 시 분모=해당 그룹 근무표 수</span><div class="sp"></div><button class="btn ghost sm no-print" id="cSlotCsv">CSV</button></div>
+      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">‘전체’ 기준 분모: 총 근무표 수, 그룹 선택 기준 분모: 해당 그룹 근무표 수</span><div class="sp"></div><button class="btn ghost sm no-print" id="cSlotCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="fair">
-      <p class="hint" style="margin:0 0 10px">그 기간 근무표에 실제로 포함된 비신병 근무자 기준(신병·말년·운항병 제외, 신병에서 전환한 사람은 전환일 이후 기록으로 계산). 야간·밥교대·순찰은 각자 겪은 근무표 수로 나눈 배정률(%)입니다. 점이 좁게 모일수록 균등하고, CV·지니가 낮을수록 균등합니다.</p>
+      <p class="hint" style="margin:0 0 10px">조회 기간 근무표 대상 일반 근무자 기준입니다. (신병·말년·운항병 제외, 전환 인원은 전환일 이후 기록 기준) 야간·밥교대·순찰 지표는 개인별 근무표 수 기준 배정률(%)이며, 산포도가 밀집되고 변동계수(CV)·지니계수가 낮을수록 공정한 배분입니다.</p>
       <div id="cFair"></div>
     </div>
   </section>
@@ -1077,11 +1077,11 @@ body.ro .no-ro{display:none!important}
     <div class="segscroll"><div class="seg" id="pFilter"></div></div>
     <div class="plist" id="pTable"></div>
     <details class="arch" id="pArchWrap"><summary><span id="pArchLabel">보관 인원</span><span>▸</span></summary><div class="plist" id="pArch"></div></details>
-    <p class="smallnote" style="margin-top:14px">신병→당직/상황병 전환 시 신병 근무 카운트는 초기화하고 밥교대 카운트는 유지합니다.
-      <b>운항병</b>(활성 1명)은 월~목·금 주간 고정 + 금/토 야간 1회. <b>말년</b>은 배정은 신병과 같게 하되 카운트 초기화는 하지 않습니다.</p>
+    <p class="smallnote" style="margin-top:14px">신병에서 당직/상황병 전환 시 일반 근무 카운트는 초기화되고 밥교대 카운트는 유지됩니다.
+      <b>운항병</b>(활성 1명)은 평일 주간 고정 슬롯 및 금/토 야간 1회 배정됩니다. <b>말년</b>은 신병과 동일한 배정 규칙이 적용되며 카운트 초기화는 수행하지 않습니다.</p>
     <div class="panel no-ro" style="margin-top:14px">
       <h2>당직사관 · 당직사령 명단</h2>
-      <p class="desc">구성원이 날짜마다 이 명단에서 그날의 당직사관·당직사령을 골라 기록합니다. 근무 배정에는 쓰이지 않습니다.</p>
+      <p class="desc">일자별 당직사관·당직사령 기록용 명단입니다. CCTV 근무 자동 배정 로직에는 반영되지 않습니다.</p>
       <div id="ofAdmin"></div>
     </div>
   </section>
@@ -1123,14 +1123,14 @@ body.ro .no-ro{display:none!important}
       </div>
       <div class="divider"></div>
       <label style="font-weight:700;font-size:13px">운항병 주간 고정 시간</label>
-      <p class="smallnote" style="margin:4px 0 8px">운항병이 매일 고정으로 들어가는 주간 슬롯을 고릅니다(월~목 / 금 따로). 인접한 두 슬롯을 함께 고르면 연속근무 경고가 뜹니다.</p>
+      <p class="smallnote" style="margin:4px 0 8px">운항병 주간 고정 슬롯을 설정합니다 (월~목 및 금요일 분리). 인접 슬롯 중복 선택 시 연속근무 경고가 발생합니다.</p>
       <div class="field"><label>월~목 고정 슬롯</label><div id="navWeekdaySlots" class="slotchks"></div></div>
       <div class="field" style="margin-top:8px"><label>금요일 고정 슬롯</label><div id="navFridaySlots" class="slotchks"></div></div>
-      <p class="desc" style="margin-top:12px">인접(연속) 슬롯 근무는 항상 금지됩니다(하드 제약 — 완화 불가). 전날 야간자의 아침 근무도 항상 금지됩니다. 운항병 야간(금·토 1회)은 자동 배분입니다.</p>
+      <p class="desc" style="margin-top:12px">인접 슬롯 연속근무 및 전날 야간 근무자의 익일 아침 근무는 절대 금지됩니다(하드 제약). 운항병 야간(금·토 1회)은 균등 자동 배정됩니다.</p>
       <details class="adv">
         <summary>공정성 점수 가중치 (낮을수록 우선 배정)</summary>
         <div class="wgrid" id="wGrid"></div>
-        <p class="smallnote">점수 = 누적평균시간·w + 당일이미받은시간·w + 그룹배정률·w + 슬롯배정률·w + (야간)야간배정률·w + 번초배정률·w − 신병보정. recruitBias가 음수면 신병을 약간 먼저 배정합니다.</p>
+        <p class="smallnote">점수 산정식 = 누적평균시간·w + 당일근무시간·w + 그룹배정률·w + 슬롯배정률·w + (야간)야간배정률·w + 번초배정률·w − 신병보정. 신병보정(recruitBias) 음수 적용 시 신병이 우선 배정됩니다.</p>
       </details>
       <div class="flexgap" style="margin-top:14px">
         <button class="btn" id="sSave">설정 저장</button>
@@ -1144,7 +1144,7 @@ body.ro .no-ro{display:none!important}
   <section class="view" id="backup">
     <div class="subhdr"><button class="back" data-back>‹ 더보기</button><h2>백업 · 내보내기</h2></div>
     <div class="panel">
-      <p class="desc">모든 상태는 이 브라우저의 localStorage에 저장됩니다. JSON으로 내보내 백업하고, 구버전 백업도 불러올 수 있습니다.</p>
+      <p class="desc">모든 데이터는 브라우저 localStorage에 보관됩니다. JSON 파일로 내보내어 백업하거나 이전 백업 데이터를 복원할 수 있습니다.</p>
       <div id="bBackupInfo" style="margin-bottom:12px"></div>
       <div class="flexgap">
         <button class="btn ghost" id="bExport">JSON 내보내기</button>
@@ -1156,13 +1156,13 @@ body.ro .no-ro{display:none!important}
     </div>
     <div class="panel" id="bkPanel" style="display:none">
       <h2>서버 백업 <span class="muted" style="font-weight:500;font-size:12px">최근 10회</span></h2>
-      <p class="desc">근무표를 생성할 때마다(기간 일괄 생성은 한 번) 전체 데이터를 서버에 자동으로 백업하고, [지금 서버에 백업]으로 직접 올릴 수도 있습니다. 10개를 넘으면 가장 오래된 것부터 자동 삭제됩니다. 관리자만 보고 복원할 수 있습니다.</p>
-      <div class="flexgap" style="margin-bottom:10px"><button class="btn ghost" id="bkNow">지금 서버에 백업</button><button class="btn ghost" id="bkEnlist" title="최근 서버 백업에서 입대일만 찾아, 지금 비어 있는 근무자에게 채웁니다">백업에서 입대일 복구</button><span id="bkNowSt" class="muted"></span></div>
+      <p class="desc">근무표 생성 시 전체 데이터가 서버에 자동 백업되며, 수동 즉시 백업도 가능합니다. 최대 10회분까지 유지되며 초과분은 순차 자동 정리됩니다. 관리자 계정만 열람 및 복원 가능합니다.</p>
+      <div class="flexgap" style="margin-bottom:10px"><button class="btn ghost" id="bkNow">지금 서버에 백업</button><button class="btn ghost" id="bkEnlist" title="최근 서버 백업을 참조하여 입대일 누락 인원의 데이터를 복구합니다">백업에서 입대일 복구</button><span id="bkNowSt" class="muted"></span></div>
       <div class="bklist" id="bkList"></div>
     </div>
     <div class="panel">
       <h2 style="color:var(--err)">위험 구역</h2>
-      <p class="desc">모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없으니 먼저 백업하세요.</p>
+      <p class="desc">모든 근무자, 근무표, 설정 데이터가 영구 삭제됩니다. 작업 전 반드시 백업 데이터를 확보하십시오.</p>
       <button class="btn danger" id="bClear">전체 초기화</button>
     </div>
   </section>
@@ -1171,14 +1171,14 @@ body.ro .no-ro{display:none!important}
   <section class="view" id="sync">
     <div class="subhdr"><button class="back" data-back>‹ 더보기</button><h2>서버 동기화</h2></div>
     <div class="panel sync-panel">
-      <p class="desc">관리자가 저장하면 서버에 자동 업로드되고, 구성원은 실시간으로 열람만 할 수 있습니다. 설정하지 않으면 기존처럼 이 브라우저에만 저장됩니다. 설정 절차는 저장소의 <b>FIREBASE_SETUP.md</b>를 참고하세요.</p>
+      <p class="desc">관리자 저장 시 서버에 자동 동기화되며, 부대원은 실시간 열람 권한만 부여됩니다. 미설정 시 브라우저 로컬 모드로만 작동합니다. 세부 설정은 <b>FIREBASE_SETUP.md</b>를 확인하십시오.</p>
       <div id="syStatus" style="margin-bottom:10px"></div>
       <div class="row" id="syLoginRow">
         <div class="seg" id="syMode" style="flex:1 1 100%;max-width:260px"><button data-m="in" class="on" style="flex:1">로그인</button><button data-m="up" style="flex:1">회원가입</button></div>
         <div class="field"><label>이메일</label><input id="syEmail" type="email" autocomplete="username"></div>
         <div class="field"><label>비밀번호</label><input id="syPass" type="password" autocomplete="current-password"></div>
         <div class="field" style="display:none"><label>비밀번호 확인</label><input id="syPass2" type="password" autocomplete="new-password"></div>
-        <div class="field" style="display:none"><label>부대 코드 (관리자에게 받은 코드)</label><input id="syJoinCode" type="text" autocomplete="off" autocapitalize="off"></div>
+        <div class="field" style="display:none"><label>부대 코드 (관리자 발급 코드)</label><input id="syJoinCode" type="text" autocomplete="off" autocapitalize="off"></div>
         <button class="btn" id="syLogin">로그인</button>
         <button class="btn" id="sySignup" style="display:none">가입하기</button>
         <button class="btn ghost" id="syLogout" style="display:none">로그아웃</button>
@@ -1188,12 +1188,12 @@ body.ro .no-ro{display:none!important}
       <div class="joinbox" id="syJoin" style="display:none">
         <div id="syJoinStep1">
           <b>부대 등록</b>
-          <p class="smallnote" style="margin:4px 0 10px">관리자에게 받은 부대 코드를 입력하면 근무자 명단에서 본인을 고를 수 있습니다.</p>
+          <p class="smallnote" style="margin:4px 0 10px">관리자 발급 부대 코드를 입력하면 근무자 명단에서 본인 계정을 연결할 수 있습니다.</p>
           <div class="row"><div class="field"><label>부대 코드</label><input id="syCode" type="text" autocomplete="off" autocapitalize="off"></div><button class="btn" id="syCodeCheck">확인</button></div>
         </div>
         <div id="syJoinStep2" style="display:none">
           <b>본인 선택</b>
-          <p class="smallnote" style="margin:4px 0 10px">본인 이름을 고르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 관리자만 바꿀 수 있습니다.</p>
+          <p class="smallnote" style="margin:4px 0 10px">본인 성명을 선택하십시오. 1인 1계정만 연동되며, 등록 후 변경은 관리자만 가능합니다.</p>
           <div class="row"><div class="field"><label>근무자</label><select id="syWho"></select></div><button class="btn" id="syClaim">이 사람이 저입니다</button></div>
         </div>
       </div>
@@ -1201,12 +1201,12 @@ body.ro .no-ro{display:none!important}
       <div id="syAdminBox" style="display:none">
         <div class="divider"></div>
         <h2 style="font-size:14px">부대 코드</h2>
-        <p class="smallnote" style="margin:2px 0 8px">구성원은 이 코드를 알아야 가입할 수 있습니다. 바꿔도 이미 가입한 사람은 그대로 유지됩니다. 8자 이상으로 정하세요.</p>
+        <p class="smallnote" style="margin:2px 0 8px">부대원 신규 가입 시 필요한 인증 코드입니다. 코드를 변경해도 기존 가입자는 유지됩니다. 8자 이상으로 설정하십시오.</p>
         <div id="syCodeNow" style="font-size:13px;margin-bottom:8px">—</div>
         <div class="row"><div class="field"><label>새 부대 코드</label><input id="syNewCode" type="text" autocomplete="off" autocapitalize="off"></div><button class="btn" id="syCodeSave">코드 저장</button></div>
         <div class="divider"></div>
         <div class="flexgap" style="margin-bottom:8px"><h2 style="font-size:14px;margin:0">가입자 관리</h2><span style="flex:1"></span><button class="btn ghost sm" id="syMembersLoad">새로고침</button></div>
-        <p class="smallnote" style="margin:0 0 8px">잘못 고른 사람은 [연결 변경], 전역·전출자는 [해제]하세요. 로그인 계정 자체의 삭제는 Firebase 콘솔 → Authentication에서 합니다.</p>
+        <p class="smallnote" style="margin:0 0 8px">오연동 인원은 [연결 변경], 전역·전출 인원은 [해제]를 실행하십시오. 계정 자체 삭제는 Firebase Console(Authentication)에서 처리합니다.</p>
         <div id="syMembers" class="mlist"></div>
       </div>
       <div id="sySetup" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel2);margin-top:12px">
@@ -1219,7 +1219,7 @@ body.ro .no-ro{display:none!important}
           <button class="btn" id="syCfgSave">연결 설정 저장</button>
           <button class="btn danger" id="syCfgClear">동기화 해제</button>
         </div>
-        <p class="smallnote">실제 권한(읽기: 로그인한 사용자만, 쓰기: 관리자만)은 Firebase 콘솔의 <b>Firestore 보안 규칙</b>으로 정해집니다. FIREBASE_SETUP.md의 규칙을 꼭 적용하세요. 저장소에 firebase-config.js 파일을 두면 구성원은 이 설정 입력 없이 로그인만 하면 됩니다.</p>
+        <p class="smallnote">접근 권한(읽기: 인증 사용자, 쓰기: 관리자)은 Firestore 보안 규칙으로 통제됩니다. FIREBASE_SETUP.md의 규칙을 반드시 반영하십시오. 루트에 firebase-config.js 배치 시 부대원은 별도 설정 없이 로그인 가능합니다.</p>
       </div>
     </div>
   </section>
@@ -1229,11 +1229,11 @@ body.ro .no-ro{display:none!important}
     <div class="subhdr"><button class="back" data-back>‹ 더보기</button><h2>시간 구조 · 배정 규칙</h2></div>
     <div class="panel">
       <p class="smallnote" style="font-size:12.5px">
-        하루 = 06:30~익일 05:30, 1시간 24슬롯 · 주간 06:30~16:30(11) · 야간 번초 4개(각 4시간 간격 2슬롯, 1번초=1h).<br>
-        1번초 22:30+02:30 · 2번초 23:30+03:30 · 3번초 00:30+04:30 · 4번초 01:30+05:30.<br>
-        고정 슬롯 17:30=다음날밥교대(+순찰) · 18:30=다음날상황병 · 19:30=다음날당직 · 20:30=전날상황병 · 21:30=전날당직 · 14:30=평일 당일상황병.<br>
-        06:30은 순번제 — 신병/비신병 구분 없이 06:30 배정률(06:30 횟수 ÷ 근무에 포함된 날, 카운트 초기화와 무관한 전체 기록)이 낮은 사람 → 동률이면 마지막 06:30이 가장 오래된 사람 순으로 돌아갑니다. 횟수가 아니라 배정률이라 전입·휴가 복귀·역할 전환 직후에도 몰아 받지 않습니다(열외자는 건너뛰고 다음 순번). 같은 날 신병끼리 받는 개수가 갈릴 때는 누적 평균시간이 많은 신병이 적은 개수를 받습니다.<br>
-        운항병(1명): 월~목 09:30·13:30 / 금 09:30·14:30 고정, 금·토 야간 매주 1회(균등 배분). 당일상황 고정칸은 금요일만 13:30(그 외 요일 14:30).
+        1일 기준: 당일 06:30~익일 05:30 (1시간 단위 24개 슬롯). 주간 06:30~16:30 (11슬롯), 야간 4개 번초 (4시간 간격 2개 슬롯 분할 배정, 1번초는 1개 슬롯).<br>
+        야간 번초: 1번초 22:30+02:30, 2번초 23:30+03:30, 3번초 00:30+04:30, 4번초 01:30+05:30.<br>
+        고정 슬롯: 17:30(익일 밥교대 및 순찰), 18:30(익일 상황병), 19:30(익일 당직), 20:30(전일 상황병), 21:30(전일 당직), 14:30(평일 당일 상황병).<br>
+        06:30 순번제: 신병 여부와 무관하게 06:30 누적 배정률 최저 순으로 순환 배정합니다. (동률 시 최장 미배정자 우선) 절대 횟수가 아닌 배정률 기준으로 판정하므로 전입·복귀·역할전환자에게 편중되지 않습니다. 당일 신병 배정 수가 상이할 경우 누적 평균시간이 많은 신병에게 적은 슬롯을 배정합니다.<br>
+        운항병 (활성 1명): 월~목 09:30·13:30, 금 09:30·14:30 고정 배정. 금·토 야간 매주 1회 균등 배정. 금요일 당일상황 고정은 13:30으로 조정됩니다.
       </p>
     </div>
   </section>
@@ -1345,7 +1345,7 @@ function roleTag(id){ const w=W(id); if(!w) return null;
 function applyRole(w, v){
   if(v==='navigator'){
     const other=DB.workers.find(x=>x.id!==w.id && x.isNavigator && x.active);
-    if(other){ alert('운항병은 한 명만 지정할 수 있습니다. 현재 운항병: '+other.name+'\n먼저 기존 운항병을 다른 구분으로 바꿔주세요.'); return false; }
+    if(other){ alert('운항병은 1명만 지정 가능합니다. 현재 운항병: '+other.name+'\n기존 운항병의 구분을 먼저 변경하십시오.'); return false; }
     w.roleReady=true; w.roleType='situation'; w.isNavigator=true; w.isVeteran=false;
   }else if(v==='veteran'){
     w.roleReady=false; w.isNavigator=false; w.isVeteran=true;   // 신병 취급 + 카운트 초기화 없음
@@ -1356,7 +1356,7 @@ function applyRole(w, v){
     w.roleReady=true; w.roleType=v; w.isNavigator=false; w.isVeteran=false;
     if(wasRealRecruit){
       w.countResetAt=todayStr();
-      alert(w.name+' 전환: 오늘부로 신병 근무 카운트를 초기화합니다(밥교대 카운트는 유지).');
+      alert(w.name+' 역할 전환: 당일부로 신병 근무 카운트를 초기화합니다. (밥교대 카운트 유지)');
     }
   }
   return true;
@@ -1382,9 +1382,9 @@ function renderFuelNotice(ds){
     const today = al.night ? '오늘(금)은 야간 번초 1개가 자동 배정됩니다.'
                 : al.day.length ? '오늘은 '+al.day[0]+'~'+al.day[al.day.length-1]+' 중 1칸이 자동 배정됩니다.'
                 : '오늘은 열외입니다.';
-    box.innerHTML='<div class="ok">🚚 이번 주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 평일(월~목) 종일 열외, 금 야간 번초 1자리 · 토/일·휴일 12:30 이후 1칸만 섭니다(그 주 7일 모두 분모 제외). '+today+' 그 안에서 못 서는 칸은 아래 열외에서 유조차 운전병을 눌러 추가로 고르세요.</div>';
+    box.innerHTML='<div class="ok">🚚 금주 유조차 운전병: <b>'+esc(nameOf(f.wid))+'</b> ('+esc(f.start)+' ~ '+esc(f.end)+') — 평일(월~목) 종일 열외, 금요일 야간 1슬롯, 주말·휴일 12:30 이후 1슬롯만 배정됩니다 (해당 주 7일 전체 분모 제외). '+today+' 추가 열외 필요 시 하단 열외 설정에서 유조차 운전병을 선택하십시오.</div>';
   }else{
-    box.innerHTML='<div class="warn">⚠ 이번 주 유조차 운전병이 등록되지 않았습니다. [달력 · 일정] 탭에서 이번 주 유조차를 등록해주세요.</div>';
+    box.innerHTML='<div class="warn">⚠ 금주 유조차 운전병이 등록되지 않았습니다. [달력] 탭에서 금주 유조차 일정을 등록하십시오.</div>';
   }
 }
 function refreshGenSelectors(){
@@ -1404,7 +1404,7 @@ function refreshGenSelectors(){
   fillSelect($('#gNext2Sit'),  sitList(),  {selected: existing?existing.next2SituationId:pbPick(pbNext2,'situation')});
   fillSelect($('#gNextMeal'), mealList(), {blank:'⚙ 자동 배정', selected: existing?existing.nextMealId:null});
   { const nm=$('#gNextMeal');
-    const noneOpt=el('option'); noneOpt.value='__none__'; noneOpt.textContent='— 다음날 없음 —';
+    const noneOpt=el('option'); noneOpt.value='__none__'; noneOpt.textContent='— 익일 미편성 —';
     nm.insertBefore(noneOpt, nm.children[1]||null);
     nm.value = existing ? (existing.nextMealAuto ? '' : (existing.nextMealId || '__none__')) : '';  // 신규일=자동
   }
@@ -1452,12 +1452,12 @@ function refreshGenSelectors(){
     fillPrevSelect(pd, dutyList(), prev.dutyId, false);
     fillPrevSelect(ps, sitList(), prev.situationId, false);
     pv.innerHTML='';
-    pv.appendChild(el('span','pill','전날 표에서 자동 이전'));
-    if(prev.night){ const ids=Object.values(prev.night).filter(Boolean).map(nameOf); if(ids.length) pv.appendChild(el('span','pill','전날 야간 · '+esc(ids.join(', ')))); }
+    pv.appendChild(el('span','pill','전일 근무표에서 자동 연계'));
+    if(prev.night){ const ids=Object.values(prev.night).filter(Boolean).map(nameOf); if(ids.length) pv.appendChild(el('span','pill','전일 야간 · '+esc(ids.join(', ')))); }
   }else{
     fillPrevSelect(pd, dutyList(), existing?existing.prevDutyId:null, true);
     fillPrevSelect(ps, sitList(), existing?existing.prevSituationId:null, true);
-    pv.innerHTML='<span class="muted">전날 표 없음 — 직접 선택하세요. 없으면 20:30/21:30이 비고 해당 인원 열외도 적용되지 않습니다.</span>';
+    pv.innerHTML='<span class="muted">전일 근무표 없음: 수동 지정 필요 (미지정 시 20:30·21:30 미편성 및 열외 미적용)</span>';
   }
   // 일괄 생성 기본값: 마지막 생성일 다음날부터 1주
   if(!$('#bgStart').value){
@@ -1564,7 +1564,7 @@ function renderExChips(){
   sum.innerHTML='';
   const exList=list.filter(w=>exSetOf(w.id).size);
   if(!exList.length){
-    sum.appendChild(el('span','none','열외자 없음 — 이름을 탭해 시간대를 고르세요.'));
+    sum.appendChild(el('span','none','열외자 없음: 근무자 선택 후 시간대를 지정하십시오.'));
   }else{
     exList.forEach(w=>{
       const e=el('div','e','<b>'+esc(w.name)+'</b>');
@@ -1593,7 +1593,7 @@ function exPanel(w){
   const p=el('div','expanel');
   const redraw=()=>{ renderExChips(); previewGen(); };
   if(isFuelEx(w.id)) return exPanelFuel(w, p, redraw);
-  p.appendChild(el('div','who', esc(w.name)+' — 열외 시간대'));
+  p.appendChild(el('div','who', esc(w.name)+' — 열외 시간대 설정'));
   const brow=el('div','brow');
   EX_BANDS.forEach(b=>{
     const st=exBandState(w.id,b);
@@ -1615,7 +1615,7 @@ function exPanel(w){
   p.appendChild(brow2);
   // 세부 — 칸 하나씩
   const d=el('details'); d.open=genEx.detail;
-  d.appendChild(el('summary',null,'세부 — 칸 하나씩 지정'));
+  d.appendChild(el('summary',null,'상세 설정 (슬롯별 개별 지정)'));
   const u1=el('div','units'), u2=el('div','units');
   DAY_SLOTS.forEach(sl=> u1.appendChild(exUnitBtn(w.id, sl, sl, redraw)));
   NIGHT_UNITS.forEach((u,i)=> u2.appendChild(exUnitBtn(w.id, u, (i+1)+'번초', redraw)));
@@ -1627,7 +1627,7 @@ function exPanel(w){
   cb.type='checkbox'; cb.checked=genEx.omit.has(w.id); cb.disabled=!full;
   cb.addEventListener('change',()=>{ if(cb.checked) genEx.omit.add(w.id); else genEx.omit.delete(w.id); redraw(); });
   lab.appendChild(cb);
-  lab.appendChild(el('span',null,'분모(겪은 근무표 수)에서 제외'+(full?'':' — 종일 열외일 때만')));
+  lab.appendChild(el('span',null,'통계 분모(근무표 수)에서 제외'+(full?'':' (종일 열외 시에만 가능)')));
   p.appendChild(lab);
   return p;
 }
@@ -1640,17 +1640,17 @@ function exUnitBtn(wid, unit, text, redraw, locked){
 /* 유조차 운전병 패널 — 운행 때문에 열외인 칸은 잠그고, 설 수 있는 칸 안에서만 추가 열외를 고른다 */
 function exPanelFuel(w, p, redraw){
   const f=genEx.fuel;
-  p.appendChild(el('div','who', esc(w.name)+' — 유조차 운행 주간 (분모 7일 제외)'));
+  p.appendChild(el('div','who', esc(w.name)+' — 유조차 운행 주간 (해당 주 7일 분모 제외)'));
   p.appendChild(el('p','smallnote', f.allowed.length
-    ? '이 날은 '+(f.night?'야간 번초':'12:30~16:30')+' 중 1자리만 섭니다(자동 선택). 잠긴 칸은 유조차 운행으로 열외입니다. 그 안에서 못 서는 칸이 있으면 추가로 고르세요.'
-    : '이 날은 유조차 운행으로 CCTV 근무에서 완전히 빠집니다.'));
+    ? '당일은 '+(f.night?'야간 번초':'12:30~16:30')+' 중 1개 슬롯만 배정됩니다 (자동 편성). 잠금 슬롯은 유조차 운행에 따른 열외입니다. 추가 열외 필요 시 슬롯을 직접 선택하십시오.'
+    : '당일은 유조차 운행으로 CCTV 근무에서 전체 열외됩니다.'));
   if(f.allowed.length){
     const u=el('div','units');
     f.allowed.forEach(x=> u.appendChild(exUnitBtn(w.id, x, x[0]==='N' ? x.slice(1)+'번초' : x, redraw, false)));
     p.appendChild(u);
   }
   const d=el('details'); d.open=genEx.detail;
-  d.appendChild(el('summary',null,'전체 칸 보기 (잠금 포함)'));
+  d.appendChild(el('summary',null,'전체 슬롯 보기 (잠금 슬롯 포함)'));
   const u1=el('div','units'), u2=el('div','units');
   DAY_SLOTS.forEach(sl=> u1.appendChild(exUnitBtn(w.id, sl, sl, redraw, !f.allowed.includes(sl))));
   NIGHT_UNITS.forEach((x,i)=> u2.appendChild(exUnitBtn(w.id, x, (i+1)+'번초', redraw, !f.allowed.includes(x))));
@@ -1658,7 +1658,7 @@ function exPanelFuel(w, p, redraw){
   d.addEventListener('toggle',()=>{ genEx.detail=d.open; });
   p.appendChild(d);
   const lab=el('label','chk'), cb=el('input'); cb.type='checkbox'; cb.checked=true; cb.disabled=true;
-  lab.appendChild(cb); lab.appendChild(el('span',null,'분모(겪은 근무표 수)에서 제외 — 유조차 운행 주간 7일 고정'));
+  lab.appendChild(cb); lab.appendChild(el('span',null,'통계 분모(근무표 수)에서 제외 (유조차 운행 주간 7일 고정)'));
   p.appendChild(lab);
   return p;
 }
@@ -1726,9 +1726,9 @@ function previewGen(){
   g1.appendChild(el('span','pill','야간그룹 '+(nightGroup(ds,ctx.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')));
   const _hn=holidayName(ds);
   if(_hn) g1.appendChild(el('span','pill','휴무일 · '+esc(_hn)));
-  if(_hn && !ctx.workHoliday) g1.appendChild(el('span','miss','휴무일로 지정된 날인데 ‘직장 휴무일’이 꺼져 있습니다'));
+  if(_hn && !ctx.workHoliday) g1.appendChild(el('span','miss','지정 휴무일이나 직장 휴무일 설정이 비활성화됨'));
   const _hnN=holidayName(addDays(ds,1));
-  if(_hnN && !ctx.nextWorkHoliday) g1.appendChild(el('span','miss','다음날('+esc(_hnN)+')이 휴무일인데 ‘다음날 휴무일’이 꺼져 있습니다'));
+  if(_hnN && !ctx.nextWorkHoliday) g1.appendChild(el('span','miss','익일('+esc(_hnN)+') 휴무일이나 다음날 휴무일 설정이 비활성화됨'));
   box.appendChild(g1);
 
   // 사전등록 일정 안내 (달력·일정 탭에서 등록한 항목)
@@ -1748,12 +1748,12 @@ function previewGen(){
     m1.appendChild(el('span','pill', esc(nameOf(ctx.mealId))+' · 수동/이전'));
   }else{
     const cands=mealCandidates(ds,ctx);
-    if(!cands.length){ m1.appendChild(el('span','miss','후보 없음 — 미배정 예상')); }
+    if(!cands.length){ m1.appendChild(el('span','miss','후보 없음 (미배정 예상)')); }
     else{
       const pick=assignMeal(ds,ctx);   // DB 변경 없음
       const mg=mealGroup(ds,ctx.workHoliday);
       m1.appendChild(el('span','pill', esc(nameOf(pick))+' · '+MEALGRP_KR[mg]+' 그룹'));
-      m1.appendChild(el('span','muted','(후보 '+cands.length+'명 · 예상값, 실제는 동률 시 변동 가능)'));
+      m1.appendChild(el('span','muted','(가용 '+cands.length+'명 · 예상 순번)'));
     }
   }
   box.appendChild(m1);
@@ -1764,13 +1764,13 @@ function previewGen(){
   const rnm=resolveNextMeal(ds,ctx);
   if(rnm.id){
     m2.appendChild(el('span','pill', esc(nameOf(rnm.id))+' · '+MEALGRP_KR[nmg]+' 그룹('+nds+')'+(rnm.auto?' · ⚙자동':'')));
-    if(rnm.auto) m2.appendChild(el('span','muted','(예상값, 동률 시 변동 가능)'));
+    if(rnm.auto) m2.appendChild(el('span','muted','(예상 순번)'));
     if(rnm.id===ctx.nextDutyId||rnm.id===ctx.nextSituationId)
-      m2.appendChild(el('span','miss','다음날 당직/상황병과 동일 — 17:30 고정 충돌'));
+      m2.appendChild(el('span','miss','익일 당직/상황병과 동일 인원 (17:30 충돌)'));
   }else if(rnm.auto){
-    m2.appendChild(el('span','miss','자동 — 다음날 밥교대 후보 없음'));
+    m2.appendChild(el('span','miss','익일 밥교대 후보 부족'));
   }else{
-    m2.appendChild(el('span','muted','없음 (17:30 비게 됨)'));
+    m2.appendChild(el('span','muted','미편성 (17:30 공석)'));
   }
   box.appendChild(m2);
 
@@ -1786,7 +1786,7 @@ function previewGen(){
       esc(b.label)+' '+n+'명 / '+b.units.length+(b.id==='night'?'번초':'칸')+(short?' 부족':'')));
   });
   if(nightPool.filter(w=> NIGHT_UNITS.some(u=>!slotExcluded(ctx,w.id,u))).length < 4)
-    need.appendChild(el('span','muted','(야간 부족 — 밥교대 인원 자동 투입 예상)'));
+    need.appendChild(el('span','muted','(야간 가용인원 부족: 밥교대 인원 투입 예상)'));
   box.appendChild(need);
 }
 $('#gHoliday').addEventListener('change', refreshFuelLock);
@@ -1797,10 +1797,10 @@ function renderCtrlNotice(){
   const ds=$('#gDate').value, cs=controllers(); box.innerHTML='';
   if(!ds || !cs.length) return;
   const names=cs.map(w=>esc(w.name)).join(', '), t=[];
-  if(dow(ds)===6) t.push('토요일 07:30~14:30 열외(밥교대 제외)');
+  if(dow(ds)===6) t.push('토요일 07:30~14:30 열외 (밥교대 제외)');
   const nx=controllerNightEx($('#gSit').value, $('#gNextSit').value);
-  if(nx.length) t.push('야간 열외 — 운항병이 '+($('#gSit').value && W($('#gSit').value) && W($('#gSit').value).isNavigator ? '오늘' : '내일')+' 상황병');
-  if(t.length) box.appendChild(el('div','hint','🎧 관제병 '+names+': '+t.join(' · ')+' — 생성할 때 자동으로 적용됩니다.'));
+  if(nx.length) t.push('야간 열외: 운항병 ' + ($('#gSit').value && W($('#gSit').value) && W($('#gSit').value).isNavigator ? '당일' : '익일') + ' 상황병');
+  if(t.length) box.appendChild(el('div','hint','🎧 관제병 '+names+': '+t.join(' · ')+' — 근무표 생성 시 자동 반영됩니다.'));
 }
 ['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
   .forEach(id=> $(id).addEventListener('change', previewGen));
@@ -1809,8 +1809,8 @@ $('#gReload').addEventListener('click', refreshGenSelectors);
 $('#gDate').addEventListener('change', refreshGenSelectors);
 
 $('#gRun').addEventListener('click',()=>{
-  const ds=$('#gDate').value; if(!ds){alert('날짜를 선택하세요');return;}
-  if(DB.schedules[ds] && !confirm(ds+' 근무표가 이미 있습니다.\n기존 기록을 없애고 새로 생성할까요? (기존 배정·수동 편집은 사라집니다)')) return;
+  const ds=$('#gDate').value; if(!ds){alert('생성 일자를 선택하십시오.');return;}
+  if(DB.schedules[ds] && !confirm(ds+' 근무표가 이미 존재합니다.\n기존 배정 및 수동 편집 내역을 삭제하고 새로 생성하시겠습니까?')) return;
   const input={
     date:ds, workHoliday:$('#gHoliday').checked, nextWorkHoliday:$('#gNextHoliday').checked,
     dutyId:$('#gDuty').value||null, situationId:$('#gSit').value||null,
@@ -1838,29 +1838,29 @@ function serverBackup(reason, box){
   SYNC_BACKUP(reason).then(r=>{
     if(r.skipped){ line.remove(); return; }
     line.className = r.ok ? 'hint' : 'warn';
-    line.textContent = r.ok ? '☁ 서버 백업 완료 · '+r.at+' (최근 10회 보관)' : '⚠ 서버 백업 실패: '+r.err;
+    line.textContent = r.ok ? '☁ 서버 백업 완료 ('+r.at+') · 최근 10회 보관' : '⚠ 서버 백업 실패: '+r.err;
   });
 }
 
 /* ----- 근무표 삭제 (한 날짜·기간) — 확인 → 지우기 직전 상태를 서버 백업 → 삭제 ----- */
 function deleteSchedules(dates, box){
   dates=dates.filter(d=>DB.schedules[d]);
-  if(!dates.length){ if(box) box.innerHTML='<div class="warn">그 기간에 생성된 근무표가 없습니다.</div>'; return false; }
+  if(!dates.length){ if(box) box.innerHTML='<div class="warn">해당 기간에 생성된 근무표가 없습니다.</div>'; return false; }
   const lbl=d=>calMd(d)+'('+DOW_KR[dow(d)]+')';
   const list=dates.length<=10 ? dates.map(lbl).join(', ') : dates.slice(0,10).map(lbl).join(', ')+' 외 '+(dates.length-10)+'일';
-  if(!confirm('근무표 '+dates.length+'일치를 삭제할까요?\n'+list+'\n\n이 날짜들의 배정·수동 편집 기록이 모두 사라집니다.'+(window.SYNC_BACKUP?'\n(지우기 전 상태를 서버 백업에 먼저 올립니다)':'\n(되돌릴 수 없음)'))) return false;
+  if(!confirm('근무표 '+dates.length+'일분을 삭제하시겠습니까?\n'+list+'\n\n해당 일자의 배정 및 편집 기록이 모두 삭제됩니다.'+(window.SYNC_BACKUP?'\n(삭제 직전 데이터가 서버 백업에 저장됩니다)' : '\n(복구 불가)'))) return false;
   const host=box||el('div');
   if(box) box.innerHTML='';
   serverBackup('삭제 전 백업 · 근무표 '+dates.length+'일 ('+dates[0]+(dates.length>1?' ~ '+dates[dates.length-1]:'')+')', host);   // DB를 그 자리에서 직렬화하므로 삭제 전 상태가 올라간다
   dates.forEach(d=>{ delete DB.schedules[d]; });
   if(vDraft && dates.includes(vDraft.date)){ vDraft=null; vMode='view'; }
   save(); refreshAll();
-  if(box) box.appendChild(el('div','ok','✓ 근무표 '+dates.length+'일치를 삭제했습니다: '+esc(list)));
+  if(box) box.appendChild(el('div','ok','✓ 근무표 '+dates.length+'일분을 삭제했습니다: '+esc(list)));
   return true;
 }
 $('#bdRun').addEventListener('click',()=>{
   const start=$('#bdStart').value, end=$('#bdEnd').value||start, box=$('#bdResult');
-  if(!start || end<start){ box.innerHTML='<div class="err">시작일·종료일을 확인하세요.</div>'; return; }
+  if(!start || end<start){ box.innerHTML='<div class="err">시작일 및 종료일을 확인하십시오.</div>'; return; }
   const dates=[]; for(let d=start; d<=end; d=addDays(d,1)) dates.push(d);
   deleteSchedules(dates, box);
 });
@@ -1868,13 +1868,13 @@ $('#bdRun').addEventListener('click',()=>{
 /* ----- 기간 일괄 생성 ----- */
 $('#bgRun').addEventListener('click',()=>{
   const start=$('#bgStart').value, end=$('#bgEnd').value, box=$('#bgResult');
-  if(!start||!end||end<start){ box.innerHTML='<div class="err">시작일·종료일을 확인하세요.</div>'; return; }
+  if(!start||!end||end<start){ box.innerHTML='<div class="err">시작일 및 종료일을 확인하십시오.</div>'; return; }
   let span=0; for(let d=start; d<=end; d=addDays(d,1)) span++;
-  if(span>31){ box.innerHTML='<div class="err">한 번에 31일까지만 생성할 수 있습니다.</div>'; return; }
+  if(span>31){ box.innerHTML='<div class="err">1회 최대 31일까지만 일괄 생성 가능합니다.</div>'; return; }
   const skip=$('#bgSkip').checked;
   const overwrite=[];
   if(!skip){ for(let d=start; d<=end; d=addDays(d,1)) if(DB.schedules[d]) overwrite.push(d); }
-  if(overwrite.length && !confirm('기존 근무표 '+overwrite.length+'일치('+overwrite.join(', ')+')를 덮어씁니다.\n해당 날짜의 수동 편집이 사라집니다. 계속할까요?')) return;
+  if(overwrite.length && !confirm('기존 근무표 '+overwrite.length+'일분('+overwrite.join(', ')+')을 덮어씁니다.\n해당 일자의 수동 편집 내역이 삭제됩니다. 계속 진행하시겠습니까?')) return;
   const t0=performance.now();
   let made=0, skipped=0, warnDays=0;
   const detail=[];
@@ -1891,7 +1891,7 @@ $('#bgRun').addEventListener('click',()=>{
   save();
   const ms=Math.round(performance.now()-t0);
   box.innerHTML='';
-  box.appendChild(el('div', warnDays?'warn':'ok', (warnDays?'⚠':'✓')+' 완료: 생성 '+made+'일 · 건너뜀 '+skipped+'일 · 점검 필요 '+warnDays+'일 ('+ms+'ms) — 결과는 [달력 · 일정]과 [근무표 확인]에서 볼 수 있습니다.'));
+  box.appendChild(el('div', warnDays?'warn':'ok', (warnDays?'⚠':'✓')+' 일괄 생성 완료: 생성 '+made+'일 · 건너뜀 '+skipped+'일 · 점검 필요 '+warnDays+'일 ('+ms+'ms) — 결과는 [달력] 및 [근무표] 탭에서 확인 가능합니다.'));
   detail.forEach(r=>{
     if(r.skipped){ box.appendChild(el('div','hint', esc(r.ds)+' ('+DOW_KR[dow(r.ds)]+') — 기존 표 유지(건너뜀)')); return; }
     if(r.issues.length) box.appendChild(el('div','warn','⚠ '+esc(r.ds)+' ('+DOW_KR[dow(r.ds)]+') · tier '+r.tier+'<br>'+r.issues.map(esc).join('<br>')));
@@ -1906,13 +1906,13 @@ function renderResultSummary(s){
   if(s.warnings.length){
     s.warnings.forEach(w=> box.appendChild(el('div','warn', '⚠ '+esc(w))) );
   }else if(s.tier===1){
-    box.appendChild(el('div','ok','✓ 모든 슬롯을 제약 위반 없이(tier 1) 배정했습니다.'));
+    box.appendChild(el('div','ok','✓ 제약조건 위반 없이 전 슬롯 배정 완료 (tier 1)'));
   }else{
-    box.appendChild(el('div','ok','✓ 모든 슬롯을 배정했습니다 (tier '+s.tier+').'));
+    box.appendChild(el('div','ok','✓ 전 슬롯 배정 완료 (tier '+s.tier+')'));
   }
   const tip=el('div','flexgap');tip.style.margin='10px 0';
-  tip.appendChild(el('span','muted','배정 결과는 [근무표 확인] 탭에서 확인·인쇄할 수 있습니다.'));
-  const go=el('button','btn ghost sm','이 날짜 표 보기');
+  tip.appendChild(el('span','muted','배정 결과는 [근무표] 탭에서 확인 및 인쇄 가능합니다.'));
+  const go=el('button','btn ghost sm','해당 근무표 확인');
   go.addEventListener('click',()=>{ $('#vDate').value=s.date; renderView(); showView('view'); });
   tip.appendChild(go); box.appendChild(tip);
   box.appendChild(renderSchedTimeline(s));
@@ -1922,7 +1922,7 @@ function renderResultSummary(s){
 /* 배정 이유 — 엔진의 후보 조건·우선순위로 '왜 이 사람인지' 보여 준다 (explainAssignment) */
 function openWhy(s, key){
   const x=explainAssignment(s, key);
-  $('#whyTitle').textContent='왜 이 사람?';
+  $('#whyTitle').textContent='배정 사유';
   const b=$('#whyBody'); b.innerHTML='';
   const nx=addDays(s.date,1), when = key[0]==='N' ? calMd(s.date)+' 밤 ~ '+calMd(nx)+' 새벽' : calMd(s.date)+' ('+DOW_KR[dow(s.date)]+')';
   b.appendChild(el('div','whyhd','<b>'+(x.who?esc(nameOf(x.who)):'미배정')+'</b> · '+esc(x.title)+' · '+esc(when)));
@@ -1931,24 +1931,24 @@ function openWhy(s, key){
   const core = rank ? (x.lines.length>1 ? [x.lines[1]] : x.lines.slice(0,1)) : x.lines;
   const detailLines = rank ? [x.lines[0]].concat(x.lines.slice(2)).filter((t,i)=>t && !(i===0 && core.includes(t))) : [];
   const ls=el('div','whylines'); core.forEach(t=>ls.appendChild(el('div',null,esc(t)))); b.appendChild(ls);
-  b.appendChild(el('p','smallnote', rank ? '현재 기록을 기준으로 다시 계산한 참고 설명입니다. 생성 당시의 선택 과정은 저장되지 않아, 실제 생성 때와 다를 수 있습니다.'
-                                         : '역할·고정 규칙으로 정해지는 자리입니다.'));
+  b.appendChild(el('p','smallnote', rank ? '현재 누적 통계 기준 재계산된 참고 설명입니다. 생성 시점의 임시 상태와는 일부 차이가 있을 수 있습니다.'
+                                         : '역할 및 고정 규칙에 따른 지정 슬롯입니다.'));
   if(detailLines.length || x.ranked.length || x.blocked.length){
     const d=el('details','adv'); d.style.marginTop='0';
-    d.appendChild(el('summary',null,'자세한 수치와 다른 후보'));
+    d.appendChild(el('summary',null,'세부 지표 및 타 후보 현황'));
     if(detailLines.length){ const dl=el('div','whylines'); detailLines.forEach(t=>dl.appendChild(el('div',null,esc(t)))); d.appendChild(dl); }
     if(x.ranked.length){
-      d.appendChild(el('div','edsep','다른 후보 — 우선순위 순'));
+      d.appendChild(el('div','edsep','차순위 후보 (우선순위순)'));
       const l=el('div','whylist');
       x.ranked.slice(0,8).forEach(r=> l.appendChild(el('div', r.ahead?'ah':null, '<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>')));
       if(x.ranked.length>8) l.appendChild(el('div',null,'<b></b><span>외 '+(x.ranked.length-8)+'명</span>'));
       d.appendChild(l);
     }
     if(x.blocked.length){
-      d.appendChild(el('div','edsep','이 칸 후보가 아니었던 사람 '+x.blocked.length+'명'));
+      d.appendChild(el('div','edsep','해당 슬롯 배정 제외 인원 '+x.blocked.length+'명'));
       const l=el('div','whylist'); x.blocked.forEach(r=> l.appendChild(el('div',null,'<b>'+esc(nameOf(r.id))+'</b><span>'+esc(r.reason)+'</span>'))); d.appendChild(l);
     }
-    d.appendChild(el('p','smallnote','비교 기준: 당일 칸 수 → 이 시간대 배정 → 신병 순서 → 배정률·하루 평균 근무시간 → 마지막으로 선 날 (06:30은 배정률 순번제).'));
+    d.appendChild(el('p','smallnote','우선순위 기준: 당일 배정수 → 시간대 누적배정 → 신병 순서 → 그룹/야간/슬롯 배정률 및 일일 평균시간 → 최근 배정일 (06:30은 배정률 순번제).'));
     b.appendChild(d);
   }
   openSheet('whySheet');
@@ -1957,7 +1957,7 @@ function openWhy(s, key){
 /* 근무표 시간표 — [근무표 확인]의 보기·편집, 달력 상세, 생성 결과가 모두 이 한 가지 모양을 쓴다.
    06:30부터 05:30까지 시간순. ed를 넘기면 편집 상태: 각 행에 [변경] 버튼, 바뀐 행은 은은한 배경과 ‘기존: 이름’.
    ed = {orig, changed:Set(칸 키), onPick(key)} */
-const TIER_KR={1:'모든 규칙을 지킴',2:'같은 날 중복 투입 허용',3:'야간 이틀 연속 허용',4:'야간 3일 연속 허용',5:'일부 칸을 비워 둠(미배정)'};
+const TIER_KR={1:'정상 배정 (하드/소프트 규칙 완비)',2:'동일 일자 중복 투입 허용',3:'2일 연속 야간 허용',4:'3일 연속 야간 허용',5:'일부 슬롯 미배정 (공석)'};
 function renderSchedTimeline(s, who, ed){
   const tagEl=(cls,txt)=>el('span','tag '+cls, esc(txt));
   const row=(key, t, id, tags, h, emptyText)=>{
@@ -1980,7 +1980,7 @@ function renderSchedTimeline(s, who, ed){
       r.addEventListener('click',()=>ed.onPick(key));
     }else{
       r.appendChild(el('div','h', h||''));
-      r.classList.add('why'); r.title='눌러서 배정 이유 보기';
+      r.classList.add('why'); r.title='배정 사유 확인';
       r.addEventListener('click',()=>openWhy(s, key));
     }
     return r;
@@ -2008,7 +2008,7 @@ function renderSchedTimeline(s, who, ed){
     const id=s.fixed&&s.fixed[slot];
     const [cls,lab]=EVENING_LABEL[slot];
     const tags=[tagEl(cls,lab)];
-    if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) tags.push(tagEl('relax','밥교대자와 다름'));
+    if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) tags.push(tagEl('relax','밥교대자 불일치'));
     tags.push(id&&roleTag(id));
     ev.push(row('E:'+slot, slot, id||null, tags, slot==='17:30'?(1+DB.settings.patrolBonus).toFixed(1)+'h':'1.0h', '—'));
   });
@@ -2020,7 +2020,7 @@ function renderSchedTimeline(s, who, ed){
   // 자정 이후 칸은 실제로 다음날 새벽 — 근무표 날짜와 헷갈리지 않게 구분선을 넣는다
   const nx=addDays(s.date,1), nightRows=[];
   nights.forEach(({t,b})=>{
-    if(t.startsWith('00:')) nightRows.push(el('div','daysep', esc(calMd(nx)+' ('+DOW_KR[dow(nx)]+') 새벽 — '+calMd(s.date)+' 근무표에 포함')));
+    if(t.startsWith('00:')) nightRows.push(el('div','daysep', esc(calMd(nx)+' ('+DOW_KR[dow(nx)]+') 익일 새벽 — '+calMd(s.date)+' 근무표 소속')));
     const id=s.night&&s.night[b.id];
     nightRows.push(row('N:'+b.id, t, id||null, [el('span','bn', b.id+'번초'), id&&s.mealId===id?tagEl('meal','밥교대'):null, id&&roleTag(id)], ''));
   });
@@ -2056,7 +2056,7 @@ function schedEmptyCount(s){
 }
 function renderStatusLine(box, s, issues){
   const empty=schedEmptyCount(s);
-  const txt=(empty?'미배정 '+empty+'곳':'모두 배정됨')+' · '+(issues.length?'확인 필요 '+issues.length+'건':'확인할 문제 없음');
+  const txt=(empty?'미배정 '+empty+'슬롯':'전 슬롯 편성 완료')+' · '+(issues.length?'점검 사항 '+issues.length+'건':'특이사항 없음');
   if(issues.length || empty){
     box.appendChild(el('div','status warn',(issues.length?'⚠ ':'')+esc(txt)));
     if(issues.length){ const lst=el('div','status-list'); issues.forEach(w=>lst.appendChild(el('div',null,'· '+esc(w)))); box.appendChild(lst); }
@@ -2083,7 +2083,7 @@ function vCommit(){
 function vResolveDraft(){
   if(!vDraft) return;
   const n=vChangedKeys().size;
-  if(n && confirm('저장하지 않은 변경 '+n+'건이 있습니다.\n\n[확인] 저장   [취소] 변경 버리기')){ vCommit(); return; }
+  if(n && confirm('저장되지 않은 변경사항 '+n+'건이 있습니다.\n\n[확인] 저장 후 이동   [취소] 변경사항 취소')){ vCommit(); return; }
   vDraft=null; vMode='view';
 }
 /* 화면을 다시 그려도 보고 있던 행이 같은 자리에 있게 한다 */
@@ -2100,7 +2100,7 @@ $$('#vMode button').forEach(b=>b.addEventListener('click',()=>{
   keepScroll(()=>{
     if(b.dataset.m==='view'){
       const n=vChangedKeys().size;
-      if(n && !confirm('변경 '+n+'건을 저장하지 않고 편집을 끝낼까요?')) return;
+      if(n && !confirm('변경사항 '+n+'건을 저장하지 않고 종료하시겠습니까?')) return;
       vDraft=null; vMode='view';
     }else vMode='edit';
     renderView();
@@ -2126,10 +2126,10 @@ function renderView(){
     if(s.nextWorkHoliday) meta.appendChild(el('span','pill','다음날 휴무'));
   }
   body.appendChild(meta);
-  if(!s){ body.appendChild(el('div','err','이 날짜의 근무표가 없습니다. [생성] 탭에서 먼저 생성하세요.')); return; }
+  if(!s){ body.appendChild(el('div','err','해당 일자의 근무표가 없습니다. [생성] 탭에서 먼저 생성하십시오.')); return; }
   const changed=vChangedKeys();
   const ed = editing ? {orig:vDraft.orig, changed, onPick:openEdPick} : null;
-  if(editing) body.appendChild(el('div','edbanner','<b>편집 중</b><span>바꿀 칸의 [변경]을 누르세요 · 저장 전까지는 표에 반영되지 않습니다</span>'));
+  if(editing) body.appendChild(el('div','edbanner','<b>근무표 편집</b><span>수정 대상 슬롯의 [변경]을 선택하십시오. 저장 전까지 데이터에 반영되지 않습니다.</span>'));
   const issues = editing ? validateSchedule(s) : validateScheduleCached(s);
   renderStatusLine(body, s, issues);
   body.appendChild(renderRoleCards(s, ed));
@@ -2145,25 +2145,25 @@ function renderView(){
   whoSel.addEventListener('change',()=>{ meSet(whoSel.value); renderView(); });
   whoRow.appendChild(whoSel); body.appendChild(whoRow);
   body.appendChild(renderSchedTimeline(s, whoSel.value||null, ed));
-  if(!editing) body.appendChild(el('p','smallnote no-print','칸이나 역할 카드를 누르면 그 사람이 배정된 이유가 나옵니다.'));
+  if(!editing) body.appendChild(el('p','smallnote no-print','슬롯 또는 역할 카드를 선택하면 세부 배정 사유를 확인할 수 있습니다.'));
   body.appendChild(renderDayLoad(s, whoSel.value||null, editing?vDraft.orig:null));
   // 기술적인 설명과 삭제는 평소에 접어 둔다
   const det=el('details','adv no-print');
   det.appendChild(el('summary',null,'배정 상세 · 근무표 관리'));
-  det.appendChild(el('p','smallnote','배정 단계: tier '+s.tier+' — '+esc(TIER_KR[s.tier]||'')+'. 숫자가 클수록 규칙을 더 완화해 채운 표입니다.'));
-  det.appendChild(el('p','smallnote','편집 내용은 [변경사항 저장] 시 카운트·검증에 반영됩니다. 17:30 근무자만 바꾸면 그 시간만 교체되고, 다음날 밥교대 카드를 바꾸면 밥교대 지정과 함께 설 수 없게 된 칸이 조정됩니다.'));
-  const delBtn=el('button','btn danger sm no-ro','이 근무표 삭제');
+  det.appendChild(el('p','smallnote','편성 등급: tier '+s.tier+' ('+esc(TIER_KR[s.tier]||'')+') — 등급 숫자가 높을수록 제약조건을 완화하여 편성된 근무표입니다.'));
+  det.appendChild(el('p','smallnote','수정 내역은 [변경사항 저장] 시 누적 통계 및 유효성 검증에 반영됩니다. 17:30 슬롯 변경 시 해당 슬롯만 단독 교체되며, 다음날 밥교대 변경 시 연관 슬롯이 함께 자동 재조정됩니다.'));
+  const delBtn=el('button','btn danger sm no-ro','당일 근무표 삭제');
   delBtn.style.margin='0 0 14px';
   delBtn.addEventListener('click',()=> deleteSchedules([ds], null));
   det.appendChild(delBtn);
   body.appendChild(det);
   if(editing){
     const bar=el('div','runbar edbar no-print');
-    bar.appendChild(el('span','edcnt', changed.size ? '<b>변경 '+changed.size+'건</b>'+(issues.length?' · 확인 '+issues.length+'건':' · 문제 없음') : '변경 없음'));
+    bar.appendChild(el('span','edcnt', changed.size ? '<b>변경 '+changed.size+'건</b>'+(issues.length?' · 점검 '+issues.length+'건':' · 정상') : '변경사항 없음'));
     const sp=el('div'); sp.style.flex='1'; bar.appendChild(sp);
     const cancel=el('button','btn ghost','취소');
     cancel.addEventListener('click',()=>{
-      if(changed.size && !confirm('변경 '+changed.size+'건을 버릴까요?')) return;
+      if(changed.size && !confirm('변경사항 '+changed.size+'건을 취소하시겠습니까?')) return;
       keepScroll(()=>{ vDraft=null; vMode='view'; renderView(); });
     });
     const ok=el('button','btn','변경사항 저장'); ok.disabled=!changed.size;
@@ -2192,7 +2192,7 @@ function renderDayLoad(s, who, orig){
   on.slice().sort((a,b)=> (h[a.id]||0)-(h[b.id]||0) || (avg(a.id)??0)-(avg(b.id)??0))
     .forEach(w=>{ const t=h[w.id]||0; if(!groups.has(t)) groups.set(t,[]); groups.get(t).push(w); });
   const box=el('div','load no-print');
-  box.appendChild(el('div','band-h','사람별 근무 시간<span class="r">이날 · 하루 평균</span><span class="sp"></span><small>'+(mean!=null?'부대 평균 '+mean.toFixed(2)+'h':'')+'</small>'));
+  box.appendChild(el('div','band-h','개인별 근무 현황<span class="r">당일 · 일일 평균</span><span class="sp"></span><small>'+(mean!=null?'부대 평균 '+mean.toFixed(2)+'h':'')+'</small>'));
   const card=el('div','load-box');
   groups.forEach((list,t)=>{
     const ln=el('div','load-ln');
@@ -2208,8 +2208,8 @@ function renderDayLoad(s, who, orig){
     ln.appendChild(cs); card.appendChild(ln);
   });
   box.appendChild(card);
-  if(off.length) box.appendChild(el('div','off','빠짐: '+off.map(w=>esc(short(w.name))).join(', ')));
-  box.appendChild(el('p','smallnote','그날 당직·상황병·밥교대는 제외. 왼쪽 = 이날 시간, 이름 옆 = 하루 평균(이 날짜 전까지). 주황 = 부대 평균보다 많이 섬, 초록 = 덜 섬'+(oh?', 점선 = 편집으로 시간이 바뀐 사람':'')+'. 순찰 가중 포함 — 공정성 계산과 같은 기준.'));
+  if(off.length) box.appendChild(el('div','off','열외: '+off.map(w=>esc(short(w.name))).join(', ')));
+  box.appendChild(el('p','smallnote','당일 당직·상황병·밥교대 제외. 좌측: 당일 근무시간, 성명 우측: 전일 기준 일일 평균시간. 주황: 부대 평균 초과, 녹색: 평균 미만'+(oh?', 점선: 편집 변경 인원':'')+'. 순찰 가중 포함 (공정성 지표 산출 기준과 동일).'));
   return box;
 }
 
@@ -2219,18 +2219,18 @@ function edKeyInfo(s, key){
   const at=t=> t<'06:30' ? addDays(s.date,1) : s.date;   // 자정 이후 칸은 다음날 새벽
   if(key[0]==='N'){
     const b=NIGHT_BUNCHO.find(x=>String(x.id)===key.slice(2));
-    return {title:b.id+'번초 근무자 변경', sub:b.slots.map(t=>md(at(t))+' '+t).join(' · '), note:'두 시간의 근무자가 함께 변경됩니다.'};
+    return {title:b.id+'번초 근무자 변경', sub:b.slots.map(t=>md(at(t))+' '+t).join(' · '), note:'해당 번초의 2개 슬롯 근무자가 일괄 변경됩니다.'};
   }
-  if(key==='P') return {title:'17:00 추가 순찰 변경', sub:md(s.date)+' 17:00', note:'이 시간 근무자만 바뀝니다.'};
-  if(key[0]==='D') return {title:key.slice(2)+' 근무자 변경', sub:md(s.date)+' '+key.slice(2), note:'이 시간 근무자만 바뀝니다.'};
+  if(key==='P') return {title:'17:00 추가 순찰 변경', sub:md(s.date)+' 17:00', note:'해당 슬롯 근무자만 단독 변경됩니다.'};
+  if(key[0]==='D') return {title:key.slice(2)+' 근무자 변경', sub:md(s.date)+' '+key.slice(2), note:'해당 슬롯 근무자만 단독 변경됩니다.'};
   if(key[0]==='E') return {title:key.slice(2)+' 근무자 변경', sub:md(s.date)+' '+key.slice(2)+' · '+EVENING_LABEL[key.slice(2)][1]+' 칸',
-    note: key==='E:17:30' ? '이 시간 근무자만 바뀝니다(외출 등). 다음날 밥교대 지정 자체를 바꾸려면 위쪽 ‘다음날 밥교대’ 카드를 누르세요.' : '이 시간 근무자만 바뀝니다.'};
-  if(key==='xmess') return {title:'추가배식조 변경', sub:md(s.date), note:'이 날짜의 추가배식조만 바뀝니다(그날 CCTV 전부 열외·근무일수 제외). 지난 날짜에 넣으면 과거 기록으로 순번에 반영됩니다. 새 사람이 이미 서 있는 칸은 점검에 표시되니 직접 바꾸세요.'};
-  if(key==='nextXmess') return {title:'다음날 추가배식조 변경', sub:md(addDays(s.date,1)), note:'다음날 추가배식조만 바뀝니다 — 이 사람은 오늘 야간에서 빠져야 합니다(이미 서 있으면 점검에 표시). 다음날 표를 새로 만들면 이 사람이 그날 추가배식조가 됩니다.'};
-  if(key==='duty') return {title:'당직 변경', sub:md(s.date), note:'당직 지정만 바뀝니다. 시간표의 칸은 그대로입니다.'};
-  if(key==='sit') return {title:'상황병 변경', sub:md(s.date), note:'상황병 지정만 바뀝니다. 시간표의 칸은 그대로입니다.'};
+    note: key==='E:17:30' ? '해당 슬롯 근무자만 단독 변경됩니다 (외출 등). 익일 밥교대 지정 자체를 변경하려면 상단 [다음날 밥교대] 카드를 선택하십시오.' : '해당 슬롯 근무자만 단독 변경됩니다.'};
+  if(key==='xmess') return {title:'추가배식조 변경', sub:md(s.date), note:'해당 일자의 추가배식조만 변경됩니다 (당일 CCTV 전체 열외 및 분모 제외). 과거 일자에 입력 시 누적 기록에 소급 반영됩니다. 기존 배정 슬롯과의 충돌 여부는 점검 목록을 확인하여 수동 조정하십시오.'};
+  if(key==='nextXmess') return {title:'다음날 추가배식조 변경', sub:md(addDays(s.date,1)), note:'익일 추가배식조만 변경됩니다. 대상자는 당일 야간 배정에서 제외되어야 합니다 (기 배정 시 점검 목록 표시). 익일 근무표 생성 시 해당 인원이 추가배식조로 지정됩니다.'};
+  if(key==='duty') return {title:'당직 변경', sub:md(s.date), note:'당직 지정만 변경되며 배정 슬롯은 유지됩니다.'};
+  if(key==='sit') return {title:'상황병 변경', sub:md(s.date), note:'상황병 지정만 변경되며 배정 슬롯은 유지됩니다.'};
   return {title:(key==='meal'?'밥교대':'다음날 밥교대')+' 변경', sub:md(s.date),
-    note:'밥교대 담당자와 함께, 새 담당자가 설 수 없게 된 칸만 다른 사람으로 조정합니다. 고르면 바뀌는 칸을 먼저 보여 줍니다.'};
+    note:'밥교대 담당자 변경 시 제약 충돌이 발생하는 슬롯만 대체 인원으로 자동 재조정합니다. 선택 시 연동 변경 슬롯이 사전 표시됩니다.'};
 }
 function openEdPick(key){
   if(!vDraft) return;
@@ -2267,7 +2267,7 @@ function openEdPick(key){
   });
   body.appendChild(list);
   body.appendChild(el('div','edsep','또는'));
-  const none=el('button','btn ghost full', isMeal||key==='duty'||key==='sit' ? '지정 안 함으로 변경' : '미배정으로 변경');
+  const none=el('button','btn ghost full', isMeal||key==='duty'||key==='sit' ? '지정 해제' : '미배정으로 변경');
   none.disabled=!cur;
   none.addEventListener('click',()=>pick(null));
   body.appendChild(none);
@@ -2284,11 +2284,11 @@ function edMealPreview(key, id){
   const item=(t,sub)=>lst.appendChild(el('div','cday-item','<div class="bd"><div class="nm">'+t+'</div>'+(sub?'<div class="cd">'+sub+'</div>':'')+'</div>'));
   if(key==='nextMeal') item('17:30', esc(nameOf(s.fixed&&s.fixed['17:30']))+' → '+esc(nameOf(id))+' <span class="muted">(밥교대 근무+순찰)</span>');
   res.changes.forEach(c=> item(esc(repairKeyLabel(c.key)), esc(nameOf(c.from))+' → <b>'+esc(nameOf(c.to))+'</b>'));
-  res.unresolved.forEach(u=> item(esc(repairKeyLabel(u.key)), u.kept?esc(nameOf(u.kept))+' 유지 — 대신 설 사람이 없음':'비워 둠 — 대신 설 사람이 없음'));
-  body.appendChild(el('div','edsep', res.changes.length||res.unresolved.length||key==='nextMeal' ? '함께 바뀌는 칸' : '다른 칸은 바뀌지 않습니다'));
+  res.unresolved.forEach(u=> item(esc(repairKeyLabel(u.key)), u.kept?esc(nameOf(u.kept))+' 유지 (대체 인원 없음)':'공석 처리 (대체 인원 없음)'));
+  body.appendChild(el('div','edsep', res.changes.length||res.unresolved.length||key==='nextMeal' ? '연동 변경 슬롯' : '타 슬롯 변경사항 없음'));
   body.appendChild(lst);
   const two=el('div','two'); two.style.marginTop='12px';
-  const back=el('button','btn ghost full','다른 사람 선택'); back.addEventListener('click',()=>openEdPick(key));
+  const back=el('button','btn ghost full','다른 근무자 선택'); back.addEventListener('click',()=>openEdPick(key));
   const ok=el('button','btn full','적용'); ok.addEventListener('click',()=>{ vDraft.s=res.sched; closeSheet('edSheet'); keepScroll(renderView); });
   two.appendChild(back); two.appendChild(ok); body.appendChild(two);
 }
@@ -2304,7 +2304,7 @@ $('#vPrev').addEventListener('click',()=>{ vResolveDraft(); $('#vDate').value=ad
 $('#vNext').addEventListener('click',()=>{ vResolveDraft(); $('#vDate').value=addDays($('#vDate').value||todayStr(),1); renderView(); });
 $('#vPrint').addEventListener('click',()=>window.print());
 $('#vCsv').addEventListener('click',()=>{
-  const ds=$('#vDate').value; const s=DB.schedules[ds]; if(!s){alert('표 없음');return;}
+  const ds=$('#vDate').value; const s=DB.schedules[ds]; if(!s){alert('해당 일자의 근무표가 없습니다.');return;}
   let rows=[['시간','근무자','구분']];
   DAY_SLOTS.forEach(sl=>rows.push([sl, nameOf((s.assign&&s.assign[sl])||(s.fixed&&s.fixed[sl])), '주간']));
   EVENING.forEach(sl=>rows.push([sl, nameOf(s.fixed&&s.fixed[sl]), '고정']));
@@ -2338,21 +2338,21 @@ const PREBOOK_TAGCLS={vacation:'ex', exday:'ex', exboth:'ex', duty:'duty', situa
    휴가 마지막 날(복귀일)은 주간만 열외, 그날 야간부터 투입된다. */
 function pbDayInfo(p, ds){
   if(p.kind==='vacation') return ds===p.end
-    ? {word:'복귀', cls:'cw-ret', label:'휴가 복귀', cond:'복귀 · 주간만 열외, 야간 가능'}
-    : {word:'휴가', cls:'cw-ex', label:'휴가', cond:'휴가 중 · 종일 열외'};
-  if(p.kind==='exday') return {word:'주간', cls:'cw-ex', label:'주간 열외', cond:'주간만 열외, 야간 가능'};
-  if(p.kind==='exboth') return {word:'열외', cls:'cw-ex', label:'모두 열외', cond:'종일 열외 · 분모 제외'};
-  if(p.kind==='mess') return {word:'배식', cls:'cw-fuel', label:'배식조', cond:'종일 열외 · 분모 제외 · 당직/상황병 날은 역할 근무'};
-  if(p.kind==='fuelsub') return {word:'유조차', cls:'cw-fuel', label:'유조차 (부)', cond:'종일 열외 · 당직/상황병 날은 역할 근무'};
+    ? {word:'복귀', cls:'cw-ret', label:'휴가 복귀', cond:'복귀: 주간 열외, 야간 투입 가능'}
+    : {word:'휴가', cls:'cw-ex', label:'휴가', cond:'휴가: 종일 열외'};
+  if(p.kind==='exday') return {word:'주간', cls:'cw-ex', label:'주간 열외', cond:'주간 열외, 야간 투입 가능'};
+  if(p.kind==='exboth') return {word:'열외', cls:'cw-ex', label:'모두 열외', cond:'종일 열외 (분모 제외)'};
+  if(p.kind==='mess') return {word:'배식', cls:'cw-fuel', label:'배식조', cond:'종일 열외 (분모 제외) · 당직/상황병 편성 시 정상 투입'};
+  if(p.kind==='fuelsub') return {word:'유조차', cls:'cw-fuel', label:'유조차 (부)', cond:'종일 열외 · 당직/상황병 편성 시 정상 투입'};
   if(p.kind==='fueltruck'){
     const s=DB.schedules[ds], al=fuelAllowedOn(ds, s ? s.workHoliday : undefined);   // 표가 있으면 그 표의 직장 휴무일 기준
     const cond = al.night ? '야간 번초만 가능, 나머지 열외'
                : al.day.length ? al.day[0]+'~'+al.day[al.day.length-1]+'만 가능, 나머지 열외'
                : '종일 열외';
-    return {word:'유조차', cls:'cw-fuel', label:'유조차 (정)', cond:cond+' · 분모 제외'};
+    return {word:'유조차', cls:'cw-fuel', label:'유조차 (정)', cond:cond+' (분모 제외)'};
   }
-  if(p.kind==='duty') return {word:'당직예약', cls:'cw-duty', label:'당직 예약', cond:'이날 당직으로 지정'};
-  return {word:'상황예약', cls:'cw-sit', label:'상황병 예약', cond:'이날 상황병으로 지정'};
+  if(p.kind==='duty') return {word:'당직예약', cls:'cw-duty', label:'당직 예약', cond:'당직 지정'};
+  return {word:'상황예약', cls:'cw-sit', label:'상황병 예약', cond:'상황병 지정'};
 }
 
 /* 해당 표에서 근무자의 역할·슬롯 추출 */
@@ -2373,9 +2373,9 @@ function workerDayMarks(s,wid){
 function calCellWords(ds, mode, who){
   const s=DB.schedules[ds];
   if(mode==='status'){
-    if(!s) return [{t:'미생성', cls:'cw-none'}];
+    if(!s) return [{t:'미편성', cls:'cw-none'}];
     const n=validateScheduleCached(s).length;
-    return [n ? {t:'확인 '+n, cls:'cw-warn'} : {t:'표 있음', cls:'cw-ok'}];
+    return [n ? {t:'점검 '+n, cls:'cw-warn'} : {t:'표 있음', cls:'cw-ok'}];
   }
   if(mode==='leave'){
     const cnt={}, cls={};
@@ -2388,7 +2388,7 @@ function calCellWords(ds, mode, who){
   if(!who) return [];
   const out=[];
   prebookOn(ds).filter(p=>p.wid===who).forEach(p=>{ const i=pbDayInfo(p,ds); out.push({t:i.word, cls:i.cls}); });
-  if(!s){ out.push({t:'미생성', cls:'cw-none'}); return out; }
+  if(!s){ out.push({t:'미편성', cls:'cw-none'}); return out; }
   const mk=workerDayMarks(s,who);
   const RC={'당직':'cw-duty','상황병':'cw-sit','밥교대':'cw-meal','추가배식조':'cw-fuel'};
   mk.roles.forEach(r=>out.push({t:r, cls:RC[r]}));
@@ -2400,9 +2400,9 @@ function calCellWords(ds, mode, who){
 }
 
 const CAL_HINT={
-  status:'표 있음 = 생성됨 · 확인 N = 점검할 문제 N건 · 미생성 = 아직 표를 만들지 않음 · 빨간 숫자 = 휴무일',
-  leave:'휴가 = 종일 열외 · 복귀 = 주간만 열외(야간 가능) · 주간 = 주간 열외 · 열외 = 종일 열외 · 유조차 = 요일별로 일부만 가능',
-  person:'주간·저녁·야간 = 그날 표에서 맡은 칸 수(야간은 다음날 새벽까지) · 미생성 = 표 없음 · 없음 = 배정된 근무 없음'
+  status:'표 있음: 편성 완료 · 점검 N: 확인 필요 N건 · 미편성: 근무표 미생성 · 적색: 휴무일',
+  leave:'휴가: 종일 열외 · 복귀: 주간 열외(야간 투입) · 주간: 주간 열외 · 열외: 종일 열외 · 유조차: 요일별 일부 배정',
+  person:'주간·저녁·야간: 당일 배정 슬롯 수(야간은 익일 새벽 포함) · 미편성: 근무표 없음 · 없음: 배정 근무 없음'
 };
 
 function renderCal(){
@@ -2420,7 +2420,7 @@ function renderCal(){
 
   const weekStart=addDays(calSelDate, -dow(calSelDate));
   $('#calTitle').textContent = calWeek ? calMd(weekStart)+' – '+calMd(addDays(weekStart,6)) : ymTitle(calYM);
-  $('#calWeekBtn').textContent = calWeek ? '한 달 보기' : '한 주만 보기';
+  $('#calWeekBtn').textContent = calWeek ? '월간 보기' : '주간 보기';
   $('#calToday').textContent = calWeek ? '이번 주' : '오늘';
 
   const grid=$('#calGrid'); grid.innerHTML='';
@@ -2448,7 +2448,7 @@ function renderCal(){
     calCellWords(ds, mode, who).forEach(w=> cell.appendChild(el('div','cw '+w.cls, esc(w.t))));
     cell.addEventListener('click',()=>{
       selectCalDate(ds);
-      // ‘확인 N’을 누르면 그 N건이 바로 보이도록
+      // ‘점검 N’ 선택 시 해당 목록으로 스크롤
       if(mode==='status' && s && validateScheduleCached(s).length){
         const iss=$('#calIssues'); if(iss) iss.scrollIntoView({block:'nearest', behavior:'smooth'});
       }
@@ -2487,7 +2487,7 @@ function renderCalDetail(who){
   const add=el('button','btn ghost sm no-ro','+ 일정');
   add.addEventListener('click',()=>openPbSheet(null));
   hdr.appendChild(add);
-  const go=el('button','btn sm'+(s?' ghost':' no-ro'), s?'근무표 보기':'이 날짜 생성');
+  const go=el('button','btn sm'+(s?' ghost':' no-ro'), s?'근무표 보기':'해당 일자 생성');
   go.addEventListener('click',()=>{
     if(s){ $('#vDate').value=ds; renderView(); showView('view'); }
     else { $('#gDate').value=ds; refreshGenSelectors(); showView('gen'); }
@@ -2498,7 +2498,7 @@ function renderCalDetail(who){
   const sec=(title)=>{ const x=el('div','cday-sec'); x.appendChild(el('h3',null,esc(title))); wrap.appendChild(x); return x; };
 
   if(!s){
-    wrap.appendChild(el('div','cday-none','<b>근무표 미생성</b> — 이 날짜의 표를 아직 만들지 않았습니다.'));
+    wrap.appendChild(el('div','cday-none','<b>근무표 미편성</b> — 해당 일자의 근무표가 생성되지 않았습니다.'));
   }else{
     const roles=el('div','cday-roles');
     [['당직','duty',s.dutyId],['상황병','sit',s.situationId],['밥교대','meal',s.mealId]].concat(s.xmessId?[['추가배식조','patrol',s.xmessId]]:[]).forEach(([l,c,id])=>{
@@ -2511,16 +2511,16 @@ function renderCalDetail(who){
       if(mk.roles.length) parts.push(mk.roles.join('·'));
       if(mk.day.length) parts.push('주간 '+mk.day.join('·'));
       if(mk.eve.length) parts.push('저녁 '+mk.eve.join('·'));
-      if(mk.night.length) parts.push('야간 '+mk.night.join('·')+' ('+calMd(addDays(ds,1))+' 새벽까지)');
+      if(mk.night.length) parts.push('야간 '+mk.night.join('·')+' ('+calMd(addDays(ds,1))+' 익일 새벽 포함)');
       const me=el('div','cday-me','<b>'+esc(nameOf(who))+'</b> · '+(parts.length?esc(parts.join(' / ')):'<span class="muted">배정된 근무 없음</span>'));
       me.style.marginTop='8px';
       wrap.appendChild(me);
     }
     const issues=validateScheduleCached(s);
-    const iw=sec(issues.length ? '확인할 문제 '+issues.length+'건' : '확인할 문제');
+    const iw=sec(issues.length ? '점검 사항 '+issues.length+'건' : '점검 사항');
     iw.id='calIssues';
     if(issues.length){ const l=el('div','cday-iss'); issues.forEach(t=>l.appendChild(el('div',null,esc(t)))); iw.appendChild(l); }
-    else iw.appendChild(el('div','cday-ok','✓ 점검 결과 문제 없음'));
+    else iw.appendChild(el('div','cday-ok','✓ 점검 결과 특이사항 없음'));
   }
 
   const pbs=prebookOn(ds).filter(p=>!who||p.wid===who);
@@ -2539,17 +2539,17 @@ function renderCalDetail(who){
       l.appendChild(it);
     });
     lw.appendChild(l);
-  }else lw.appendChild(el('div','muted',who?'이 사람의 일정 없음':'등록된 휴가·열외·예약 없음'));
+  }else lw.appendChild(el('div','muted',who?'해당 인원 일정 없음':'등록된 휴가·열외·예약 없음'));
 
   if(s){
     const det=el('details','adv');
-    det.appendChild(el('summary',null,'시간별 근무 전체 보기'));
+    det.appendChild(el('summary',null,'전체 시간대 근무 현황'));
     const inner=el('div'); inner.style.padding='0 0 14px';
     inner.appendChild(renderSchedTimeline(s, who||null));
     det.appendChild(inner);
     if(window.innerWidth>780) det.open=true;
     wrap.appendChild(det);
-    const del=el('button','btn danger sm no-ro','이 날짜 근무표 삭제'); del.style.marginTop='10px';
+    const del=el('button','btn danger sm no-ro','당일 근무표 삭제'); del.style.marginTop='10px';
     del.addEventListener('click',()=> deleteSchedules([ds], null));
     wrap.appendChild(del);
   }
@@ -2577,15 +2577,15 @@ function openEvSheet(id){
     +'<dt>기간</dt><dd>'+shortRange(p.start,p.end)+'</dd>'
     +'<dt>'+esc(calMd(calSelDate))+'</dt><dd>'+esc(i.cond)+'</dd>';
   b.appendChild(dl);
-  if(p.kind==='vacation' && p.end!==p.start) b.appendChild(el('p','smallnote','마지막 날('+esc(calMd(p.end))+')은 복귀일 — 주간만 열외되고 그날 야간부터 투입됩니다.'));
+  if(p.kind==='vacation' && p.end!==p.start) b.appendChild(el('p','smallnote','복귀일('+esc(calMd(p.end))+')은 주간만 열외되며 당일 야간 번초부터 근무 투입 대상입니다.'));
   const confs=prebookConflictList(p);
-  if(confs.length) b.appendChild(el('div','warn','⚠ 등록된 일정과 기존 배정이 겹칩니다 '+confs.length+'건 — 해당 날짜를 재생성하거나 [근무표 확인]에서 직접 수정하세요.<br>'+confs.map(esc).join('<br>')));
+  if(confs.length) b.appendChild(el('div','warn','⚠ 기존 배정과 충돌하는 일정 '+confs.length+'건 발견: 해당 일자를 재생성하거나 [근무표] 탭에서 수동 수정하십시오.<br>'+confs.map(esc).join('<br>')));
   openSheet('evSheet');
 }
 $('#evEdit').addEventListener('click',()=>{ const id=evSheetId; closeSheet('evSheet'); openPbSheet(id); });
 $('#evDel').addEventListener('click',()=>{
   const p=(DB.prebook||[]).find(x=>x.id===evSheetId); if(!p) return;
-  if(!confirm(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)+' ('+p.start+(p.end!==p.start?' ~ '+p.end:'')+') 일정을 삭제할까요?')) return;
+  if(!confirm(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)+' ('+p.start+(p.end!==p.start?' ~ '+p.end:'')+') 일정을 삭제하시겠습니까?')) return;
   DB.prebook=DB.prebook.filter(x=>x.id!==p.id); save(); closeSheet('evSheet'); renderCal(); refreshGenSelectors();
 });
 
@@ -2603,7 +2603,7 @@ function renderHolidayTable(){
   const dates=Object.keys(DB.holidays||{}).sort();
   t.innerHTML='<tr><th>기간</th><th>이름</th><th style="width:70px"></th></tr>';
   if(!dates.length){
-    const tr=el('tr'); const td=el('td',null,'<span class="muted">직접 지정한 휴무일이 없습니다. 공휴일은 자동으로 달력에 표시됩니다. 달력의 날짜를 누르면 시작일이 채워집니다.</span>');
+    const tr=el('tr'); const td=el('td',null,'<span class="muted">지정된 휴무일이 없습니다. 법정공휴일은 달력에 자동 반영됩니다. 달력 일자 선택 시 시작일이 자동 입력됩니다.</span>');
     td.colSpan=3; tr.appendChild(td); t.appendChild(tr); return;
   }
   // 같은 이름의 연속 날짜는 한 행으로 묶어 표시
@@ -2616,7 +2616,7 @@ function renderHolidayTable(){
   });
   const shown=runs.filter(r=> !hide || r.end>=today);
   if(!shown.length){
-    const tr=el('tr'); const td=el('td',null,'<span class="muted">앞으로 남은 휴무일이 없습니다. 지난 휴무일은 [지난 일정 숨기기]를 끄면 보입니다.</span>');
+    const tr=el('tr'); const td=el('td',null,'<span class="muted">예정된 휴무일이 없습니다. 이전 휴무일은 [지난 일정 숨기기]를 해제하면 표시됩니다.</span>');
     td.colSpan=3; tr.appendChild(td); t.appendChild(tr); return;
   }
   shown.forEach(r=>{
@@ -2636,13 +2636,13 @@ $('#hdAdd').addEventListener('click',()=>{
   const name=($('#hdName').value||'').trim()||'부대 휴무';
   const start=$('#hdStart').value; let end=$('#hdEnd').value;
   const st=$('#hdStatus');
-  if(!start){ st.innerHTML='<div class="err">시작일을 선택하세요.</div>'; return; }
+  if(!start){ st.innerHTML='<div class="err">시작 일자를 선택하십시오.</div>'; return; }
   if(!end || end<start) end=start;
-  let n=0; for(let d=start; d<=end; d=addDays(d,1)){ if(++n>60){ st.innerHTML='<div class="err">한 번에 60일까지만 등록할 수 있습니다.</div>'; return; } }
+  let n=0; for(let d=start; d<=end; d=addDays(d,1)){ if(++n>60){ st.innerHTML='<div class="err">1회 최대 60일까지만 등록 가능합니다.</div>'; return; } }
   DB.holidays=DB.holidays||{};
   for(let d=start; d<=end; d=addDays(d,1)) DB.holidays[d]=name;
   save();
-  st.innerHTML='<div class="ok">✓ '+esc(name+' · '+start+(end!==start?' ~ '+end:''))+' 휴무일로 지정했습니다. 생성 시 자동 반영됩니다.</div>';
+  st.innerHTML='<div class="ok">✓ '+esc(name+' · '+start+(end!==start?' ~ '+end:''))+' 휴무일로 등록되었습니다. 근무표 생성 시 자동 반영됩니다.</div>';
   $('#hdEnd').value=''; $('#hdName').value='';
   calYM=start.slice(0,7); calSelDate=start;
   renderCal(); refreshGenSelectors();
@@ -2658,11 +2658,11 @@ function renderPrebookForm(){
   $('#pbEndField').style.display = (kind==='duty'||kind==='situation'||kind==='fueltruck'||kind==='mess') ? 'none' : '';
   if(!$('#pbStart').value) $('#pbStart').value=todayStr();
   const st=$('#pbKindNote');
-  if(kind==='fueltruck') st.innerHTML='<div class="hint">유조차 운전병: 어느 날짜를 찍든 그 주 월~일 전체로 등록되고, 그 주 CCTV 근무에서 모두 열외됩니다(분모 제외). 단 당직/상황병이 걸린 날은 부 운전병이 유조차를 맡으므로 본인이 그 역할 근무를 그대로 섭니다.</div>';
-  else if(kind==='mess') st.innerHTML='<div class="hint">배식조: 어느 날짜를 찍든 그 주 월~일 전체로 등록되고, 그 주 CCTV 근무에서 모두 열외됩니다(휴가처럼 분모 제외). 같은 주에 여러 명을 등록할 수 있습니다. 당직/상황병이 걸린 날은 그 역할 근무를 그대로 섭니다.</div>';
-  else if(kind==='fuelsub') st.innerHTML='<div class="hint">유조차 대체(부 운전병): 정이 당직 등으로 유조차를 못 모는 날에 지정하세요. 지정한 기간 동안 그 사람도 CCTV 근무에서 모두 열외됩니다.</div>';
-  else if(kind==='vacation') st.innerHTML='<div class="hint">휴가 마지막 날(복귀일)은 주간만 열외되고, 그날 야간부터 투입됩니다.</div>';
-  else if(kind==='exboth') st.innerHTML='<div class="hint">그 기간 모든 근무에서 빠지고 분모(겪은 근무표 수)에서도 제외됩니다.</div>';
+  if(kind==='fueltruck') st.innerHTML='<div class="hint">유조차 운전병: 선택 일자가 포함된 주(월~일) 전체로 등록되며 CCTV 근무에서 전체 열외(분모 제외)됩니다. 단, 당직/상황병 편성 일자는 부 운전병이 유조차를 운행하므로 해당 역할 근무는 정상 투입됩니다.</div>';
+  else if(kind==='mess') st.innerHTML='<div class="hint">배식조: 선택 일자가 포함된 주(월~일) 전체로 등록되며 CCTV 근무에서 전체 열외(분모 제외)됩니다. 동일 주차 다수 인원 등록이 가능하며, 당직/상황병 편성 일자는 해당 역할 근무에 정상 투입됩니다.</div>';
+  else if(kind==='fuelsub') st.innerHTML='<div class="hint">유조차 대체(부 운전병): 정 운전병의 당직 편성 등으로 운행 불가 시 지정하십시오. 지정 기간 동안 CCTV 근무에서 전체 열외됩니다.</div>';
+  else if(kind==='vacation') st.innerHTML='<div class="hint">휴가 복귀일(최종일)은 주간만 열외되며, 당일 야간 번초부터 근무 투입 대상입니다.</div>';
+  else if(kind==='exboth') st.innerHTML='<div class="hint">해당 기간 전 슬롯 열외 처리되며 통계 분모(근무표 수)에서도 제외됩니다.</div>';
   else st.innerHTML='';
 }
 function renderPrebookTable(){
@@ -2672,7 +2672,7 @@ function renderPrebookTable(){
   const rows=(DB.prebook||[]).slice().sort((a,b)=> a.start<b.start?-1:a.start>b.start?1:0).filter(p=> !hide || p.end>=today);
   t.innerHTML='<tr><th>기간</th><th>종류</th><th>근무자</th><th style="width:70px"></th></tr>';
   if(!rows.length){
-    const tr=el('tr'); const td=el('td',null,'<span class="muted">등록된 일정이 없습니다. 위에서 추가하거나 달력의 날짜를 눌러 시작일을 채우세요.</span>');
+    const tr=el('tr'); const td=el('td',null,'<span class="muted">등록된 일정이 없습니다. 상단에서 등록하거나 달력 일자 선택 후 등록하십시오.</span>');
     td.colSpan=4; tr.appendChild(td); t.appendChild(tr); return;
   }
   rows.forEach(p=>{
@@ -2703,7 +2703,7 @@ function openPbSheet(id){
   pbEditId = p ? p.id : null;
   const ds=calSelDate||todayStr();
   $('#pbSheet .sh-h b').textContent = p ? '일정 수정' : '일정 추가';
-  $('#pbAdd').textContent = p ? '수정 저장' : '등록';
+  $('#pbAdd').textContent = p ? '수정 완료' : '등록';
   $('#pbKinds [data-k="holiday"]').style.display = p ? 'none' : '';
   $('#pbStatus').innerHTML=''; $('#hdStatus').innerHTML='';
   $('#hdStart').value=ds; $('#hdEnd').value='';
@@ -2722,8 +2722,8 @@ $('#pbAdd').addEventListener('click',()=>{
   const kind=$('#pbKind').value, wid=$('#pbWho').value, start=$('#pbStart').value;
   let end=$('#pbEnd').value;
   const st=$('#pbStatus');
-  if(!wid){ st.innerHTML='<div class="err">근무자를 선택하세요.</div>'; return; }
-  if(!start){ st.innerHTML='<div class="err">시작일을 선택하세요.</div>'; return; }
+  if(!wid){ st.innerHTML='<div class="err">근무자를 선택하십시오.</div>'; return; }
+  if(!start){ st.innerHTML='<div class="err">시작 일자를 선택하십시오.</div>'; return; }
   // 수정: 원래 일정을 빼고 같은 id로 다시 넣는다
   if(pbEditId) DB.prebook=DB.prebook.filter(x=>x.id!==pbEditId);
   if(kind==='duty'||kind==='situation'){
@@ -2745,12 +2745,12 @@ $('#pbAdd').addEventListener('click',()=>{
   const p=normPrebook({id:pbEditId||undefined,kind,wid,start,end});
   DB.prebook.push(p);
   save();
-  st.innerHTML='<div class="ok">✓ '+esc(PREBOOK_KR[kind]+' · '+nameOf(wid)+' · '+p.start+(p.end!==p.start?' ~ '+p.end:''))+(pbEditId?' 수정했습니다.':' 등록했습니다.')+'</div>';
+  st.innerHTML='<div class="ok">✓ '+esc(PREBOOK_KR[kind]+' · '+nameOf(wid)+' · '+p.start+(p.end!==p.start?' ~ '+p.end:''))+(pbEditId?' 수정 완료되었습니다.':' 등록 완료되었습니다.')+'</div>';
   // 이미 생성된 표와 충돌 검사 — 사전등록은 소급 적용되지 않으므로 재생성/수정 안내
   {
     const confs=prebookConflictList(p);
     if(confs.length){
-      st.innerHTML += '<div class="warn">⚠ 등록된 일정과 기존 배정이 겹칩니다 '+confs.length+'건 — 사전등록은 기존 표에 소급 적용되지 않습니다. 해당 날짜를 재생성하거나 [근무표 확인]에서 직접 수정하세요.<br>'
+      st.innerHTML += '<div class="warn">⚠ 기존 배정과 충돌하는 일정 '+confs.length+'건 발견: 사전등록 일정은 기 생성된 근무표에 소급 적용되지 않습니다. 해당 일자를 재생성하거나 [근무표] 탭에서 수동 수정하십시오.<br>'
         + confs.map(esc).join('<br>') + '</div>';
     }
   }
@@ -2789,7 +2789,7 @@ function renderCount(){
   addKpi(kpi,'하루 평균시간 CV', (cv(fairHours)*100).toFixed(1)+'%');
   addKpi(kpi,'하루 평균시간 지니', gini(fairHours).toFixed(3));
   { const old=kpi.nextElementSibling; if(old && old.classList.contains('kpinote')) old.remove(); }
-  if(totalSched && totalSched<7){ const n=el('p','hint kpinote','근무표가 '+totalSched+'일뿐이라 편차 지표(CV·지니)가 크게 흔들릴 수 있습니다.'); n.style.margin='-6px 0 12px'; kpi.after(n); }
+  if(totalSched && totalSched<7){ const n=el('p','hint kpinote','편성된 근무표가 '+totalSched+'일로 표본이 적어 편차 지표(CV·지니) 변동폭이 클 수 있습니다.'); n.style.margin='-6px 0 12px'; kpi.after(n); }
 
   const t=$('#cTable'); t.innerHTML='';
   const head=el('tr');
@@ -2910,8 +2910,8 @@ function renderRank(box, ws, numOf, denOf, label){
   if(fp.length){
     const sum=el('div','sumline');
     sum.appendChild(el('span',null,'평균<b>'+Math.round(avg)+'%</b>'));
-    sum.appendChild(el('span',null,'가장 많이<b>'+esc(fp[0].w.name)+' '+Math.round(fp[0].p)+'%</b>'));
-    sum.appendChild(el('span',null,'가장 적게<b>'+esc(fp[fp.length-1].w.name)+' '+Math.round(fp[fp.length-1].p)+'%</b>'));
+    sum.appendChild(el('span',null,'최다<b>'+esc(fp[0].w.name)+' '+Math.round(fp[0].p)+'%</b>'));
+    sum.appendChild(el('span',null,'최소<b>'+esc(fp[fp.length-1].w.name)+' '+Math.round(fp[fp.length-1].p)+'%</b>'));
     box.appendChild(sum);
   }
   const tip=el('div','tipline'); tip.style.display='none';   // 누른 행 바로 아래로 옮겨 붙인다
@@ -2930,7 +2930,7 @@ function renderRank(box, ws, numOf, denOf, label){
       row.addEventListener('click',()=>{
         box.querySelectorAll('.rkr').forEach(x=>x.classList.remove('sel')); row.classList.add('sel');
         let t='<b>'+esc(r.w.name)+'</b> · '+esc(label)+' '+r.num+'회 / 분모 '+r.den+(r.p!=null?' = '+Math.round(r.p)+'%':'');
-        if(!muted && d!=null) t+=' · 평균보다 '+Math.abs(d)+'%p '+(d>=0?'많음':'적음');
+        if(!muted && d!=null) t+=' · 부대 평균 대비 '+Math.abs(d)+'%p '+(d>=0?'초과':'미달');
         if(muted) t+=' · 평균 계산 제외';
         tip.innerHTML=t; tip.style.display=''; row.after(tip);
       });
@@ -2944,7 +2944,7 @@ function renderRank(box, ws, numOf, denOf, label){
     box.appendChild(list(other,true));
   }
   if(!rows.length) box.appendChild(el('div','muted','표시할 근무자가 없습니다.'));
-  else box.appendChild(el('div','hint','행을 누르면 그 아래에 횟수/분모가 나옵니다.'));
+  else box.appendChild(el('div','hint','근무자 선택 시 하단에 횟수/분모가 표시됩니다.'));
 }
 function renderNightRates(st){
   const opts=[['all','야간 전체'],['weekday','평일전야'],['holiday','휴일전야'],['b1','1번초'],['b2','2번초'],['b3','3번초'],['b4','4번초']];
@@ -2997,7 +2997,7 @@ function renderSlotRates(st){
       c.addEventListener('click',()=>{
         hm.querySelectorAll('.c').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
         tip.innerHTML='<b>'+esc(w.name)+' · '+sl+'</b> ('+esc(grp==='all'?'전체':DAYGROUP_KR[grp])+') · '+v.num+'/'+v.den+(v.p!=null?' = '+Math.round(v.p)+'%':'')
-          +(av!=null?' · 이 시간대 평균 '+Math.round(av)+'%':'')+(muted?' · 평균 계산 제외':'');
+          +(av!=null?' · 해당 시간대 평균 '+Math.round(av)+'%':'')+(muted?' · 평균 산정 제외':'');
         tip.style.display=''; rowEnd.after(tip);
       });
       hm.appendChild(c); last=c;
@@ -3008,7 +3008,7 @@ function renderSlotRates(st){
   if(other.length){ hm.appendChild(el('div','gap',countExLabel())); other.forEach(w=>addRow(w,true)); }
   wrap.appendChild(hm); box.appendChild(wrap);
   box.appendChild(el('div','hmleg','<span>적게</span><i class="lo2"></i><i class="lo1"></i><i class="mid"></i><i class="hi1"></i><i class="hi2"></i><span>많이</span><span class="sp"></span><span>칸 숫자 = 배정률(%) · 색 = 시간대 평균 대비</span>'));
-  box.appendChild(el('div','hint','칸을 누르면 그 행 아래에 횟수/분모와 그 시간대 평균이 나옵니다.'));
+  box.appendChild(el('div','hint','슬롯 선택 시 하단에 횟수/분모 및 시간대 평균이 표시됩니다.'));
 }
 /* 공정성 — 지표마다 사람을 점으로 찍는다. 같은 값은 위로 쌓는다 */
 /* 공정성 지표 — [카운트 › 공정성]과 [내 근무 › 부대 평균과 비교]가 이 한 목록을 쓴다.
@@ -3048,7 +3048,7 @@ function renderFairness(st){
         box.querySelectorAll('.strip .tipline').forEach(x=>{ if(x!==tip) x.style.display='none'; });
         const same=mw.filter((w,j)=>fmt(vals[j])===fmt(v)).map(w=>w.name);
         tip.style.display='';
-        tip.innerHTML='<b>'+esc(mw[i].name)+'</b> · '+esc(label)+' '+fmt(v)+unit+(same.length>1?' · 같은 값: '+esc(same.join(', ')):'')+' · 평균 '+S.mean.toFixed(dec?2:1)+unit;
+        tip.innerHTML='<b>'+esc(mw[i].name)+'</b> · '+esc(label)+' '+fmt(v)+unit+(same.length>1?' · 동률: '+esc(same.join(', ')):'')+' · 부대 평균 '+S.mean.toFixed(dec?2:1)+unit;
       });
       ax.appendChild(d);
     });
@@ -3057,7 +3057,7 @@ function renderFairness(st){
     card.appendChild(tip);
     box.appendChild(card);
   });
-  box.appendChild(el('div','hint', ws.length+'명 기준 · 세로 점선 = 평균 · 가로 축은 지표마다 최소~최대 · 점을 누르면 그 카드 안에 이름이 나옵니다'));
+  box.appendChild(el('div','hint', ws.length+'명 기준 · 세로 점선 = 부대 평균 · 가로 축 = 지표별 최소~최대 · 데이터 포인트 선택 시 세부 정보 표시'));
 }
 function addKpi(c,l,v){const d=el('div','c');d.appendChild(el('div','v',v));d.appendChild(el('div','l',l));c.appendChild(d);}
 /* 숫자 + 미니 막대 셀 — 분포 불균형을 한눈에 보이게 */
@@ -3138,8 +3138,8 @@ function xmessLine(s){
     box.appendChild(c);
   });
   const anyOn=DB.workers.some(w=>w.active && w.canXmess);
-  const why = !anyOn ? '아직 [추가배식조 가능]을 켠 근무자가 없습니다 — [더보기 › 근무자 관리]에서 사람을 눌러 켜세요.'
-    : (!s.xmessId && !s.nextXmessId) ? '이 표에는 추가배식조 기록이 없습니다 — 토글을 켜기 전에 만든 표면 다시 생성하거나 [편집]에서 직접 넣으세요(평일만 배정, 다음날 몫은 전날 표에서 정해짐).' : '';
+  const why = !anyOn ? '[추가배식조 가능] 설정된 인원이 없습니다. [더보기 › 근무자 관리]에서 대상자를 지정하십시오.'
+    : (!s.xmessId && !s.nextXmessId) ? '추가배식조 기록이 없습니다. 재생성하거나 [근무표 › 편집]에서 수동 지정하십시오 (평일 한정, 다음날 추가배식조는 전일 표 연동).' : '';
   if(why) box.appendChild(el('div','by',esc(why)));
   return box;
 }
@@ -3151,9 +3151,9 @@ function officerLine(ds){
   Object.entries(OFFICER_ROLES).forEach(([role,label])=>{
     const name=rec && rec[role+'Name'];
     const c=el(can?'button':'div','of');
-    if(can){ c.type='button'; c.addEventListener('click',()=>openOfficerPick(ds, role)); c.setAttribute('aria-label', label+' '+(name||'기록 없음')+' — 눌러서 기록'); }
+    if(can){ c.type='button'; c.addEventListener('click',()=>openOfficerPick(ds, role)); c.setAttribute('aria-label', label+' '+(name||'기록 없음')+' — 선택하여 기록'); }
     c.appendChild(el('small',null,esc(label)));
-    c.appendChild(el('b', name?null:'none', name ? esc(name) : (api.loaded() ? (can?'기록하기':'기록 없음') : '불러오는 중…')));
+    c.appendChild(el('b', name?null:'none', name ? esc(name) : (api.loaded() ? (can?'기록하기':'기록 없음') : '조회 중…')));
     box.appendChild(c);
   });
   if(rec && rec.byName && (rec.sagwanName||rec.saryeongName)) box.appendChild(el('div','by','기록: '+esc(rec.byName)));
@@ -3169,9 +3169,9 @@ function openOfficerPick(ds, role){
   const pick=(entry)=>{
     $$('#ofBody button').forEach(x=>x.disabled=true); st.innerHTML='<div class="hint">저장 중…</div>';
     api.set(ds, role, entry).then(()=>{ closeSheet('ofSheet'); },
-      e=>{ $$('#ofBody button').forEach(x=>x.disabled=false); st.innerHTML='<div class="err">'+esc(window.MEMBER_API?MEMBER_API.msg(e):'저장하지 못했습니다.')+'</div>'; });
+      e=>{ $$('#ofBody button').forEach(x=>x.disabled=false); st.innerHTML='<div class="err">'+esc(window.MEMBER_API?MEMBER_API.msg(e):'저장 실패')+'</div>'; });
   };
-  if(!list.length) b.appendChild(el('div','mnone','아직 '+esc(label)+' 명단이 없습니다. 관리자에게 명단 등록을 요청하세요.'));
+  if(!list.length) b.appendChild(el('div','mnone','등록된 '+esc(label)+' 명단이 없습니다. 관리자에게 등록을 요청하십시오.'));
   else{
     const pl=el('div','picklist');
     list.forEach(o=>{ const x=el('button', o.id===curId?'on':'', esc(o.name)); x.type='button'; x.addEventListener('click',()=>pick({id:o.id, name:o.name})); pl.appendChild(x); });
@@ -3179,10 +3179,10 @@ function openOfficerPick(ds, role){
   }
   if(rec && rec[role+'Name']){
     b.appendChild(el('div','edsep','또는'));
-    const clr=el('button','btn ghost full','기록 지우기'); clr.type='button'; clr.addEventListener('click',()=>pick(null)); b.appendChild(clr);
+    const clr=el('button','btn ghost full','기록 삭제'); clr.type='button'; clr.addEventListener('click',()=>pick(null)); b.appendChild(clr);
   }
   b.appendChild(st);
-  b.appendChild(el('p','smallnote','고른 내용은 바로 저장되어 모든 구성원에게 보입니다. 잘못 골랐으면 다시 눌러 바꾸면 됩니다.'));
+  b.appendChild(el('p','smallnote','선택 내역은 즉시 저장되어 부대원 전체에게 공유됩니다. 변경 필요 시 재선택하십시오.'));
   openSheet('ofSheet');
 }
 window.onOfficerLog=function(){
@@ -3200,16 +3200,16 @@ function renderOfficerAdmin(){
     officerList(role).forEach(o=>{
       const r=el('div','r'); r.appendChild(el('b',null,esc(o.name)));
       const del=el('button','btn danger sm','삭제'); del.type='button';
-      del.addEventListener('click',()=>{ if(!confirm(label+' 명단에서 '+o.name+'을(를) 뺄까요?\n이미 기록된 날짜의 이름은 그대로 남습니다.')) return;
+      del.addEventListener('click',()=>{ if(!confirm(label+' 명단에서 '+o.name+' 인원을 삭제하시겠습니까?\n기존 기록된 일자의 성명은 유지됩니다.')) return;
         DB.officers[role]=officerList(role).filter(x=>x.id!==o.id); save(); renderOfficerAdmin(); });
       r.appendChild(del); l.appendChild(r);
     });
     box.appendChild(l);
     const row=el('div','row'); row.style.marginBottom='14px';
-    const f=el('div','field'); const inp=el('input'); inp.placeholder=label+' 이름 (예: 중위 홍길동)'; inp.maxLength=30; inp.setAttribute('aria-label', label+' 이름');
+    const f=el('div','field'); const inp=el('input'); inp.placeholder=label+' 성명 (예: 중위 홍길동)'; inp.maxLength=30; inp.setAttribute('aria-label', label+' 성명');
     f.appendChild(inp); row.appendChild(f);
     const add=el('button','btn','추가'); add.type='button';
-    const go=()=>{ const n=inp.value.trim(); if(!n) return; if(officerList(role).some(x=>x.name===n)){ alert('이미 있는 이름입니다.'); return; }
+    const go=()=>{ const n=inp.value.trim(); if(!n) return; if(officerList(role).some(x=>x.name===n)){ alert('이미 등록된 성명입니다.'); return; }
       DB.officers[role].push({id:'o'+role[1]+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name:n}); save(); renderOfficerAdmin(); };
     add.addEventListener('click',go); inp.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
     row.appendChild(add); box.appendChild(row);
@@ -3244,7 +3244,7 @@ function renderPeople(){
   const list=$('#pTable'); list.innerHTML='';
   const shown=act.filter(w=>pMatch(w,pFilter));
   shown.forEach(w=>list.appendChild(card(w)));
-  if(!shown.length) list.appendChild(el('div','muted', DB.workers.length?'해당 구분의 활성 근무자가 없습니다.':'아직 근무자가 없습니다. [+ 추가]로 등록하세요.'));
+  if(!shown.length) list.appendChild(el('div','muted', DB.workers.length?'해당 구분의 활성 근무자가 없습니다.':'등록된 근무자가 없습니다. [+ 추가]로 등록하십시오.'));
   $('#pArchWrap').style.display = arch.length?'':'none';
   $('#pArchLabel').textContent='보관 인원 '+arch.length+'명';
   const al=$('#pArch'); al.innerHTML=''; arch.forEach(w=>al.appendChild(card(w)));
@@ -3287,8 +3287,8 @@ function openWorkerSheet(id){
   row.appendChild(sw('관제병', !!w.isController, v=>{w.isController=v;save();refreshAll();}));
   row.appendChild(sw('추가배식조 가능', !!w.canXmess, v=>{ w.canXmess=v; if(v && !w.xmessSince) w.xmessSince=todayStr(); save(); refreshAll(); }));   // 켠 날부터 순번 분모를 센다
   f.appendChild(row);
-  f.appendChild(el('div','hint','추가배식조 가능: 켠 사람 중 평일마다 1명이 순번으로 배정됩니다(06:30처럼 배정률 낮은 순 → 오래 쉰 순). 그날은 전날 야간과 당일 CCTV 근무 전부 열외, 근무일수에서도 빠집니다.'));
-  f.appendChild(el('div','hint','관제병: 구분은 그대로 두고 덧붙는 표시입니다. 매주 토요일(휴일 포함) 07:30~14:30 칸과 그날 밥교대에서 빠지고, 운항병이 상황병인 날은 그 전날·당일 야간에서 빠집니다.'));
+  f.appendChild(el('div','hint','추가배식조: 설정 인원 중 평일 1명 순번 배정(배정률 낮은 순 → 장기 미편성 순). 당일 CCTV 전 시간대 및 전일 야간 열외, 근무일수 산정 제외.'));
+  f.appendChild(el('div','hint','관제병: 매주 토요일(공휴일 포함) 07:30~14:30 및 당일 밥교대 열외. 운항병 상황병 근무 시 전일 및 당일 야간 열외.'));
   // 기존 누적시간
   const inB=el('input'); inB.type='number'; inB.step='0.5'; inB.value=w.baseHours;
   inB.addEventListener('change',()=>{w.baseHours=Number(inB.value)||0;save();renderPeople();});
@@ -3297,7 +3297,7 @@ function openWorkerSheet(id){
   const inE=el('input'); inE.type='date'; inE.value=w.enlistDate||'';
   inE.addEventListener('change',()=>{w.enlistDate=inE.value||null;save();renderPeople();});
   const fe=field('입대일', inE);
-  fe.appendChild(el('div','hint', w.enlistDate ? '전역일 '+esc(dischargeDate(w.enlistDate))+' (입대일 + 18개월 - 1일) · 구성원 [전역] 탭의 복무율·순위에 표시됩니다.' : '입력하면 전역일이 계산되고, 구성원 [전역] 탭의 복무율·순위에 표시됩니다.'));
+  fe.appendChild(el('div','hint', w.enlistDate ? '전역일: '+esc(dischargeDate(w.enlistDate))+' (입대일+18개월-1일) · [전역] 탭 복무율 및 순위 반영' : '입대일 입력 시 전역일 자동 계산 · [전역] 탭 복무율 및 순위 반영'));
   // 비활성 기간
   const ipBox=el('div');
   const lst=el('div','ip-list');
@@ -3310,24 +3310,24 @@ function openWorkerSheet(id){
   if(!(w.inactivePeriods||[]).length) lst.appendChild(el('div','muted','등록된 비활성 기간이 없습니다.'));
   ipBox.appendChild(lst);
   const add=el('div','ip-add');
-  const s0=el('input'); s0.type='date'; const e0=el('input'); e0.type='date'; e0.title='비우면 무기한';
+  const s0=el('input'); s0.type='date'; const e0=el('input'); e0.type='date'; e0.title='미입력 시 무기한';
   const addB=el('button','btn ghost sm','추가');
   addB.addEventListener('click',()=>{
-    if(!s0.value){ alert('비활성 시작일을 고르세요.'); return; }
+    if(!s0.value){ alert('비활성 시작 일자를 선택하십시오.'); return; }
     w.inactivePeriods=w.inactivePeriods||[]; w.inactivePeriods.push({start:s0.value,end:e0.value||''}); save(); renderPeople();
   });
   add.appendChild(s0); add.appendChild(e0); add.appendChild(addB);
   ipBox.appendChild(add);
-  ipBox.appendChild(el('div','hint','종료일을 비우면 무기한입니다.'));
+  ipBox.appendChild(el('div','hint','종료일 미입력 시 무기한 적용'));
   field('비활성 기간', ipBox);
   // 보관 · 삭제: 기록이 있으면 삭제 대신 '보관(비활성)'을 권장 — 과거 표·카운트를 보존
   f.appendChild(el('div','divider'));
   const acts=el('div','flexgap');
   if(w.active){
     const arch=el('button','btn ghost','보관');
-    arch.title='비활성 처리 — 과거 기록과 카운트는 유지되고, 앞으로의 배정 후보에서만 제외됩니다';
+    arch.title='비활성 처리: 과거 기록과 누적 통계는 유지되며, 향후 배정 대상에서 제외';
     arch.addEventListener('click',()=>{
-      if(!confirm(w.name+'을(를) 보관(비활성)할까요?\n과거 근무 기록과 카운트는 그대로 유지되고, 앞으로의 배정 후보에서만 제외됩니다. (전역·전출자 권장)')) return;
+      if(!confirm(w.name+' 인원을 보관(비활성) 처리하시겠습니까?\n과거 근무 기록과 누적 통계는 유지되며, 향후 배정 대상에서 제외됩니다. (전역·전출자 권장)')) return;
       w.active=false; save(); refreshAll();
     });
     acts.appendChild(arch);
@@ -3336,8 +3336,8 @@ function openWorkerSheet(id){
   del.addEventListener('click',()=>{
     const refs=scheduleRefCount(w.id);
     const msg = refs>0
-      ? w.name+': 생성된 근무표 '+refs+'일치에 기록이 있습니다.\n삭제하면 해당 기록이 모두 "(삭제됨)"으로 표시되고 되돌릴 수 없습니다.\n기록을 보존하려면 [취소] 후 "보관"을 사용하세요.\n\n그래도 삭제할까요?'
-      : w.name+' 삭제? (근무 기록 없음)';
+      ? w.name+': 편성된 근무표 '+refs+'일분에 기록이 존재합니다.\n삭제 시 기존 기록이 전부 "(삭제됨)"으로 변경되며 복구할 수 없습니다.\n기록을 보존하려면 [취소] 후 "보관"을 선택하십시오.\n\n삭제를 진행하시겠습니까?'
+      : w.name+' 인원을 삭제하시겠습니까? (근무 기록 없음)';
     if(!confirm(msg)) return;
     DB.workers=DB.workers.filter(x=>x.id!==w.id);
     DB.prebook=DB.prebook.filter(p=>p.wid!==w.id);
@@ -3349,7 +3349,7 @@ function openWorkerSheet(id){
   openSheet('pSheet');
 }
 $('#pAdd').addEventListener('click',()=>{
-  const name=$('#pName').value.trim(); if(!name){alert('이름 입력');return;}
+  const name=$('#pName').value.trim(); if(!name){alert('근무자 성명을 입력하십시오.');return;}
   const role=$('#pRole').value;
   const w=normWorker({
     name, canMeal:$('#pMeal').checked, baseHours:Number($('#pBase').value)||0, active:true,
@@ -3394,7 +3394,7 @@ $('#sSave').addEventListener('click',()=>{
   // 운항병 고정 슬롯 (DAY_SLOTS 순서 유지)
   const readSlots=boxId=> DAY_SLOTS.filter(sl=> $$('#'+boxId+' input').some(c=>c.value===sl&&c.checked));
   DB.settings.navFixed={ weekday:readSlots('navWeekdaySlots'), friday:readSlots('navFridaySlots') };
-  save(); refreshAll(); $('#sStatus').innerHTML='<div class="ok">✓ 설정을 저장했습니다.</div>';
+  save(); refreshAll(); $('#sStatus').innerHTML='<div class="ok">✓ 설정이 저장되었습니다.</div>';
 });
 $('#sReset').addEventListener('click',()=>{ DB.settings.weights={...DEFAULT_WEIGHTS}; save(); renderSettings(); });
 
@@ -3411,7 +3411,7 @@ function downloadCsv(name, rows){
 function renderBackupInfo(){
   const box=$('#bBackupInfo'); if(!box) return;
   if(!DB.lastBackupAt){
-    box.innerHTML='<div class="warn">⚠ 아직 백업한 적이 없습니다. [JSON 내보내기]로 백업을 권장합니다.</div>';
+    box.innerHTML='<div class="warn">⚠ 백업 이력이 없습니다. [JSON 내보내기]로 백업을 수행하십시오.</div>';
     return;
   }
   const last=new Date(DB.lastBackupAt);
@@ -3419,8 +3419,8 @@ function renderBackupInfo(){
   const when=last.getFullYear()+'-'+pad(last.getMonth()+1)+'-'+pad(last.getDate());
   const label=days<=0?'오늘':(days+'일 전');
   box.innerHTML = days>=7
-    ? '<div class="warn">⚠ 마지막 백업 '+esc(label)+' ('+when+'). 7일 이상 지났습니다 — 백업을 권장합니다.</div>'
-    : '<div class="ok">✓ 마지막 백업 '+esc(label)+' ('+when+').</div>';
+    ? '<div class="warn">⚠ 최근 백업 '+esc(label)+' ('+when+'). 최종 백업 후 7일 경과 — 백업 수행을 권장합니다.</div>'
+    : '<div class="ok">✓ 최근 백업 '+esc(label)+' ('+when+').</div>';
 }
 $('#bExport').addEventListener('click',()=>{
   DB.lastBackupAt = new Date().toISOString();
@@ -3435,12 +3435,12 @@ $('#bFile').addEventListener('change',e=>{
       const obj=JSON.parse(String(rd.result).replace(/^\uFEFF/,''));
       // 근무자 목록이 없는 파일은 이 앱의 백업이 아니다 — 받아들이면 기존 데이터가 빈 DB로 덮인다
       const list = obj && (Array.isArray(obj.workers) ? obj.workers : Array.isArray(obj.people) ? obj.people : null);
-      if(!obj || typeof obj!=='object' || Array.isArray(obj) || !list){ $('#bStatus').innerHTML='<div class="err">이 앱의 백업 파일이 아닙니다 (근무자 목록이 없음). 불러오지 않았습니다.</div>'; return; }
+      if(!obj || typeof obj!=='object' || Array.isArray(obj) || !list){ $('#bStatus').innerHTML='<div class="err">올바른 백업 파일이 아닙니다 (근무자 명단 누락). 복원을 취소했습니다.</div>'; return; }
       const next=migrate(obj);
       const nS=Object.keys(next.schedules).length;
-      if(!confirm('백업을 불러오면 지금 데이터를 덮어씁니다.\n\n지금: 근무자 '+DB.workers.length+'명 · 근무표 '+Object.keys(DB.schedules).length+'일\n백업: 근무자 '+next.workers.length+'명 · 근무표 '+nS+'일\n\n계속할까요?')) return;
-      DB=next; save(); refreshAll(); $('#bStatus').innerHTML='<div class="ok">✓ 백업을 불러왔습니다 (구버전 자동 호환).</div>'; }
-    catch(err){ $('#bStatus').innerHTML='<div class="err">불러오기 실패: '+esc(err.message)+'</div>'; } };
+      if(!confirm('백업 복원 시 현재 데이터를 덮어씁니다.\n\n현재: 근무자 '+DB.workers.length+'명 · 근무표 '+Object.keys(DB.schedules).length+'일분\n백업: 근무자 '+next.workers.length+'명 · 근무표 '+nS+'일분\n\n계속 진행하시겠습니까?')) return;
+      DB=next; save(); refreshAll(); $('#bStatus').innerHTML='<div class="ok">✓ 백업 복원 완료 (구버전 자동 호환)</div>'; }
+    catch(err){ $('#bStatus').innerHTML='<div class="err">복원 실패: '+esc(err.message)+'</div>'; } };
   rd.readAsText(f); e.target.value='';
 });
 $('#bCsvAll').addEventListener('click',()=>{
@@ -3454,7 +3454,7 @@ $('#bCsvAll').addEventListener('click',()=>{
   });
   downloadCsv('전체근무표.csv',rows);
 });
-$('#bClear').addEventListener('click',()=>{ if(confirm('모든 근무자·근무표·설정을 삭제합니다. 되돌릴 수 없습니다.')){ localStorage.removeItem(STORE_KEY); DB=migrate(null); invalidateStats(); refreshAll(); } });
+$('#bClear').addEventListener('click',()=>{ if(confirm('전체 근무자·근무표·설정 데이터를 초기화합니다. 복구할 수 없습니다. 계속 진행하시겠습니까?')){ localStorage.removeItem(STORE_KEY); DB=migrate(null); invalidateStats(); refreshAll(); } });
 
 /* ---------- 초기화 ---------- */
 /* ---------- 내 근무 — 구성원 개인 홈 ----------
@@ -3563,10 +3563,10 @@ function mineSaveBase(base){
 }
 function mineSaveMsg(e){
   const c=e&&e.code||'';
-  if(c==='app/no-server') return '서버에 연결되지 않아 확인 상태를 저장하지 못했습니다. 연결되면 다시 눌러 주세요.';
-  if(c==='app/local-save') return '이 기기에 저장하지 못했습니다(저장 공간 부족 등).';
-  if(c==='permission-denied') return '확인 상태를 저장할 권한이 없습니다. 관리자에게 보안 규칙(personal) 적용을 요청하세요.';
-  return (window.MEMBER_API ? MEMBER_API.msg(e) : '저장하지 못했습니다.')+' 변경 내역은 확인 전 상태로 남아 있습니다.';
+  if(c==='app/no-server') return '서버 미연결로 확인 상태를 저장하지 못했습니다. 연결 복구 후 다시 시도하십시오.';
+  if(c==='app/local-save') return '기기 저장공간 부족 등으로 저장에 실패했습니다.';
+  if(c==='permission-denied') return '저장 권한이 없습니다. 관리자에게 보안 규칙(personal) 설정을 확인 요청하십시오.';
+  return (window.MEMBER_API ? MEMBER_API.msg(e) : '저장 실패.')+' 변경 내역은 미확인 상태로 유지됩니다.';
 }
 
 function renderMineIfShown(){ if($('#mine') && $('#mine').classList.contains('on')) renderMine(); }
@@ -3601,7 +3601,7 @@ function renderMineAuth(box, phase){
   hero.appendChild(el('h2',null,'내 근무 보기'));
   if(phase==='guest'){
     const ul=el('ul','mlog-b');
-    ['내 다음 근무를 바로 확인','전역일 계산기 · 복무율 순위','지난번 확인 이후 바뀐 내 근무 확인','내 일정과 배정 기준 확인'].forEach(t=>ul.appendChild(el('li',null,esc(t))));
+    ['내 다음 근무 즉시 확인','전역일 계산기 · 복무율 순위','직전 확인 이후 변경된 근무 확인','개인 일정 및 배정 기준 확인'].forEach(t=>ul.appendChild(el('li',null,esc(t))));
     hero.appendChild(ul);
   }
   wrap.appendChild(hero);
@@ -3636,17 +3636,17 @@ function renderMineAuth(box, phase){
   form.addEventListener('submit',e=>e.preventDefault());
 
   if(!api){
-    form.appendChild(el('div','warn', window.SYNC_UNAVAILABLE==='nocfg' ? '이 앱에는 서버 연결이 설정되어 있지 않습니다. 관리자에게 문의하세요.'
-      : '서버에 연결할 수 없습니다(인터넷 연결 확인). 연결되면 새로고침하세요.'));
+    form.appendChild(el('div','warn', window.SYNC_UNAVAILABLE==='nocfg' ? '서버 연결 설정이 없습니다. 관리자에게 문의하십시오.'
+      : '서버에 연결할 수 없습니다. 네트워크 상태를 확인하고 새로고침하십시오.'));
     wrap.appendChild(form); box.appendChild(wrap); return;
   }
   if(phase==='error'){
-    form.appendChild(el('div','warn','본인 연결 정보를 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요.'));
-    const r=busy(el('button','btn full','다시 시도')); r.type='button'; r.addEventListener('click',()=>run(api.retry()));
+    form.appendChild(el('div','warn','계정 연동 정보를 불러오지 못했습니다. 네트워크 상태를 확인 후 재시도하십시오.'));
+    const r=busy(el('button','btn full','재시도')); r.type='button'; r.addEventListener('click',()=>run(api.retry()));
     form.appendChild(r);
   }else if(phase==='guest'){
     const seg=el('div','seg mlog-seg'); seg.setAttribute('role','tablist');
-    [['login','로그인'],['signup','처음이에요 · 가입']].forEach(([m,t])=>{
+    [['login','로그인'],['signup','신규 가입']].forEach(([m,t])=>{
       const b=el('button',A.mode===m?'on':'',t); b.type='button'; b.setAttribute('role','tab'); b.setAttribute('aria-selected',A.mode===m?'true':'false');
       b.addEventListener('click',()=>{ A.mode=m; A.err=''; A.ok=''; renderMine(); }); seg.appendChild(b);
     });
@@ -3657,44 +3657,44 @@ function renderMineAuth(box, phase){
       const go=busy(el('button','btn full',A.busy?'로그인 중…':'로그인')); go.type='submit';
       go.addEventListener('click',()=>{
         const em=A.email.trim();
-        if(!emailOk(em)){ A.err='이메일을 정확히 입력하세요. 예: name@example.com'; renderMine(); return; }
-        if(!A.pass){ A.err='비밀번호를 입력하세요.'; renderMine(); return; }
+        if(!emailOk(em)){ A.err='이메일 주소를 올바르게 입력하십시오. (예: name@example.com)'; renderMine(); return; }
+        if(!A.pass){ A.err='비밀번호를 입력하십시오.'; renderMine(); return; }
         run(api.login(em, A.pass), ()=>{ A.pass=''; });
       });
       form.appendChild(go);
-      const fg=el('button','lk mlog-lk','비밀번호를 잊었어요'); fg.type='button';
+      const fg=el('button','lk mlog-lk','비밀번호 재설정'); fg.type='button';
       fg.addEventListener('click',()=>{
         const em=A.email.trim();
-        if(!emailOk(em)){ A.err='가입한 이메일을 위 칸에 입력한 뒤 다시 누르세요.'; renderMine(); return; }
-        run(api.reset(em), ()=>{ A.ok=em+'로 비밀번호 재설정 메일을 보냈습니다. 메일함(스팸함 포함)을 확인하세요.'; });
+        if(!emailOk(em)){ A.err='가입한 이메일을 입력한 후 다시 시도하십시오.'; renderMine(); return; }
+        run(api.reset(em), ()=>{ A.ok=em+' 주소로 재설정 메일을 발송했습니다. 메일함(스팸함 포함)을 확인하십시오.'; });
       });
       form.appendChild(fg);
     }else{
       const steps=el('ol','mlog-steps');
-      ['계정 만들기','부대 코드','본인 선택'].forEach((t,i)=>{ const li=el('li',(A.step===i+1?'on':A.step>i+1?'done':''),(i+1)+'. '+t); if(A.step===i+1) li.setAttribute('aria-current','step'); steps.appendChild(li); });
+      ['계정 생성','부대 코드','본인 연동'].forEach((t,i)=>{ const li=el('li',(A.step===i+1?'on':A.step>i+1?'done':''),(i+1)+'. '+t); if(A.step===i+1) li.setAttribute('aria-current','step'); steps.appendChild(li); });
       form.appendChild(steps);
       if(A.step===1){
-        form.appendChild(field('이메일 (비밀번호 재설정 메일을 받을 주소)','email','email','username'));
+        form.appendChild(field('이메일 (비밀번호 재설정 수신용)','email','email','username'));
         form.appendChild(field('비밀번호 (6자 이상)','pass',A.showPw?'text':'password','new-password', pwToggle()));
         form.appendChild(field('비밀번호 확인','pass2',A.showPw?'text':'password','new-password'));
         const nx=el('button','btn full','다음'); nx.type='submit';
         nx.addEventListener('click',()=>{
           const em=A.email.trim();
-          if(!emailOk(em)) A.err='이메일을 정확히 입력하세요. 예: name@example.com';
-          else if(A.pass.length<6) A.err='비밀번호는 6자 이상으로 정하세요.';
-          else if(A.pass!==A.pass2) A.err='비밀번호 확인이 일치하지 않습니다. 두 칸을 같게 입력하세요.';
+          if(!emailOk(em)) A.err='이메일 주소를 올바르게 입력하십시오. (예: name@example.com)';
+          else if(A.pass.length<6) A.err='비밀번호는 6자 이상이어야 합니다.';
+          else if(A.pass!==A.pass2) A.err='비밀번호가 일치하지 않습니다. 동일하게 입력하십시오.';
           else { A.err=''; A.step=2; }
           renderMine();
         });
         form.appendChild(nx);
       }else{
-        form.appendChild(field('부대 코드 (관리자에게 받은 코드)','code','text','off'));
+        form.appendChild(field('부대 코드 (관리자 발급 코드)','code','text','off'));
         const two=el('div','two');
         const bk=el('button','btn ghost full','이전'); bk.type='button'; bk.addEventListener('click',()=>{ A.step=1; A.err=''; renderMine(); });
-        const go=busy(el('button','btn full',A.busy?'가입 중…':'가입하고 본인 찾기')); go.type='submit';
+        const go=busy(el('button','btn full',A.busy?'가입 진행 중…':'가입 및 본인 연동')); go.type='submit';
         go.addEventListener('click',()=>{
           const code=A.code.trim();
-          if(!api.codeOk(code)){ A.err='부대 코드를 확인하세요(8자 이상).'; renderMine(); return; }
+          if(!api.codeOk(code)){ A.err='부대 코드를 확인하십시오 (8자 이상).'; renderMine(); return; }
           run(api.signup(A.email.trim(), A.pass, code), ()=>{ A.pass=''; A.pass2=''; A.step=3; });
         });
         two.appendChild(bk); two.appendChild(go); form.appendChild(two);
@@ -3703,24 +3703,24 @@ function renderMineAuth(box, phase){
   }else{
     // 로그인했지만 본인 연결 전 — 부대 코드 → 본인 선택
     const info=api.info();
-    form.appendChild(el('p','smallnote',esc(info.email)+' 계정으로 로그인했습니다. 본인 이름을 연결하면 내 근무를 볼 수 있습니다.'));
+    form.appendChild(el('p','smallnote',esc(info.email)+' 계정으로 로그인되었습니다. 본인 성명을 연동하면 내 근무를 조회할 수 있습니다.'));
     const list=info.pendingList;
     if(!list){
-      form.appendChild(field('부대 코드 (관리자에게 받은 코드)','code','text','off'));
+      form.appendChild(field('부대 코드 (관리자 발급 코드)','code','text','off'));
       const go=busy(el('button','btn full',A.busy?'확인 중…':'확인')); go.type='submit';
       go.addEventListener('click',()=>{
         const code=A.code.trim();
-        if(!api.codeOk(code)){ A.err='부대 코드를 확인하세요(8자 이상).'; renderMine(); return; }
+        if(!api.codeOk(code)){ A.err='부대 코드를 확인하십시오 (8자 이상).'; renderMine(); return; }
         run(api.checkCode(code));
       });
       form.appendChild(go);
     }else{
-      form.appendChild(el('div','mlog-q','본인 이름을 누르세요. 한 사람당 계정 하나만 연결되고, 선택한 뒤에는 관리자만 바꿀 수 있습니다.'));
+      form.appendChild(el('div','mlog-q','본인 성명을 선택하십시오. 1인 1계정 연동 원칙이며, 연동 후 변경은 관리자만 가능합니다.'));
       const pl=el('div','picklist mlog-names');
       list.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(w=>{
         const b=busy(el('button',null,esc(w.name))); b.type='button';
         b.addEventListener('click',()=>{
-          if(!confirm(w.name+' — 본인이 맞습니까?\n선택 후에는 관리자만 바꿀 수 있습니다.')) return;
+          if(!confirm(w.name+' — 본인 계정이 맞습니까?\n연동 후 변경은 관리자만 가능합니다.')) return;
           run(api.claim(w.id), ()=>{ A.step=1; A.code=''; MINE.routed=true; showView('mine'); });
         });
         pl.appendChild(b);
@@ -3733,7 +3733,7 @@ function renderMineAuth(box, phase){
   }
   wrap.appendChild(form);
   wrap.appendChild(msg);
-  if(phase==='guest') wrap.appendChild(el('p','smallnote mlog-foot','근무표는 관리자만 수정하고, 구성원은 읽기만 합니다. 관리자·기기 설정은 [더보기 › 서버 동기화]에 있습니다.'));
+  if(phase==='guest') wrap.appendChild(el('p','smallnote mlog-foot','근무표는 관리자만 수정 가능하며, 부대원은 열람만 지원합니다. 관리자 및 동기화 설정은 [더보기 › 서버 동기화]에서 수행합니다.'));
   box.appendChild(wrap);
 }
 
@@ -3743,12 +3743,12 @@ function mineDataStatus(){
   const fmtT=t=>{ const d=new Date(t); const ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); return (ds===todayStr()?'오늘 ':mdw(ds)+' ')+pad(d.getHours())+':'+pad(d.getMinutes()); };
   if(!info){
     const r=(()=>{ try{ const x=JSON.parse(localStorage.getItem('cctv_last_recv_v1')||'null'); const hh=roleHint(); return x && hh && x.uid===hh.uid ? x.at : null; }catch(e){ return null; } })();
-    if(!window.SYNC_UNAVAILABLE) return {fresh:false, warn:false, text:'서버 확인 중…'+(r?' · 마지막으로 받은 근무표 '+fmtT(r):'')};
-    return {fresh:false, warn:true, text:'서버에 연결할 수 없음 · '+(r?'마지막으로 받은 근무표 '+fmtT(r)+' 수신':'이 기기에 저장된 근무표')};
+    if(!window.SYNC_UNAVAILABLE) return {fresh:false, warn:false, text:'서버 확인 중…'+(r?' · 최근 수신 근무표: '+fmtT(r):'')};
+    return {fresh:false, warn:true, text:'서버 연결 불가 · '+(r?'최근 수신 근무표: '+fmtT(r):'기기 저장 근무표')};
   }
-  if(info.live) return {fresh:true, text:'최신 근무표 · '+(info.lastRecv?fmtT(info.lastRecv)+' 수신':'실시간 수신 중')};
-  if(info.phase==='auth'||info.phase==='loading') return {fresh:false, text:'서버 확인 중…'+(info.lastRecv?' · 마지막으로 받은 근무표 '+fmtT(info.lastRecv):''), warn:false};
-  return {fresh:false, warn:true, text: info.lastRecv ? '마지막으로 받은 근무표 · '+fmtT(info.lastRecv)+' 수신 · 서버 최신 여부 확인 안 됨' : '서버 최신 여부 확인 안 됨 · 이 기기에 저장된 근무표'};
+  if(info.live) return {fresh:true, text:'최신 근무표 · '+(info.lastRecv?fmtT(info.lastRecv)+' 수신':'실시간 수신')};
+  if(info.phase==='auth'||info.phase==='loading') return {fresh:false, text:'서버 확인 중…'+(info.lastRecv?' · 최근 수신 근무표: '+fmtT(info.lastRecv):''), warn:false};
+  return {fresh:false, warn:true, text: info.lastRecv ? '최근 수신 근무표 · '+fmtT(info.lastRecv)+' · 최신 여부 미확인' : '최신 여부 미확인 · 기기 저장 근무표'};
 }
 function renderMine(){
   const box=$('#mineBody'); if(!box) return; box.innerHTML='';
@@ -3761,19 +3761,19 @@ function renderMine(){
   const w0=meGet(), w=w0 && DB.workers.find(x=>x.id===w0);
   const hasData=Object.keys(DB.schedules).length>0;
   if((phase==='auth'||phase==='loading') && (!w || !hasData)){
-    box.appendChild(el('div','mine-wait','<b>불러오는 중…</b><span>로그인 상태와 근무표를 확인하고 있습니다.</span>')); return;
+    box.appendChild(el('div','mine-wait','<b>조회 중…</b><span>로그인 계정 및 근무표 데이터를 확인하고 있습니다.</span>')); return;
   }
   if(phase==='member' && !hasData && !(api.info().live)){
-    box.appendChild(el('div','mine-wait','<b>근무표를 받는 중…</b><span>서버에서 근무표를 받으면 바로 표시됩니다.</span>')); return;
+    box.appendChild(el('div','mine-wait','<b>근무표 수신 중…</b><span>서버에서 근무표 수신 시 즉시 표시됩니다.</span>')); return;
   }
   if(legacy || (!api && !window.MY_WORKER)){
     const row=el('div','who'); row.appendChild(el('label',null,'근무자')).setAttribute('for','mineWho');
-    const sel=el('select'); sel.id='mineWho'; fillSelect(sel, activeWorkers(), {blank:'— 본인을 선택하세요 —', selected:w?w0:null});
+    const sel=el('select'); sel.id='mineWho'; fillSelect(sel, activeWorkers(), {blank:'— 본인 성명 선택 —', selected:w?w0:null});
     sel.addEventListener('change',()=>{ meSet(sel.value); renderMine(); renderView(); });
     row.appendChild(sel); box.appendChild(row);
-    if(legacy) box.appendChild(el('p','smallnote','공용 열람 계정입니다. 본인 계정으로 가입하면 이름을 매번 고를 필요가 없습니다. 여기서 고른 사람은 이 기기에만 기억됩니다.'));
+    if(legacy) box.appendChild(el('p','smallnote','공용 열람 계정입니다. 개인 계정으로 가입 시 성명 선택이 자동화됩니다. 선택한 인원은 현재 기기에만 저장됩니다.'));
   }
-  if(!w){ box.appendChild(el('div','muted',w0?'연결된 근무자를 명단에서 찾을 수 없습니다. 관리자에게 문의하세요.':'근무자를 선택하면 내 근무가 나옵니다.')); return; }
+  if(!w){ box.appendChild(el('div','muted',w0?'연동된 근무자 정보를 명단에서 찾을 수 없습니다. 관리자에게 문의하십시오.':'근무자를 선택하면 개인 근무 일정이 표시됩니다.')); return; }
   const today=todayStr(), now=new Date(), ST=mineDataStatus();
 
   // 1) 이름 · 데이터 상태 (작게)
@@ -3792,21 +3792,21 @@ function renderMine(){
     MINE.nextAt=nextC.at.getTime();
     const dl = nextC.date===today?'오늘' : nextC.date===addDays(today,1)?'내일' : '';
     nx.appendChild(el('div','v','<span class="d">'+(dl?dl+' · ':'')+esc(mdw(nextC.date))+'</span><span class="t">'+esc(nextC.t)+'</span>'));
-    nx.appendChild(el('div','k', esc(itemLabel(nextC, nextC.s))+(nextC.ds!==nextC.date?' · <span class="muted">'+esc(calMd(nextC.ds))+' 근무표의 새벽 근무</span>':'')));
+    nx.appendChild(el('div','k', esc(itemLabel(nextC, nextC.s))+(nextC.ds!==nextC.date?' · <span class="muted">'+esc(calMd(nextC.ds))+' 근무표 소속 새벽 근무</span>':'')));
     const rem=el('div','rem'); rem.dataset.at=String(nextC.at.getTime()); rem.textContent=relTime(nextC.at-now); nx.appendChild(rem);
     const nb=(dir)=>{ const n=cctvNeighbor(nextC.ds, nextC.t, dir);
-      const who = n.state==='ok' ? esc(nameOf(n.id)) : n.state==='empty' ? '<span class="muted">미배정</span>' : '<span class="muted">'+esc(calMd(n.ds))+' 근무표 미생성</span>';
+      const who = n.state==='ok' ? esc(nameOf(n.id)) : n.state==='empty' ? '<span class="muted">미배정</span>' : '<span class="muted">'+esc(calMd(n.ds))+' 근무표 미편성</span>';
       return '<span class="nbl">'+(dir<0?'앞':'뒤')+'</span> <span class="mono">'+esc(n.t)+(realDateOf(n.ds,n.t)!==nextC.date?' ('+esc(calMd(realDateOf(n.ds,n.t)))+')':'')+'</span> '+who; };
     nx.appendChild(el('div','nb', nb(-1)+'<span class="sep"></span>'+nb(1)));
-    if(nextP && nextP.at<nextC.at) nx.appendChild(el('div','pre','그 전에 '+esc(mdw(nextP.date))+' 17:00 추가 순찰이 있습니다.'));
+    if(nextP && nextP.at<nextC.at) nx.appendChild(el('div','pre','이전 일정: '+esc(mdw(nextP.date))+' 17:00 추가 순찰'));
     const b=el('button','btn ghost sm','배정 이유'); b.type='button'; b.addEventListener('click',()=>openWhy(nextC.s, nextC.key));
     nx.appendChild(b);
   }else{
     const ahead=Object.keys(DB.schedules).filter(d=>d>=today).sort();
-    nx.appendChild(el('div','v none', ahead.length ? '배정된 CCTV 근무 없음' : '근무표 미생성'));
-    nx.appendChild(el('div','k', ahead.length ? '생성된 근무표('+esc(calMd(ahead[ahead.length-1]))+'까지)에 앞으로 잡힌 CCTV 근무가 없습니다.'
-                                                : esc(calMd(today))+'부터 아직 근무표가 만들어지지 않았습니다.'));
-    if(nextP) nx.appendChild(el('div','pre',esc(mdw(nextP.date))+' 17:00 추가 순찰이 있습니다.'));
+    nx.appendChild(el('div','v none', ahead.length ? '배정된 CCTV 근무 없음' : '근무표 미편성'));
+    nx.appendChild(el('div','k', ahead.length ? '편성된 근무표('+esc(calMd(ahead[ahead.length-1]))+'까지) 내 예정된 CCTV 근무가 없습니다.'
+                                                : esc(calMd(today))+' 이후 근무표가 아직 편성되지 않았습니다.'));
+    if(nextP) nx.appendChild(el('div','pre','이전 일정: '+esc(mdw(nextP.date))+' 17:00 추가 순찰'));
   }
   box.appendChild(nx);
 
@@ -3822,10 +3822,10 @@ function renderMine(){
   box.appendChild(renderMineWeek(w, today));
 
   // 6) 이후 · 지난 · 통계 · 계정 (접어 둠)
-  box.appendChild(mineDetails('later','이후 일정 (다음 주부터)', ()=>renderMineRange(w, addDays(weekStartOf(today),7), addDays(today,27), false)));
-  box.appendChild(mineDetails('past','지나간 근무 (최근 7일)', ()=>renderMineRange(w, addDays(today,-7), addDays(today,-1), true)));
-  box.appendChild(mineDetails('stats','내 통계와 배정 기준', ()=>renderMineStats(w)));
-  box.appendChild(mineDetails('acct','계정', ()=>renderMineAcct(legacy)));
+  box.appendChild(mineDetails('later','차주 이후 일정', ()=>renderMineRange(w, addDays(weekStartOf(today),7), addDays(today,27), false)));
+  box.appendChild(mineDetails('past','이전 근무 이력 (최근 7일)', ()=>renderMineRange(w, addDays(today,-7), addDays(today,-1), true)));
+  box.appendChild(mineDetails('stats','개인 통계 및 배정 기준', ()=>renderMineStats(w)));
+  box.appendChild(mineDetails('acct','계정 정보', ()=>renderMineAcct(legacy)));
 }
 function weekStartOf(ds){ return addDays(ds, -dow(ds)); }
 function mineDetails(id, title, build){
@@ -3845,8 +3845,8 @@ function mineItemRow(it, now){
   const lab=el('span','lb', esc(itemLabel(it, DB.schedules[it.ds])));
   if(it.date!==it.ds) lab.appendChild(el('span','dt', esc(calMd(it.date))+' 새벽'));
   b.appendChild(lab);
-  b.appendChild(el('span','ps', past?'시작 시각 지남':'›'));
-  b.setAttribute('aria-label', it.t+' '+itemLabel(it, DB.schedules[it.ds])+(past?' — 시작 시각 지남':'')+' — 배정 이유 보기');
+  b.appendChild(el('span','ps', past?'근무 개시 경과':'›'));
+  b.setAttribute('aria-label', it.t+' '+itemLabel(it, DB.schedules[it.ds])+(past?' — 근무 개시 경과':'')+' — 배정 이유 확인');
   b.addEventListener('click',()=>openWhy(DB.schedules[it.ds], it.key));
   return b;
 }
@@ -3871,13 +3871,13 @@ function renderMineToday(w, today, now){
   minePbLines(w.id, today).forEach(x=>sec.appendChild(x));
   { const ol=officerLine(today); if(ol) sec.appendChild(ol); }
   if(sT){ const rc=mineRoleChips(sT, w.id); if(rc) sec.appendChild(rc); }
-  if(!sT && !sY){ sec.appendChild(el('div','mnone','오늘 근무표 미생성')); return sec; }
+  if(!sT && !sY){ sec.appendChild(el('div','mnone','당일 근무표 미편성')); return sec; }
   const remain=dayItems.concat(nightItems).filter(it=>atOf(it.date,it.t)>now);
   const list=el('div','mits');
   dayItems.forEach(it=>list.appendChild(mineItemRow(it, now)));
   if(dayItems.length) sec.appendChild(list);
-  if(!sT) sec.appendChild(el('div','mnone','오늘('+esc(calMd(today))+') 근무표 미생성 — 위는 어제 근무표의 오늘 새벽 근무입니다.'));
-  else if(!remain.length) sec.appendChild(el('div','mnone', todays.length||early.length ? '오늘 남은 CCTV 근무 없음' : '오늘 배정된 CCTV 근무 없음'));
+  if(!sT) sec.appendChild(el('div','mnone','당일('+esc(calMd(today))+') 근무표 미편성: 상단은 전일 근무표 소속 익일 새벽 근무입니다.'));
+  else if(!remain.length) sec.appendChild(el('div','mnone', todays.length||early.length ? '당일 잔여 CCTV 근무 없음' : '당일 배정된 CCTV 근무 없음'));
   if(nightItems.length){
     sec.appendChild(el('div','msub','오늘 밤 ~ '+esc(mdw(addDays(today,1)))+' 새벽'));
     const l2=el('div','mits'); nightItems.forEach(it=>l2.appendChild(mineItemRow(it, now))); sec.appendChild(l2);
@@ -3890,7 +3890,7 @@ function renderMineChanges(w, today, fresh){
   const from=addDays(today,-1), to=addDays(today,13);
   const cur=personalSnap(w.id, from, to);
   let base=MINE.base;
-  if(base===undefined) return MINE.baseSrc==='unavailable' ? el('div','hint','지난 확인 이후 변경 내역을 지금은 확인할 수 없습니다(서버 연결 안 됨).') : null;
+  if(base===undefined) return MINE.baseSrc==='unavailable' ? el('div','hint','서버 미연결로 직전 확인 이후 변경 내역을 조회할 수 없습니다.') : null;
   if(base && base.wid!==w.id) base=null;                       // 연결된 근무자가 바뀜 → 새 기준
   if(!base){
     // 최초 사용: 지금 일정을 기준으로(과거 배정 전체를 변경으로 만들지 않음). 서버 최신일 때만 만든다
@@ -3901,11 +3901,11 @@ function renderMineChanges(w, today, fresh){
   const changes=diffPersonal(base, cur, fresh);
   if(!changes.length) return MINE.saveErr ? el('div','err',esc(MINE.saveErr)) : null;
   const shown=cur, shownFresh=fresh;                            // 사용자가 지금 보는 범위 — 확인은 이것까지만
-  const sec=el('section','mcard mchg'); sec.setAttribute('aria-label','지난 확인 이후 바뀐 내 근무');
+  const sec=el('section','mcard mchg'); sec.setAttribute('aria-label','직전 확인 이후 변경된 근무');
   const n=changes.length;
-  sec.appendChild(el('h3',null,'지난 확인 이후 바뀐 내 근무 <span class="cnt">'+n+'건</span>'));
-  sec.appendChild(el('p','smallnote','마지막으로 확인한 뒤 새로 발견된 변경입니다(수정된 정확한 시각은 기록되지 않습니다).'));
-  const T={add:['+','새로 배정'], remove:['−','배정 해제'], new:['+','새 근무표에 배정'], gone:['−','근무표가 없어짐']};
+  sec.appendChild(el('h3',null,'직전 확인 이후 변경 내역 <span class="cnt">'+n+'건</span>'));
+  sec.appendChild(el('p','smallnote','직전 확인 시점 이후의 근무표 변경사항입니다.'));
+  const T={add:['+','신규 배정'], remove:['−','배정 제외'], new:['+','신규 편성 배정'], gone:['−','근무표 삭제']};
   const byDs={};
   changes.forEach(c=>(byDs[c.ds]=byDs[c.ds]||[]).push(c));
   Object.keys(byDs).sort().forEach(ds=>{
@@ -3914,7 +3914,7 @@ function renderMineChanges(w, today, fresh){
     byDs[ds].sort((a,b)=>a.type<b.type?-1:1).forEach(c=>{
       const [sym,lab]=T[c.type];
       const role=!!ROLE_KR[c.key];
-      const txt = role ? (c.type==='add'||c.type==='new' ? ROLE_KR[c.key]+(c.key==='R:meal'||c.key==='R:xmess'?'로':'으로')+' 지정' : ROLE_KR[c.key]+' 지정 해제') : keyText(c.key);
+      const txt = role ? (c.type==='add'||c.type==='new' ? ROLE_KR[c.key]+(c.key==='R:meal'||c.key==='R:xmess'?'로':'으로')+' 배정' : ROLE_KR[c.key]+' 배정 해제') : keyText(c.key);
       // 번초는 한 건으로 세고, 연결된 두 시각을 실제 날짜와 함께 보여 준다(자정 이후는 다음날)
       const shown = c.key[0]==='N' ? c.key.slice(2)+'번초 · '+keyTimes(c.key).map(t=>realDateOf(ds,t)!==ds?calMd(realDateOf(ds,t))+' '+t:t).join(', ') : txt;
       g.appendChild(el('div','ci '+(c.type==='add'||c.type==='new'?'plus':'minus'),'<span class="sym" aria-hidden="true">'+sym+'</span><span class="lb">'+esc(role?'역할 변경':lab)+'</span><span class="tx">'+esc(shown)+'</span>'));
@@ -3922,7 +3922,7 @@ function renderMineChanges(w, today, fresh){
     sec.appendChild(g);
   });
   if(MINE.saveErr) sec.appendChild(el('div','err',esc(MINE.saveErr)));
-  const ok=el('button','btn full', MINE.saving?'저장 중…':'확인했어요'); ok.type='button'; ok.disabled=MINE.saving;
+  const ok=el('button','btn full', MINE.saving?'저장 중…':'확인 완료'); ok.type='button'; ok.disabled=MINE.saving;
   ok.addEventListener('click',()=>{
     const nb=ackPersonal(base, shown, shownFresh);
     MINE.saving=true; MINE.saveErr=''; renderMine();
@@ -3937,10 +3937,10 @@ function mineDaySummary(w, ds){
   const pbs=prebookOn(ds).filter(p=>p.wid===w.id);
   const box=el('div','mday2');
   pbs.forEach(p=>{ const i=pbDayInfo(p,ds); box.appendChild(el('div','mpb','<span class="tag ex">'+esc(i.label)+'</span> '+esc(i.cond))); });
-  if(!s){ box.appendChild(el('div','mnone','근무표 미생성')); return box; }
+  if(!s){ box.appendChild(el('div','mnone','근무표 미편성')); return box; }
   const rc=mineRoleChips(s, w.id); if(rc) box.appendChild(rc);
   const its=personalItems(ds, s, w.id);
-  if(!its.length){ box.appendChild(el('div','mnone', pbs.length?'배정된 CCTV 근무 없음 (위 일정 참고)':'배정된 CCTV 근무 없음')); return box; }
+  if(!its.length){ box.appendChild(el('div','mnone', pbs.length?'배정된 CCTV 근무 없음 (상단 일정 참조)':'배정된 CCTV 근무 없음')); return box; }
   const l=el('div','mits'); its.forEach(it=>l.appendChild(mineItemRow(it, new Date()))); box.appendChild(l);
   return box;
 }
@@ -3984,7 +3984,7 @@ function renderMineWeek(w, today){
   { const ol=officerLine(ds); if(ol) det.appendChild(ol); }
   det.appendChild(mineDaySummary(w, ds));
   const acts=el('div','flexgap');
-  const gv=el('button','btn ghost sm','이 날 근무표 전체'); gv.type='button';
+  const gv=el('button','btn ghost sm','해당 일자 근무표 전체'); gv.type='button';
   gv.addEventListener('click',()=>{ MINE.userNav=true; $('#vDate').value=ds; renderView(); showView('view'); });
   const gc=el('button','btn ghost sm','달력에서 보기'); gc.type='button';
   gc.addEventListener('click',()=>{ MINE.userNav=true; calYM=ds.slice(0,7); calSelDate=ds; showView('cal'); });
@@ -3995,7 +3995,7 @@ function renderMineWeek(w, today){
 /* 날짜 범위의 내 근무 (이후 일정 · 지나간 근무) */
 function renderMineRange(w, from, to, past){
   const box=el('div');
-  if(past) box.appendChild(el('p','smallnote','근무표 기록상 배정입니다. 실제로 근무를 섰는지는 이 앱이 기록하지 않습니다.'));
+  if(past) box.appendChild(el('p','smallnote','근무표 배정 기록 기준이며 실제 근무 수행 여부와는 상이할 수 있습니다.'));
   let any=false;
   for(let d=from; d<=to; d=addDays(d,1)){
     const s=DB.schedules[d], pbs=prebookOn(d).filter(p=>p.wid===w.id);
@@ -4010,18 +4010,18 @@ function renderMineRange(w, from, to, past){
   }
   if(!any){
     const tables=Object.keys(DB.schedules).filter(d=>d>=from&&d<=to).length;
-    box.appendChild(el('div','mnone', tables ? '이 기간에 배정된 CCTV 근무 없음' : '이 기간 근무표 미생성'));
+    box.appendChild(el('div','mnone', tables ? '해당 기간 배정된 CCTV 근무 없음' : '해당 기간 근무표 미편성'));
   }
   return box;
 }
 /* 통계 — 최근 4주/전체 기간. 분자·분모를 그 기간 근무표로 함께 계산(공정성 탭과 같은 기준) */
 function renderMineStats(w){
   const box=el('div');
-  box.appendChild(el('div','mstat-why','<b>배정 기준</b><ul>'
-    +'<li>당직·상황병·18:30~21:30 등은 역할에 따라 고정으로 정해집니다.</li>'
-    +'<li>06:30은 배정률이 낮은 순서로 도는 순번제입니다.</li>'
-    +'<li>나머지 칸은 그날 칸 수를 고르게 한 뒤, 이 시간대·야간·밥교대·순찰 배정률과 하루 평균 근무시간이 낮은 사람부터 들어갑니다.</li>'
-    +'<li>각 근무 항목을 누르면 그 칸의 배정 이유(현재 기록 기준 참고 설명)를 볼 수 있습니다.</li></ul>'));
+  box.appendChild(el('div','mstat-why','<b>배정 원칙</b><ul>'
+    +'<li>당직·상황병·18:30~21:30 등: 역할 및 임무에 따라 고정 편성</li>'
+    +'<li>06:30: 배정률 낮은 인원 우선 순번제 편성</li>'
+    +'<li>기타 시간대: 일일 근무 횟수 균등 분배 후 시간대·야간·밥교대·순찰 배정률 및 일평균 근무시간 낮은 순 편성</li>'
+    +'<li>개별 근무 항목 선택 시 세부 배정 사유 확인 가능</li></ul>'));
   const seg=el('div','seg'); seg.setAttribute('role','tablist');
   [['4w','최근 4주'],['all','전체 기간']].forEach(([k,t])=>{ const b=el('button',MINE.period===k?'on':'',t); b.type='button'; b.setAttribute('aria-selected',MINE.period===k?'true':'false');
     b.addEventListener('click',()=>{ MINE.period=k; const d=b.closest('.mine-db'); d.innerHTML=''; d.appendChild(renderMineStats(w)); }); seg.appendChild(b); });
@@ -4032,13 +4032,13 @@ function renderMineStats(w){
   const st=buildStats(null, range), r=st[w.id];
   const minD=minDaysFor(dates.length);
   const pool=activeWorkers().filter(x=>inAvgPool(x, st, minD));
-  const rangeTxt = dates.length ? calMd(range?range.from:dates[0])+' ~ '+calMd(range?range.to:dates[dates.length-1])+' (근무표 '+dates.length+'일)' : '근무표 없음';
-  box.appendChild(el('p','smallnote','비교 기간: '+esc(rangeTxt)+' · 비교 대상: 신병·운항병을 뺀 활성 근무자 중 그 기간 근무일 '+minD+'일 이상인 '+pool.length+'명 · 계산: 각자 근무표에 포함된 날(분모) 대비 배정 횟수(분자) — [카운트 › 공정성]과 같은 기준'));
-  if(!r || !r.denom){ box.appendChild(el('div','mnone','이 기간에 내가 포함된 근무표가 없어 계산할 수 없습니다.')); return box; }
-  box.appendChild(el('div','mstat-sum','근무표에 포함된 날 <b>'+r.denom+'일</b> · 집계 근무시간 <b>'+r.hours.toFixed(1)+'h</b> · 하루 평균 <b>'+avgHours(r).toFixed(2)+'h</b>'
-    +'<span class="muted"> (집계 시간은 07:30·17:30의 순찰 가중을 포함한 공정성 계산용 값)</span>'));
-  if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+'은(는) 배정 방식이 달라 평균 계산에서 빠져 있습니다. 평균보다 높거나 낮게 나올 수 있습니다.'));
-  else if(!inAvgPool(w, st, minD)) box.appendChild(el('p','smallnote','이 기간 근무일이 '+r.denom+'일로 적어(최소 '+minD+'일) 평균 계산에서는 빠져 있습니다. 내 값은 그대로 보여 줍니다.'));
+  const rangeTxt = dates.length ? calMd(range?range.from:dates[0])+' ~ '+calMd(range?range.to:dates[dates.length-1])+' (근무표 '+dates.length+'일분)' : '근무표 없음';
+  box.appendChild(el('p','smallnote','비교 기간: '+esc(rangeTxt)+' · 비교군: 신병·운항병 제외 활성 인원 중 해당 기간 근무일수 '+minD+'일 이상인 '+pool.length+'명 · 산출: 개인별 근무표 포함 일수(분모) 대비 배정 횟수(분자) — [카운트 › 공정성] 기준 동일'));
+  if(!r || !r.denom){ box.appendChild(el('div','mnone','해당 기간 내 포함된 근무표가 없어 집계할 수 없습니다.')); return box; }
+  box.appendChild(el('div','mstat-sum','근무표 포함 일수 <b>'+r.denom+'일</b> · 집계 근무시간 <b>'+r.hours.toFixed(1)+'h</b> · 일평균 <b>'+avgHours(r).toFixed(2)+'h</b>'
+    +'<span class="muted"> (07:30·17:30 순찰 가중치 포함)</span>'));
+  if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+' 직책은 배정 규칙 상이로 부대 평균 산출에서 제외됩니다.'));
+  else if(!inAvgPool(w, st, minD)) box.appendChild(el('p','smallnote','해당 기간 근무일수가 '+r.denom+'일로 최소 기준('+minD+'일) 미달하여 부대 평균 산출에서 제외되었습니다. 개인 수치는 정상 표시됩니다.'));
   const guard=f=> x=> (st[x.id] && st[x.id].denom>0) ? f(x) : null;
   fairMetrics(st).forEach(([label,unit,dec,f0])=>{
     const f=guard(f0);
@@ -4063,7 +4063,7 @@ function renderMineStats(w){
     others.forEach((x,i)=>{ const d=el('span','d o'); d.style.left=pos(x)+'%'; d.style.top=(H-17-lvl[i]*13)+'px'; ax.appendChild(d); });
     if(mine!=null){ const d=el('span','d me'); d.style.left=pos(mine)+'%'; d.style.top=(H-18)+'px'; ax.appendChild(d); }
     card.appendChild(ax);
-    card.appendChild(el('div','ends','<span>'+fmt(mn)+unit+'</span><span>● 나 · 회색 = 다른 근무자</span><span>'+fmt(mx)+unit+'</span>'));
+    card.appendChild(el('div','ends','<span>'+fmt(mn)+unit+'</span><span>● 본인 · 회색 = 타 근무자</span><span>'+fmt(mx)+unit+'</span>'));
     box.appendChild(card);
   });
   return box;
@@ -4071,20 +4071,20 @@ function renderMineStats(w){
 function renderMineAcct(legacy){
   const box=el('div');
   const api=window.MEMBER_API, info=api&&api.info();
-  if(info && info.email) box.appendChild(el('p','smallnote','로그인: '+esc(info.email)+(legacy?' (공용 열람 계정)':'')));
-  if(api){ const b=el('button','btn ghost','로그아웃'); b.type='button'; b.addEventListener('click',()=>{ if(confirm('로그아웃할까요?')) mineLogout(); }); box.appendChild(b); }
-  else box.appendChild(el('p','smallnote','서버에 연결되지 않아 계정 정보를 확인할 수 없습니다.'));
+  if(info && info.email) box.appendChild(el('p','smallnote','로그인 계정: '+esc(info.email)+(legacy?' (공용 열람 계정)':'')));
+  if(api){ const b=el('button','btn ghost','로그아웃'); b.type='button'; b.addEventListener('click',()=>{ if(confirm('로그아웃하시겠습니까?')) mineLogout(); }); box.appendChild(b); }
+  else box.appendChild(el('p','smallnote','서버 미연결 상태로 계정 정보를 확인할 수 없습니다.'));
   return box;
 }
 /* 복무율 — 입대일(관리자가 [인원]에서 입력) 기준, 소수점 7자리까지 실시간으로 올라간다 */
 function renderService(w){
   const sec=el('section','msvc'); sec.setAttribute('aria-label','복무율');
   const p=serviceProgress(w.enlistDate, Date.now());
-  if(!p){ sec.classList.add('none'); sec.appendChild(el('div','l','복무율')); sec.appendChild(el('div','muted','입대일이 아직 등록되지 않았습니다. 관리자에게 입대일 입력을 요청하세요.')); return sec; }
+  if(!p){ sec.classList.add('none'); sec.appendChild(el('div','l','복무율')); sec.appendChild(el('div','muted','입대일이 등록되지 않았습니다. 관리자에게 입대일 입력을 요청하십시오.')); return sec; }
   sec.appendChild(el('div','l','복무율'+(p.left>0?'<span class="dd">D-'+p.left+'</span>':p.left===0?'<span class="dd">오늘 전역</span>':'<span class="dd">전역</span>')));
   const v=el('div','pct'); v.dataset.enlist=w.enlistDate; v.textContent=p.pct.toFixed(7)+'%'; sec.appendChild(v);
   const bar=el('div','bar'); const f=el('i'); f.dataset.enlistW=w.enlistDate; f.style.width=p.pct+'%'; bar.appendChild(f); sec.appendChild(bar);
-  sec.appendChild(el('div','meta','<span>입대 '+esc(mdwY(p.enlist))+'</span><span>'+(p.dayN>0?'복무 '+Math.min(p.dayN,p.total)+'일째 / '+p.total+'일':'입대 전')+'</span><span>전역 '+esc(mdwY(p.discharge))+'</span>'));
+  sec.appendChild(el('div','meta','<span>입대 '+esc(mdwY(p.enlist))+'</span><span>'+(p.dayN>0?'복무 '+Math.min(p.dayN,p.total)+'일 / 총 '+p.total+'일':'입대 전')+'</span><span>전역 '+esc(mdwY(p.discharge))+'</span>'));
   return sec;
 }
 function mdwY(d){ return d.slice(2,4)+'.'+d.slice(5,7)+'.'+d.slice(8)+' ('+DOW_KR[dow(d)]+')'; }
@@ -4109,7 +4109,7 @@ function renderSvc(){
   const inp=el('input'); inp.type='date'; inp.value=SVC.calc||(me&&me.enlistDate)||todayStr(); row.appendChild(inp); calc.appendChild(row);
   const out=el('div','svc-out'); calc.appendChild(out);
   const show=()=>{ SVC.calc=inp.value; const p=serviceProgress(inp.value, Date.now());
-    out.innerHTML = !p ? '<span class="muted">입대일을 고르세요.</span>'
+    out.innerHTML = !p ? '<span class="muted">입대일을 선택하십시오.</span>'
       : '<div><span>전역일</span><b>'+esc(mdwY(p.discharge))+'</b></div>'
        +'<div><span>복무 기간</span><b>'+p.total+'일</b></div>'
        +'<div><span>오늘 기준</span><b>'+(p.left>0?'D-'+p.left:p.left===0?'오늘 전역':'전역 후 '+(-p.left)+'일')+'</b></div>'
@@ -4124,22 +4124,22 @@ function renderForecastCard(w){
   const sec=el('section','mcard svc-fc'); sec.setAttribute('aria-label','전역까지 남은 근무');
   sec.appendChild(el('h3',null,'전역까지 남은 근무'));
   const f=remainingForecast(w.id, todayStr());
-  if(!f){ sec.appendChild(el('div','muted','입대일이 등록되면 전역까지 남은 근무를 계산합니다.')); return sec; }
+  if(!f){ sec.appendChild(el('div','muted','입대일 등록 시 전역까지 남은 근무가 계산됩니다.')); return sec; }
   if(f.done){ sec.appendChild(el('div','muted','전역했습니다. 수고 많으셨습니다 🎖')); return sec; }
   const tot=f.fixedH+f.estH, r1=x=>Math.round(x);
   sec.appendChild(el('div','big','약 <b>'+r1(tot)+'</b>시간'));
   const bar=el('div','fbar'); const fi=el('i','fx'); fi.style.width=(tot>0?f.fixedH/tot*100:0)+'%'; bar.appendChild(fi); sec.appendChild(bar);
   sec.appendChild(el('div','fleg','<span><i class="fx"></i>확정 '+(Math.round(f.fixedH*10)/10)+'h'+(f.genTo?' (~'+esc(calMd(f.genTo))+' 근무표)':'')+'</span><span><i></i>예상 '+r1(f.estH)+'h</span>'));
   const tl=el('div','svc-out');
-  [['야간 번초','약 '+r1(f.nights)+'번'],['06:30','약 '+r1(f.rot)+'번'],['밥교대','약 '+r1(f.meals)+'번'],['남은 근무일',f.workDays+'일']].forEach(([k,v])=>tl.appendChild(el('div',null,'<span>'+k+'</span><b>'+v+'</b>')));
+  [['야간 번초','약 '+r1(f.nights)+'회'],['06:30','약 '+r1(f.rot)+'회'],['밥교대','약 '+r1(f.meals)+'회'],['남은 근무일',f.workDays+'일']].forEach(([k,v])=>tl.appendChild(el('div',null,'<span>'+k+'</span><b>'+v+'</b>')));
   sec.appendChild(tl);
-  if(f.lastNight || f.lastWork) sec.appendChild(el('p','smallnote','나온 근무표 기준 '+(f.lastNight?'마지막 야간 '+esc(mdw(f.lastNight)):'')+(f.lastNight&&f.lastWork?' · ':'')+(f.lastWork?'마지막 근무 '+esc(mdw(f.lastWork)):'')));
+  if(f.lastNight || f.lastWork) sec.appendChild(el('p','smallnote','기편성 근무표 기준 '+(f.lastNight?'마지막 야간 '+esc(mdw(f.lastNight)):'')+(f.lastNight&&f.lastWork?' · ':'')+(f.lastWork?'마지막 근무 '+esc(mdw(f.lastWork)):'')));
   const det=el('details','adv');
-  det.appendChild(el('summary',null,'계산 기준'));
-  det.appendChild(el('p','smallnote','오늘부터 전역 전날까지. 확정 = 이미 나온 근무표의 실제 배정(07:30·17:30·순찰 가중 포함, 공정성과 같은 기준). '
-    +'예상 = 근무표가 아직 없는 날 중 휴가·열외·유조차·배식조 일정이 없는 날 '+f.estDays+'일 × '
-    +(f.basis==='mine' ? '내 최근 8주 비율' : '부대 평균 비율(내 최근 8주 기록이 7일 미만)')
-    +' — 하루 '+f.rate.h.toFixed(2)+'h, 야간 '+(f.rate.n*100).toFixed(0)+'%, 06:30 '+(f.rate.rot*100).toFixed(0)+'%, 밥교대 '+(f.rate.meal*100).toFixed(0)+'%. 앞으로 일정이 등록되면 바뀝니다.'));
+  det.appendChild(el('summary',null,'산정 기준'));
+  det.appendChild(el('p','smallnote','당일부터 전역 전일까지 산출. 확정 = 기편성 근무표의 실제 배정(07:30·17:30·순찰 가중치 포함). '
+    +'예상 = 근무표 미생성 일자 중 휴가·열외·유조차·배식조 일정이 없는 날 '+f.estDays+'일 × '
+    +(f.basis==='mine' ? '최근 8주 개인 배정 비율' : '부대 평균 비율(최근 8주 기록 7일 미만)')
+    +' — 일일 '+f.rate.h.toFixed(2)+'h, 야간 '+(f.rate.n*100).toFixed(0)+'%, 06:30 '+(f.rate.rot*100).toFixed(0)+'%, 밥교대 '+(f.rate.meal*100).toFixed(0)+'%. 향후 일정 등록 시 갱신됩니다.'));
   sec.appendChild(det);
   return sec;
 }
@@ -4149,12 +4149,12 @@ function renderHeatCard(w){
   sec.appendChild(el('h3',null,'내 근무 잔디'));
   const today=todayStr(), ks=Object.keys(DB.schedules).sort();
   const from=w.enlistDate || ks[0], to=(w.enlistDate && dischargeDate(w.enlistDate)) || (ks.length ? (ks[ks.length-1]>today?ks[ks.length-1]:today) : today);
-  if(!from){ sec.appendChild(el('div','muted','아직 근무표가 없습니다.')); return sec; }
+  if(!from){ sec.appendChild(el('div','muted','편성된 근무표가 없습니다.')); return sec; }
   const dis=w.enlistDate ? dischargeDate(w.enlistDate) : null;
   const {days, sum}=workHeatmap(w.id, from, to, today);
   sec.appendChild(el('div','hleg','<span><i class="c0"></i>0</span><span><i class="c1"></i>1h</span><span><i class="c2"></i>2h</span><span><i class="c3"></i>3h+</span><span><i class="c1 n"></i>야간</span><span><i class="off"></i>휴가·열외</span><span><i class="none"></i>기록 없음</span>'));
   const grid=el('div','heat');
-  const detail=el('div','hdet muted','칸을 누르면 그날 근무가 나옵니다.');
+  const detail=el('div','hdet muted','일자 선택 시 당일 근무 내역이 표시됩니다.');
   let ym=from.slice(0,7);
   while(ym<=to.slice(0,7)){
     const row=el('div','hrow'); row.appendChild(el('span','hmo', ym.slice(2,4)+'.'+ym.slice(5)));
@@ -4174,9 +4174,9 @@ function renderHeatCard(w){
         const s2=DB.schedules[ds]; detail.innerHTML=''; detail.classList.remove('muted');
         let t=mdw(ds)+' · ';
         if(ds===dis) t+='🎖 전역일';
-        else if(e.state==='off') t+='휴가·열외 등으로 빠진 날';
+        else if(e.state==='off') t+='휴가·열외';
         else if(e.state==='none') t+='근무표 기록 없음';
-        else if(e.state==='future') t+='아직 근무표 없음';
+        else if(e.state==='future') t+='근무표 미편성';
         else { const mk=workerDayMarks(s2, w.id); t+=(Math.round(e.h*10)/10)+'h'+(mk.roles.length?' · '+mk.roles.join('·'):'')+(mk.slots.length?' · '+mk.slots.join(', '):' · 근무 없음'); }
         detail.appendChild(el('span',null,esc(t)));
         if(s2){ const go=el('button','btn ghost sm','근무표 보기'); go.type='button'; go.addEventListener('click',()=>{ $('#vDate').value=ds; vMode='view'; renderView(); showView('view'); }); detail.appendChild(go); }
@@ -4187,8 +4187,8 @@ function renderHeatCard(w){
     const [y,m]=ym.split('-').map(Number); ym = m===12 ? (y+1)+'-01' : y+'-'+String(m+1).padStart(2,'0');
   }
   sec.appendChild(grid); sec.appendChild(detail);
-  sec.appendChild(el('p','smallnote','지금까지 근무표 '+sum.recDays+'일 · 근무 '+Math.round(sum.h)+'h · 야간 '+sum.nights+'번 · 06:30 '+sum.rot+'번 · 밥교대 '+sum.meals+'번'
-    +(sum.topSlot?' · 가장 많이 선 주간 칸 '+esc(sum.topSlot.slot)+'('+sum.topSlot.n+'회)':'')+' — 시간은 근무표 날짜 기준(새벽 번초는 전날 표).'));
+  sec.appendChild(el('p','smallnote','누적 근무표 '+sum.recDays+'일 · 총 근무 '+Math.round(sum.h)+'h · 야간 '+sum.nights+'회 · 06:30 '+sum.rot+'회 · 밥교대 '+sum.meals+'회'
+    +(sum.topSlot?' · 최다 주간 슬롯 '+esc(sum.topSlot.slot)+'('+sum.topSlot.n+'회)':'')+' — 시간은 근무표 일자 기준(새벽 번초는 전일 표).'));
   return sec;
 }
 /* ----- 우리 부대 — 통계 타일 + 전역 타임라인 / 복무율 순위 ----- */
@@ -4200,7 +4200,7 @@ function renderUnitCard(meId){
   const sec=el('section','mcard svc-rank');
   sec.appendChild(el('h3',null,'우리 부대 <span class="cnt">입대일 등록 '+rows.length+'명</span>'));
   if(!rows.length){
-    sec.appendChild(el('div','muted','입대일이 등록된 구성원이 없습니다. 관리자가 [근무자 관리]에서 입대일을 넣으면 여기에 나옵니다.'));
+    sec.appendChild(el('div','muted','입대일이 등록된 인원이 없습니다. 관리자가 [근무자 관리]에서 입대일을 등록하면 표시됩니다.'));
     if(none.length && !document.body.classList.contains('ro')) sec.appendChild(el('p','smallnote','입대일 미등록 '+none.length+'명: '+none.map(w=>esc(w.name)).join(', ')));
     return sec;
   }
@@ -4262,7 +4262,7 @@ function svcTimeline(rows, meId, today){
   if(mine && mine.p.left>=0){
     const before=ahead.filter(x=>x.w.id!==meId && x.p.discharge<mine.p.discharge).length;
     const after=ahead.filter(x=>x.w.id!==meId && x.p.discharge>mine.p.discharge).length;
-    box.appendChild(el('p','smallnote','나보다 먼저 전역 '+before+'명 · 내가 전역할 때 남는 사람 '+after+'명'));
+    box.appendChild(el('p','smallnote','본인 이전 전역 '+before+'명 · 본인 전역 시 잔여 '+after+'명'));
   }
   return box;
 }

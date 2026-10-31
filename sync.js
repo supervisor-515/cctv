@@ -70,22 +70,22 @@
   // 콘솔에서 복사한 firebaseConfig는 키에 따옴표가 없는 JS 객체 표기라 JSON.parse가 안 됨
   function parseCfgText(t){
     const a=t.indexOf('{'), b=t.lastIndexOf('}');
-    if(a<0 || b<a) throw new Error('설정 객체({ ... })를 찾을 수 없습니다');
+    if(a<0 || b<a) throw new Error('설정 객체({ ... })를 찾을 수 없습니다.');
     return (new Function('return ('+t.slice(a,b+1)+')'))();
   }
   qs('#syCfgSave').addEventListener('click',()=>{
     try{
       const c=parseCfgText(qs('#syCfg').value);
-      if(!c.apiKey || !c.projectId) throw new Error('apiKey/projectId가 없습니다');
+      if(!c.apiKey || !c.projectId) throw new Error('apiKey 또는 projectId가 누락되었습니다.');
       const adminEmail=(qs('#syAdmin').value||'').trim();
-      if(!adminEmail) throw new Error('관리자 이메일을 입력하세요');
+      if(!adminEmail) throw new Error('관리자 이메일을 입력하십시오.');
       localStorage.setItem(CFG_KEY, JSON.stringify({config:c, adminEmail}));
       alert('연결 설정을 저장했습니다. 페이지를 새로고침합니다.');
       location.reload();
     }catch(e){ status('<div class="err">설정 저장 실패: '+esc(e.message)+'</div>'); }
   });
   qs('#syCfgClear').addEventListener('click',()=>{
-    if(!confirm('이 브라우저의 동기화 설정을 삭제할까요? (서버의 데이터는 남습니다)')) return;
+    if(!confirm('동기화 설정을 삭제합니까? 서버 데이터는 유지됩니다.')) return;
     localStorage.removeItem(CFG_KEY);
     location.reload();
   });
@@ -97,13 +97,13 @@
   }
   if(!cfg){
     window.SYNC_UNAVAILABLE='nocfg';
-    status('<div class="warn">동기화 미설정 — 이 브라우저에만 저장됩니다. 아래 [⚙ 연결 설정]에 Firebase 설정을 입력하세요 (FIREBASE_SETUP.md 참고).</div>');
+    status('<div class="warn">동기화 미설정: 로컬 브라우저에만 저장됩니다. 아래 [연결 설정]에 Firebase 설정을 입력하십시오 (FIREBASE_SETUP.md 참조).</div>');
     qs('#syLoginRow').style.display='none';
     return;
   }
   if(typeof firebase==='undefined'){
     window.SYNC_UNAVAILABLE='sdk';
-    status('<div class="err">Firebase SDK를 불러오지 못했습니다 (오프라인?). 이 브라우저의 로컬 저장으로만 동작합니다.</div>');
+    status('<div class="err">Firebase SDK 로드 실패 (오프라인 상태). 로컬 저장소로만 동작합니다.</div>');
     qs('#syLoginRow').style.display='none';
     return;
   }
@@ -187,13 +187,13 @@
     if(!S.admin) return Promise.resolve();
     const rv=remoteAppVer();
     if(rv && verCmp(rv, APP_VER)>0){
-      status('<div class="err">서버 데이터는 더 새 버전 앱(v'+esc(rv)+')으로 저장돼 있어, 이 기기(v'+APP_VER+')에서는 서버에 올리지 않았습니다. 새로고침(안 되면 앱을 완전히 닫았다 열기)해서 최신 버전으로 바꾼 뒤 다시 저장하세요.</div>');
+      status('<div class="err">서버 데이터가 최신 버전(v'+esc(rv)+')으로 저장되어 있어 업로드를 중단했습니다 (현재 기기 v'+APP_VER+'). 새로고침하거나 앱을 완전히 종료 후 다시 열어 최신 버전으로 갱신하십시오.</div>');
       return Promise.resolve(false);
     }
     const parts=splitLocal();
     Object.keys(parts).forEach(id=>{
       if(parts[id].length>900000)
-        alert('주의: 문서 '+id+'가 900KB를 넘었습니다 (Firestore 문서 한도 1MB).\n[기본 설정]에서 JSON 백업 후 오래된 근무표 삭제를 권장합니다.');
+        alert('경고: 문서 '+id+' 용량이 900KB를 초과했습니다 (Firestore 한도 1MB).\n[기본 설정]에서 JSON 백업 후 오래된 근무표를 정리하십시오.');
     });
     const batch=firebase.firestore().batch();
     let ops=0;
@@ -211,7 +211,7 @@
     if(!ops){ S.dirty=false; refreshStatus(); return Promise.resolve(true); }
     return batch.commit()
       .then(()=>{ S.dirty=false; S.lastUp=new Date(); S.dirJson=dj; refreshStatus(); return true; })
-      .catch(e=>{ status('<div class="err">업로드 실패: '+esc(e.message)+' — 보안 규칙·관리자 이메일을 확인하세요.</div>'); return false; });
+      .catch(e=>{ status('<div class="err">업로드 실패: '+esc(e.message)+' — 보안 규칙 및 관리자 이메일을 확인하십시오.</div>'); return false; });
   }
   function scheduleUpload(){ clearTimeout(S.timer); S.timer=setTimeout(upload, 1500); }
 
@@ -219,7 +219,7 @@
   const _save=save;
   save=function(){
     if(S.on && S.readonly){
-      alert('열람 전용 모드입니다 — 변경 사항은 저장되지 않습니다.');
+      alert('열람 전용 모드입니다. 변경 사항은 저장되지 않습니다.');
       const r=buildRemoteDB(); if(r) adopt(r);   // 실시간 사본으로 되돌림
       return;
     }
@@ -267,9 +267,9 @@
             const localAt=Number(localStorage.getItem(MTIME_KEY))||0;
             if(S.remoteAt>localAt){
               const r=buildRemoteDB(); if(r) adopt(r);
-              S.note='서버가 더 최신이라 자동으로 불러옴';
+              S.note='서버 데이터가 더 최신이라 자동 반영함';
             }else{
-              S.note='이 기기가 더 최신이라 서버에 업로드';
+              S.note='현재 기기 데이터가 더 최신이라 서버 업로드';
             }
             scheduleUpload();   // 반영 결과 기준으로 서버 정리(신형식 전환·main 삭제 포함) — 차이 없으면 0회 쓰기
           }else if(S.remote.main){
@@ -295,11 +295,11 @@
       S.live=false; S.liveErr=e && (e.code||e.message) || 'error';
       if(e && e.code==='permission-denied' && !S.admin && !S.member){
         S.denied=true; renderJoin(); notifyPhase();
-        status(S.pendingDir ? '<div class="ok">✓ 부대 코드 확인 — 아래에서 본인을 선택하면 근무표를 볼 수 있습니다.</div>'
-                            : '<div class="warn">부대 코드로 본인 확인을 마쳐야 근무표를 볼 수 있습니다. 아래에서 부대 코드를 입력하세요.</div>');
+        status(S.pendingDir ? '<div class="ok">✓ 부대 코드 확인 완료. 본인 이름을 선택하면 근무표를 조회할 수 있습니다.</div>'
+                            : '<div class="warn">부대 코드 인증이 필요합니다. 아래에 부대 코드를 입력하십시오.</div>');
         return;
       }
-      status('<div class="err">실시간 수신 오류: '+esc(e.message)+' — 보안 규칙과 로그인 상태를 확인하세요.</div>');
+      status('<div class="err">실시간 동기화 오류: '+esc(e.message)+' — 보안 규칙과 로그인 상태를 확인하십시오.</div>');
       notifyPhase();
     };
     unsub = S.admin ? col.onSnapshot(onSnap, onErr) : col.onSnapshot({includeMetadataChanges:true}, onSnap, onErr);
@@ -343,8 +343,8 @@
   function refreshStatus(){
     if(!S.user){
       status(loginMode==='up'
-        ? '<div class="warn">회원가입 — 이메일·비밀번호와 관리자에게 받은 <b>부대 코드</b>를 입력하세요. 코드가 맞아야 가입됩니다.</div>'
-        : '<div class="warn">연결됨 — 로그인하세요. 계정이 없으면 [회원가입]을 누르세요. 로그인 전에는 이 브라우저에만 저장됩니다.</div>');
+        ? '<div class="warn">회원가입: 이메일, 비밀번호, 관리자 발급 <b>부대 코드</b>를 입력하십시오. 코드가 일치해야 가입됩니다.</div>'
+        : '<div class="warn">서버 연결됨: 로그인하십시오. 계정이 없으면 [회원가입]을 선택하십시오. 로그인 전에는 로컬에만 저장됩니다.</div>');
       return;
     }
     if(S.denied){ return; }
@@ -357,7 +357,7 @@
   }
   qs('#syLogin').addEventListener('click',()=>{
     const em=(qs('#syEmail').value||'').trim(), pw=qs('#syPass').value;
-    if(!em||!pw){ status('<div class="err">이메일과 비밀번호를 입력하세요.</div>'); return; }
+    if(!em||!pw){ status('<div class="err">이메일과 비밀번호를 입력하십시오.</div>'); return; }
     auth.signInWithEmailAndPassword(em,pw)
       .catch(e=>status('<div class="err">로그인 실패: '+esc(authMsg(e))+'</div>'));
   });
@@ -435,7 +435,7 @@
           if(dj!==S.dirJson) return fs.collection('directory').doc(S.unitCode).set({json:dj, updatedAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>{ S.dirJson=dj; });
         });
       })
-      .catch(e=>{ qs('#syCodeNow').textContent='불러오기 실패 — 새 보안 규칙이 게시됐는지 확인하세요 ('+e.message+')'; });
+      .catch(e=>{ qs('#syCodeNow').textContent='불러오기 실패: 새 보안 규칙이 게시되었는지 확인하십시오 ('+e.message+')'; });
   }
   function codeOk(c){ return /^[A-Za-z0-9가-힣_-]{8,40}$/.test(c); }
   function fetchDir(code){
@@ -482,24 +482,24 @@
   }
   qs('#sySignup').addEventListener('click',()=>{
     const em=(qs('#syEmail').value||'').trim(), pw=qs('#syPass').value, pw2=qs('#syPass2').value, code=(qs('#syJoinCode').value||'').trim();
-    if(!em||!pw){ status('<div class="err">이메일과 비밀번호를 입력하세요.</div>'); return; }
+    if(!em||!pw){ status('<div class="err">이메일과 비밀번호를 입력하십시오.</div>'); return; }
     if(pw.length<6){ status('<div class="err">비밀번호는 6자 이상이어야 합니다.</div>'); return; }
     if(pw!==pw2){ status('<div class="err">비밀번호 확인이 일치하지 않습니다.</div>'); return; }
-    if(!codeOk(code)){ status('<div class="err">부대 코드를 확인하세요.</div>'); return; }
-    doSignup(em,pw,code).then(()=>status('<div class="ok">✓ 가입 완료 — 아래에서 본인을 선택하세요.</div>'))
+    if(!codeOk(code)){ status('<div class="err">부대 코드를 확인하십시오.</div>'); return; }
+    doSignup(em,pw,code).then(()=>status('<div class="ok">✓ 가입 완료. 본인 이름을 선택하십시오.</div>'))
       .catch(e=>status('<div class="err">가입 실패: '+esc(authMsg(e))+'</div>'));
   });
   /* 이미 계정은 있는데 등록 전인 경우: 부대 코드 → 명단 불러오기 */
   qs('#syCodeCheck').addEventListener('click',()=>{
     const code=(qs('#syCode').value||'').trim();
-    if(!codeOk(code)){ status('<div class="err">부대 코드를 확인하세요.</div>'); return; }
+    if(!codeOk(code)){ status('<div class="err">부대 코드를 확인하십시오.</div>'); return; }
     doCheckCode(code).catch(e=>status('<div class="err">'+esc(authMsg(e))+'</div>'));
   });
   qs('#syClaim').addEventListener('click',()=>{
     const wid=qs('#syWho').value, d=S.pendingDir;
     if(!wid||!d) return;
     const w=d.list.find(x=>x.id===wid);
-    if(!confirm((w?w.name:'')+' — 본인이 맞습니까?\n선택 후에는 관리자만 바꿀 수 있습니다.')) return;
+    if(!confirm((w?w.name:'')+' 본인이 맞습니까?\n선택 후에는 관리자만 변경할 수 있습니다.')) return;
     doClaim(wid).catch(e=>status('<div class="err">'+esc(authMsg(e))+'</div>'));
   });
   function renderJoin(){
@@ -512,31 +512,31 @@
     qs('#syJoinStep2').style.display = d?'':'none';
     if(d){
       const sel=qs('#syWho'); sel.innerHTML='';
-      const o0=document.createElement('option'); o0.value=''; o0.textContent='— 본인을 선택하세요 —'; sel.appendChild(o0);
+      const o0=document.createElement('option'); o0.value=''; o0.textContent='— 본인 선택 —'; sel.appendChild(o0);
       d.list.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko')).forEach(w=>{ const o=document.createElement('option'); o.value=w.id; o.textContent=w.name; sel.appendChild(o); });
     }
   }
 
   /* ---------- 관리자: 부대 코드 · 가입자 관리 ---------- */
   function renderAdmin(){
-    qs('#syCodeNow').innerHTML = S.unitCode ? '현재 코드: <b>'+esc(S.unitCode)+'</b>' : '<span style="color:var(--warn)">아직 부대 코드가 없습니다 — 설정해야 구성원이 가입할 수 있습니다.</span>';
+    qs('#syCodeNow').innerHTML = S.unitCode ? '현재 코드: <b>'+esc(S.unitCode)+'</b>' : '<span style="color:var(--warn)">부대 코드 미설정: 코드를 등록해야 구성원이 가입할 수 있습니다.</span>';
   }
   qs('#syCodeSave').addEventListener('click',()=>{
     const code=(qs('#syNewCode').value||'').trim();
-    if(!codeOk(code)){ alert('부대 코드는 8~40자(한글·영문·숫자·-·_)로 정하세요. 짧으면 추측당하기 쉽습니다.'); return; }
-    if(S.unitCode && !confirm('부대 코드를 바꿀까요?\n이미 가입한 구성원은 그대로 유지되고, 새로 가입하는 사람만 새 코드를 써야 합니다.')) return;
+    if(!codeOk(code)){ alert('부대 코드는 8~40자(한글, 영문, 숫자, -, _)로 설정하십시오. 길이가 짧으면 노출 위험이 있습니다.'); return; }
+    if(S.unitCode && !confirm('부대 코드를 변경합니까?\n기존 가입자는 유지되며 신규 가입자부터 새 코드가 적용됩니다.')) return;
     const batch=fs.batch(), dj=dirPayloadJson();
     batch.set(fs.collection('secrets').doc('unit'), {code});
     batch.set(fs.collection('directory').doc(code), {json:dj, updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
     if(S.unitCode && S.unitCode!==code) batch.delete(fs.collection('directory').doc(S.unitCode));
     batch.commit().then(()=>{ S.unitCode=code; S.dirJson=dj; qs('#syNewCode').value=''; renderAdmin(); status('<div class="ok">✓ 부대 코드를 저장했습니다.</div>'); })
-      .catch(e=>status('<div class="err">코드 저장 실패: '+esc(e.message)+' — 새 보안 규칙이 게시됐는지 확인하세요.</div>'));
+      .catch(e=>status('<div class="err">코드 저장 실패: '+esc(e.message)+' — 새 보안 규칙이 게시되었는지 확인하십시오.</div>'));
   });
   function loadMembers(){
     const box=qs('#syMembers'); box.innerHTML='<span class="muted">불러오는 중…</span>';
     fs.collection('members').get().then(snap=>{
       box.innerHTML='';
-      if(snap.empty){ box.innerHTML='<span class="muted">아직 가입한 구성원이 없습니다.</span>'; return; }
+      if(snap.empty){ box.innerHTML='<span class="muted">가입된 구성원이 없습니다.</span>'; return; }
       const rows=[]; snap.forEach(d=>rows.push(Object.assign({uid:d.id}, d.data())));
       rows.sort((a,b)=>String(nameOf(a.workerId)).localeCompare(String(nameOf(b.workerId)),'ko'));
       rows.forEach(m=>box.appendChild(memberRow(m)));
@@ -554,7 +554,7 @@
     chg.addEventListener('click',()=>{
       const nw=sel.value; if(!nw||nw===m.workerId) return;
       fs.collection('claims').doc(nw).get().then(c=>{
-        if(c.exists && c.data().uid!==m.uid){ alert(nameOf(nw)+'은(는) 이미 다른 계정('+(c.data().email||'')+')에 연결돼 있습니다. 먼저 그 계정을 해제하세요.'); return; }
+        if(c.exists && c.data().uid!==m.uid){ alert(nameOf(nw)+'은(는) 이미 다른 계정('+(c.data().email||'')+')에 연결되어 있습니다. 해당 계정을 먼저 해제하십시오.'); return; }
         const b=fs.batch();
         b.delete(fs.collection('claims').doc(m.workerId));
         b.set(fs.collection('claims').doc(nw), {uid:m.uid, email:m.email||''});
@@ -564,7 +564,7 @@
     });
     const del=document.createElement('button'); del.className='btn danger sm'; del.textContent='해제';
     del.addEventListener('click',()=>{
-      if(!confirm((m.email||'')+' 계정의 연결을 해제할까요?\n해제하면 근무표를 볼 수 없고, 부대 코드로 다시 등록해야 합니다.')) return;
+      if(!confirm((m.email||'')+' 계정 연결을 해제합니까?\n해제 시 근무표 조회가 차단되며 부대 코드로 다시 등록해야 합니다.')) return;
       const b=fs.batch();
       b.delete(fs.collection('members').doc(m.uid));
       b.delete(fs.collection('claims').doc(m.workerId));
@@ -586,7 +586,7 @@
   const bkCol=()=>fs.collection('backups');
   function bkTime(d){ const p=n=>String(n).padStart(2,'0');
     return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); }
-  function bkErr(e){ return /permission|insufficient/i.test(e&&e.message||'') ? '권한 없음 — FIREBASE_SETUP.md 4번 보안 규칙(backups 포함)을 다시 게시하세요' : (e&&e.message||String(e)); }
+  function bkErr(e){ return /permission|insufficient/i.test(e&&e.message||'') ? '권한 없음: FIREBASE_SETUP.md 4번 보안 규칙(backups 포함)을 다시 게시하십시오' : (e&&e.message||String(e)); }
   function bkDelete(id, parts){
     const b=fs.batch();
     for(let i=0;i<(parts||0);i++) b.delete(bkCol().doc(id).collection('parts').doc(String(i)));
@@ -639,7 +639,7 @@
     box.innerHTML='<div class="muted">불러오는 중…</div>';
     bkCol().orderBy('savedAtMs','desc').limit(BK_KEEP).get().then(snap=>{
       box.innerHTML='';
-      if(snap.empty){ box.innerHTML='<div class="muted">아직 서버 백업이 없습니다. 근무표를 생성하면 자동으로 만들어집니다.</div>'; return; }
+      if(snap.empty){ box.innerHTML='<div class="muted">서버 백업이 없습니다. 근무표 생성 시 자동 생성됩니다.</div>'; return; }
       snap.docs.forEach((d,i)=>{
         const m=d.data();
         const row=document.createElement('div'); row.className='bkrow';
@@ -654,7 +654,7 @@
         const rs=document.createElement('button'); rs.className='btn danger sm'; rs.textContent='이 시점으로 복원';
         rs.addEventListener('click',()=>bkLoad(d.id, m.parts).then(obj=>{
           const next=migrate(obj);
-          if(!confirm(m.savedAt+' 백업으로 되돌릴까요?\n\n지금: 근무자 '+DB.workers.length+'명 · 근무표 '+Object.keys(DB.schedules).length+'일\n백업: 근무자 '+next.workers.length+'명 · 근무표 '+Object.keys(next.schedules).length+'일\n\n지금 상태도 먼저 서버에 백업해 둡니다.')) return;
+          if(!confirm(m.savedAt+' 백업으로 복원합니까?\n\n현재: 근무자 '+DB.workers.length+'명 · 근무표 '+Object.keys(DB.schedules).length+'일\n백업: 근무자 '+next.workers.length+'명 · 근무표 '+Object.keys(next.schedules).length+'일\n\n현재 상태를 서버에 자동 백업한 후 복원합니다.')) return;
           return bkCreate('복원 직전 자동 백업').then(()=>{
             DB=next; invalidateStats(); save(); refreshAll();
             alert('✓ '+m.savedAt+' 백업으로 복원했습니다.');
@@ -663,15 +663,15 @@
         act.appendChild(dl); act.appendChild(rs); row.appendChild(act);
         box.appendChild(row);
       });
-    }).catch(e=>{ box.innerHTML='<div class="err">백업 목록을 불러오지 못했습니다: '+esc(bkErr(e))+'</div>'; });
+    }).catch(e=>{ box.innerHTML='<div class="err">백업 목록 불러오기 실패: '+esc(bkErr(e))+'</div>'; });
   }
   /* 입대일만 복구 — 최신 백업부터 거슬러 올라가며, 지금 입대일이 비어 있는 근무자에게 백업에 있던 입대일을 채운다.
      근무표·다른 설정은 건드리지 않는다. */
   function bkRestoreEnlist(){
     const st=qs('#bkNowSt');
     const need=()=>DB.workers.filter(w=>!w.enlistDate);
-    if(!need().length){ st.textContent='모든 근무자에게 입대일이 있습니다.'; return Promise.resolve(); }
-    st.textContent='백업에서 입대일을 찾는 중…';
+    if(!need().length){ st.textContent='모든 근무자의 입대일이 등록되어 있습니다.'; return Promise.resolve(); }
+    st.textContent='백업에서 입대일 검색 중…';
     return bkCol().orderBy('savedAtMs','desc').limit(BK_KEEP).get().then(snap=>{
       const found={}, from={};
       return snap.docs.reduce((pr,d)=>pr.then(()=>{
@@ -681,8 +681,8 @@
         }).catch(()=>{});
       }), Promise.resolve()).then(()=>{
         const fill=need().filter(w=>found[w.id]);
-        if(!fill.length){ st.textContent='최근 백업 '+snap.size+'개에 입대일 기록이 없습니다. 내려받아 둔 JSON 백업이 있으면 [JSON 불러오기]를 쓰거나 직접 다시 입력하세요.'; return; }
-        if(!confirm('백업에서 찾은 입대일 '+fill.length+'명을 채울까요? (지금 비어 있는 사람만, 근무표는 그대로)\n\n'+fill.map(w=>w.name+' '+found[w.id]).join('\n'))){ st.textContent=''; return; }
+        if(!fill.length){ st.textContent='최근 백업 '+snap.size+'개에 입대일 기록이 없습니다. 보관 중인 JSON 백업 파일이 있으면 [JSON 불러오기]를 사용하거나 직접 입력하십시오.'; return; }
+        if(!confirm('백업에서 확인된 입대일 '+fill.length+'명을 반영합니까? (미입력 인원만 반영, 근무표 유지)\n\n'+fill.map(w=>w.name+' '+found[w.id]).join('\n'))){ st.textContent=''; return; }
         fill.forEach(w=>{ w.enlistDate=found[w.id]; });
         save(); refreshAll();
         st.textContent='✓ 입대일 '+fill.length+'명 복구'+(need().length?' · 남은 미등록 '+need().length+'명':'');
@@ -696,7 +696,7 @@
     b.disabled=true; st.textContent='백업 중…';
     bkCreate('수동 백업').then(r=>{
       b.disabled=false;
-      st.textContent = r.ok ? '✓ 백업 완료 · '+r.at : r.skipped ? '관리자로 로그인해야 합니다' : '⚠ 실패: '+r.err;
+      st.textContent = r.ok ? '✓ 백업 완료 · '+r.at : r.skipped ? '관리자 로그인이 필요합니다' : '⚠ 실패: '+r.err;
       if(r.ok) bkRender();
     });
   });
@@ -765,26 +765,26 @@
     const c=(e&&e.code)||'', m=(e&&e.message)||'';
     const k=c||(/auth\/[a-z-]+/.exec(m)||[''])[0];
     const T={
-      'auth/invalid-email':'이메일 형식이 올바르지 않습니다. 예: name@example.com',
-      'auth/missing-email':'이메일을 입력하세요.',
-      'auth/missing-password':'비밀번호를 입력하세요.',
-      'auth/user-not-found':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
-      'auth/wrong-password':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
-      'auth/invalid-credential':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
-      'auth/invalid-login-credentials':'이메일 또는 비밀번호가 맞지 않습니다. 다시 입력하거나 [비밀번호를 잊었어요]로 재설정하세요.',
-      'auth/too-many-requests':'시도가 너무 많아 잠시 막혔습니다. 몇 분 뒤 다시 시도하거나 비밀번호를 재설정하세요.',
-      'auth/network-request-failed':'인터넷에 연결되지 않았습니다. 연결을 확인한 뒤 다시 시도하세요.',
-      'auth/email-already-in-use':'이미 가입된 이메일입니다. [로그인]에서 이 이메일로 로그인하세요.',
-      'auth/weak-password':'비밀번호는 6자 이상으로 정하세요.',
-      'auth/user-disabled':'사용이 중지된 계정입니다. 관리자에게 문의하세요.',
-      'auth/operation-not-allowed':'이 앱에서 이메일 로그인이 꺼져 있습니다. 관리자에게 알려 주세요.',
-      'app/bad-unit-code':'부대 코드가 맞지 않습니다. 관리자에게 받은 코드를 다시 확인하세요. (방금 만든 계정은 지웠으니 다시 가입하면 됩니다)',
-      'app/claim-denied':'이미 다른 계정이 이 이름을 선택했거나 부대 코드가 바뀌었습니다. 관리자에게 문의하세요.',
-      'app/timeout':'서버 응답이 늦습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.',
-      'permission-denied':'권한이 없습니다. 관리자에게 보안 규칙 적용 여부를 확인해 달라고 하세요.',
-      'unavailable':'서버에 연결할 수 없습니다. 인터넷 연결을 확인하세요.'
+      'auth/invalid-email':'이메일 형식이 올바르지 않습니다. (예: name@example.com)',
+      'auth/missing-email':'이메일을 입력하십시오.',
+      'auth/missing-password':'비밀번호를 입력하십시오.',
+      'auth/user-not-found':'이메일 또는 비밀번호가 일치하지 않습니다. 다시 확인하거나 [비밀번호 재설정]을 이용하십시오.',
+      'auth/wrong-password':'이메일 또는 비밀번호가 일치하지 않습니다. 다시 확인하거나 [비밀번호 재설정]을 이용하십시오.',
+      'auth/invalid-credential':'이메일 또는 비밀번호가 일치하지 않습니다. 다시 확인하거나 [비밀번호 재설정]을 이용하십시오.',
+      'auth/invalid-login-credentials':'이메일 또는 비밀번호가 일치하지 않습니다. 다시 확인하거나 [비밀번호 재설정]을 이용하십시오.',
+      'auth/too-many-requests':'접속 시도가 과도하여 일시 차단되었습니다. 잠시 후 다시 시도하거나 비밀번호를 재설정하십시오.',
+      'auth/network-request-failed':'네트워크에 연결되지 않았습니다. 인터넷 연결을 확인하십시오.',
+      'auth/email-already-in-use':'이미 가입된 이메일입니다. [로그인]을 이용하십시오.',
+      'auth/weak-password':'비밀번호는 6자 이상으로 설정하십시오.',
+      'auth/user-disabled':'사용 중지된 계정입니다. 관리자에게 문의하십시오.',
+      'auth/operation-not-allowed':'이메일 로그인이 비활성화되어 있습니다. 관리자에게 문의하십시오.',
+      'app/bad-unit-code':'부대 코드가 일치하지 않습니다. 관리자에게 전달받은 코드를 확인하십시오. (생성된 계정은 삭제되었으므로 다시 가입하십시오)',
+      'app/claim-denied':'이미 다른 계정에 연결되었거나 부대 코드가 변경되었습니다. 관리자에게 문의하십시오.',
+      'app/timeout':'서버 응답 시간이 초과되었습니다. 네트워크 연결 상태를 확인하고 다시 시도하십시오.',
+      'permission-denied':'권한이 없습니다. 관리자에게 보안 규칙 적용 여부를 확인하십시오.',
+      'unavailable':'서버에 연결할 수 없습니다. 네트워크 연결을 확인하십시오.'
     };
-    return T[k] || ('문제가 생겼습니다'+(k?' ('+k+')':'')+'. 잠시 뒤 다시 시도하세요.');
+    return T[k] || ('오류가 발생했습니다'+(k?' ('+k+')':'')+'. 잠시 후 다시 시도하십시오.');
   }
   notifyPhase();
 })();

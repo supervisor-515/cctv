@@ -419,12 +419,6 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .svc-out>div{background:var(--panel2);border-radius:9px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .svc-out span{font-size:11px;color:var(--ink-faint)}
 .svc-out b{font-size:14px}
-.svc-fc .big{font-size:15px;color:var(--ink-dim)} .svc-fc .big b{font-family:var(--mono);font-size:30px;font-weight:800;color:var(--ink);margin-right:2px}
-.fbar{height:8px;border-radius:5px;background:color-mix(in srgb,var(--acc) 25%,var(--panel2));overflow:hidden;margin:8px 0 4px}
-.fbar i{display:block;height:100%;background:var(--acc)}
-.fleg{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-faint);margin-bottom:8px}
-.fleg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:color-mix(in srgb,var(--acc) 25%,var(--panel2))}
-.fleg i.fx{background:var(--acc)}
 .hleg{display:flex;gap:8px;flex-wrap:wrap;font-size:10.5px;color:var(--ink-faint);margin-bottom:8px}
 .hleg span{display:inline-flex;align-items:center;gap:3px}
 .hleg i{display:inline-block;width:9px;height:9px;border-radius:2px}
@@ -767,7 +761,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.1.0</span>
+    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.1.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1252,7 +1246,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=8.1.0"></script>
+<script src="engine.js?v=8.1.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -4130,7 +4124,7 @@ setInterval(tickService, 100);
 function renderSvc(){
   const box=$('#svcBody'); if(!box) return; box.innerHTML='';
   const meId=window.MY_WORKER || meGet(), me=meId && DB.workers.find(w=>w.id===meId);
-  if(me){ box.appendChild(renderService(me)); box.appendChild(renderForecastCard(me)); box.appendChild(renderHeatCard(me)); }
+  if(me){ box.appendChild(renderService(me)); box.appendChild(renderHeatCard(me)); }
   // 계산기: 아무 입대일이나 넣어 보기
   const calc=el('section','mcard svc-calc'); calc.appendChild(el('h3',null,'전역일 계산'));
   const row=el('div','svc-in'); row.appendChild(el('label',null,'입대일'));
@@ -4146,30 +4140,6 @@ function renderSvc(){
   calc.appendChild(el('p','smallnote','전역일 = 입대일 + 18개월 - 1일 (예: 2026-01-05 입대 → 2027-07-04 전역)'));
   box.appendChild(calc);
   box.appendChild(renderUnitCard(meId));
-}
-/* ----- 전역까지 남은 근무 (확정 + 예상) ----- */
-function renderForecastCard(w){
-  const sec=el('section','mcard svc-fc'); sec.setAttribute('aria-label','전역까지 남은 근무');
-  sec.appendChild(el('h3',null,'전역까지 남은 근무'));
-  const f=remainingForecast(w.id, todayStr());
-  if(!f){ sec.appendChild(el('div','muted','입대일 등록 시 전역까지 남은 근무가 계산됩니다.')); return sec; }
-  if(f.done){ sec.appendChild(el('div','muted','전역했습니다. 수고 많으셨습니다 🎖')); return sec; }
-  const tot=f.fixedH+f.estH, r1=x=>Math.round(x);
-  sec.appendChild(el('div','big','약 <b>'+r1(tot)+'</b>시간'));
-  const bar=el('div','fbar'); const fi=el('i','fx'); fi.style.width=(tot>0?f.fixedH/tot*100:0)+'%'; bar.appendChild(fi); sec.appendChild(bar);
-  sec.appendChild(el('div','fleg','<span><i class="fx"></i>확정 '+(Math.round(f.fixedH*10)/10)+'h'+(f.genTo?' (~'+esc(calMd(f.genTo))+' 근무표)':'')+'</span><span><i></i>예상 '+r1(f.estH)+'h</span>'));
-  const tl=el('div','svc-out');
-  [['야간 번초','약 '+r1(f.nights)+'회'],['06:30','약 '+r1(f.rot)+'회'],['밥교대','약 '+r1(f.meals)+'회'],['남은 근무일',f.workDays+'일']].forEach(([k,v])=>tl.appendChild(el('div',null,'<span>'+k+'</span><b>'+v+'</b>')));
-  sec.appendChild(tl);
-  if(f.lastNight || f.lastWork) sec.appendChild(el('p','smallnote','기편성 근무표 기준 '+(f.lastNight?'마지막 야간 '+esc(mdw(f.lastNight)):'')+(f.lastNight&&f.lastWork?' · ':'')+(f.lastWork?'마지막 근무 '+esc(mdw(f.lastWork)):'')));
-  const det=el('details','adv');
-  det.appendChild(el('summary',null,'산정 기준'));
-  det.appendChild(el('p','smallnote','당일부터 전역 전일까지 산출. 확정 = 기편성 근무표의 실제 배정(07:30·17:30·순찰 가중치 포함). '
-    +'예상 = 근무표 미생성 일자 중 휴가·열외·유조차·배식조 일정이 없는 날 '+f.estDays+'일 × '
-    +(f.basis==='mine' ? '최근 8주 개인 배정 비율' : '부대 평균 비율(최근 8주 기록 7일 미만)')
-    +' — 일일 '+f.rate.h.toFixed(2)+'h, 야간 '+(f.rate.n*100).toFixed(0)+'%, 06:30 '+(f.rate.rot*100).toFixed(0)+'%, 밥교대 '+(f.rate.meal*100).toFixed(0)+'%. 향후 일정 등록 시 갱신됩니다.'));
-  sec.appendChild(det);
-  return sec;
 }
 /* ----- 내 근무 잔디 — 입대월~전역월, 한 달 = 한 줄(1~31일) ----- */
 function renderHeatCard(w){
@@ -4355,11 +4325,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=8.1.0"></script>
+<script src="firebase-config.js?v=8.1.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=8.1.0"></script>
+<script src="sync.js?v=8.1.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

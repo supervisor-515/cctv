@@ -2242,45 +2242,6 @@ function dayWork(s, wid){
     rot: s.assign && s.assign['06:30']===wid ? 1 : 0,
     meal: s.mealId===wid ? 1 : 0 };
 }
-/* 전역까지 남은 근무 — 오늘~전역 전날.
-   확정 = 이미 생성된 표의 실제 배정, 예상 = 표 없는 날 중 근무일(일정으로 빠지는 날 제외) × 최근 8주 내 비율.
-   최근 8주 근무일이 7일 미만이면 부대 평균 비율(같은 기간·근무일 7일 이상인 활성자 평균)로 대신한다. */
-function remainingForecast(wid, today){
-  const w=W(wid), dis=w && dischargeDate(w.enlistDate);
-  if(!dis) return null;
-  const out={discharge:dis, done: today>=dis, fixedH:0, estH:0, nights:0, rot:0, meals:0, fixedDays:0, workDays:0, estDays:0,
-             lastNight:null, lastWork:null, basis:'mine', genTo:null};
-  if(out.done) return out;
-  const st=buildStats(null, {from:addDays(today,-56), to:addDays(today,-1)});
-  const rt=r=> r && r.denom>0 ? {h:r.hours/r.denom, n:rate(r.nightNum,r.nightDen), rot:rate(r.slotNum['06:30']||0, r.slotDen), meal:rate(r.mealNum, r.mealDen)} : null;
-  let R = st[wid] && st[wid].denom>=7 ? rt(st[wid]) : null;
-  if(!R){
-    const pool=activeWorkers().map(x=>st[x.id]).filter(r=>r && r.denom>=7).map(rt);
-    R = pool.length ? {h:pool.reduce((a,x)=>a+x.h,0)/pool.length, n:pool.reduce((a,x)=>a+x.n,0)/pool.length,
-                       rot:pool.reduce((a,x)=>a+x.rot,0)/pool.length, meal:pool.reduce((a,x)=>a+x.meal,0)/pool.length} : {h:0,n:0,rot:0,meal:0};
-    out.basis='unit';
-  }
-  out.rate=R;
-  let estN=0, estRot=0, estMeal=0;
-  for(let d=today; d<dis; d=addDays(d,1)){
-    if(inInactive(w,d)) continue;
-    const s=DB.schedules[d];
-    if(s){
-      out.genTo=d;
-      if(!presentOn(w,d,s)) continue;
-      out.fixedDays++; out.workDays++;
-      const x=dayWork(s,wid); out.fixedH+=x.h; out.nights+=x.nights; out.rot+=x.rot; out.meals+=x.meal;
-      if(x.nights) out.lastNight=d;
-      if(x.h>0) out.lastWork=d;
-    }else{
-      if(offByPrebook(wid,d)) continue;
-      out.estDays++; out.workDays++;
-    }
-  }
-  out.estH=out.estDays*R.h; estN=out.estDays*R.n; estRot=out.estDays*R.rot; estMeal=out.estDays*R.meal;
-  out.nights+=estN; out.rot+=estRot; out.meals+=estMeal;
-  return out;
-}
 /* 근무 잔디 — from~to 각 날짜의 상태와 그 사람 근무(표 날짜 기준).
    state: work(근무 있음) · zero(근무 없음) · off(휴가·열외 등) · none(지난 날인데 표 없음) · future(앞으로, 표 없음) */
 function workHeatmap(wid, from, to, today){
@@ -2328,7 +2289,7 @@ if(typeof module!=='undefined' && module.exports){
     generateDay, autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,
-    SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment, remainingForecast, workHeatmap, dayWork, offByPrebook, isXmessDay, xmessRank, xmessCandidates, xmessEx,
+    SCHED_KEYS, schedKeyGet, schedKeySet, explainAssignment, workHeatmap, dayWork, offByPrebook, isXmessDay, xmessRank, xmessCandidates, xmessEx,
     OFFICER_ROLES, normOfficers,
     realDateOf, personalKeys, keyTimes, personalItems, holderAt, cctvNeighbor, personalSnap, diffPersonal, ackPersonal, rollPersonal
   };

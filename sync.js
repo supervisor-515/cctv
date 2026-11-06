@@ -14,7 +14,7 @@
   const CFG_KEY='cctv_sync_cfg_v1';
   /* 앱 버전 — 서버 meta에 함께 기록. 서버가 더 새 버전 앱으로 저장돼 있으면 이 기기는 올리지 않는다
      (구버전이 모르는 필드(예: 입대일)를 빼고 덮어쓰는 사고 방지). 버전을 올릴 때 index.html·sw.js와 같이 바꾼다. */
-  const APP_VER='8.3.0';
+  const APP_VER='8.4.0';
   const verCmp=(a,b)=>{ const x=String(a).split('.').map(Number), y=String(b).split('.').map(Number);
     for(let i=0;i<3;i++){ const d=(x[i]||0)-(y[i]||0); if(d) return d; } return 0; };
   const MTIME_KEY='cctv_local_mtime_v1';   // 로컬 마지막 수정시각 — index.html save()가 기록
@@ -210,8 +210,8 @@
     if(S.unitCode && dj!==S.dirJson){ batch.set(fs.collection('directory').doc(S.unitCode), {json:dj, updatedAt:firebase.firestore.FieldValue.serverTimestamp()}); ops++; }
     if(!ops){ S.dirty=false; refreshStatus(); return Promise.resolve(true); }
     return batch.commit()
-      .then(()=>{ S.dirty=false; S.lastUp=new Date(); S.dirJson=dj; refreshStatus(); return true; })
-      .catch(e=>{ status('<div class="err">업로드 실패: '+esc(e.message)+' — 보안 규칙 및 관리자 이메일을 확인하십시오.</div>'); return false; });
+      .then(()=>{ S.dirty=false; S.upErr=null; S.lastUp=new Date(); S.dirJson=dj; refreshStatus(); return true; })
+      .catch(e=>{ S.upErr=e.message||'error'; syncBadge(); status('<div class="err">업로드 실패: '+esc(e.message)+' — 보안 규칙 및 관리자 이메일을 확인하십시오.</div>'); return false; });
   }
   function scheduleUpload(){ clearTimeout(S.timer); S.timer=setTimeout(upload, 1500); }
 
@@ -224,7 +224,7 @@
       return;
     }
     _save();
-    if(S.on && S.admin){ S.dirty=true; scheduleUpload(); }
+    if(S.on && S.admin){ S.dirty=true; syncBadge(); scheduleUpload(); }
   };
 
   /* ---------- 열람 전용 모드 ---------- */
@@ -340,7 +340,15 @@
     qs('#syAdminBox').style.display = (logged&&S.admin)?'':'none';
   }
   document.querySelectorAll('#syMode button').forEach(b=>b.addEventListener('click',()=>{ loginMode=b.dataset.m; toggleLoginUI(); refreshStatus(); }));
+  /* 상단 동기화 배지 — 관리자에게만, 업로드 대기·실패·오프라인일 때 */
+  function syncBadge(){
+    if(typeof window.onSyncBadge!=='function') return;
+    window.onSyncBadge({admin:!!(S.on && S.admin), dirty:!!S.dirty, err:S.upErr||null, online:navigator.onLine});
+  }
+  window.addEventListener('online', ()=>{ syncBadge(); if(S.on && S.admin && S.dirty) scheduleUpload(); });
+  window.addEventListener('offline', syncBadge);
   function refreshStatus(){
+    syncBadge();
     if(!S.user){
       status(loginMode==='up'
         ? '<div class="warn">회원가입: 이메일, 비밀번호, 관리자 발급 <b>부대 코드</b>를 입력하십시오. 코드가 일치해야 가입됩니다.</div>'
@@ -660,7 +668,31 @@
             alert('✓ '+m.savedAt+' 백업으로 복원했습니다.');
           });
         }).catch(e=>alert('복원 실패: '+bkErr(e))));
-        act.appendChild(dl); act.appendChild(rs); row.appendChild(act);
+        // 날짜만 복원 — 이 백업에서 고른 날짜의 근무표만 지금 데이터에 되살린다(다른 날짜·근무자·설정은 그대로)
+        const one=document.createElement('button'); one.className='btn ghost sm'; one.textContent='날짜만 복원';
+        one.addEventListener('click',()=>{
+          if(row.querySelector('.bk1')) return;
+          const f=document.createElement('div'); f.className='bk1 flexgap'; f.style.cssText='flex-basis:100%;margin-top:6px';
+          const inp=document.createElement('input'); inp.type='date'; inp.value=todayStr();
+          const go=document.createElement('button'); go.className='btn sm'; go.textContent='복원';
+          const msg=document.createElement('span'); msg.className='muted'; msg.style.fontSize='12px';
+          go.addEventListener('click',()=>{
+            const ds=inp.value; if(!ds) return;
+            go.disabled=true; msg.textContent='불러오는 중…';
+            bkLoad(d.id, m.parts).then(obj=>{
+              const src=migrate(obj).schedules[ds];
+              go.disabled=false;
+              if(!src){ msg.textContent=m.savedAt+' 백업에는 '+ds+' 근무표가 없습니다.'; return; }
+              if(!confirm(m.savedAt+' 백업의 '+ds+' 근무표로 바꿉니다. 다른 날짜는 그대로입니다.')) { msg.textContent=''; return; }
+              const snap=window.snapshotDays ? snapshotDays([ds], ds+' 백업에서 복원') : null;
+              DB.schedules[ds]=src; invalidateStats(); save(); refreshAll();
+              msg.textContent='✓ '+ds+' 복원함';
+              if(snap && window.offerUndo) offerUndo(snap, ds+' 근무표를 백업에서 복원했습니다');
+            }).catch(e=>{ go.disabled=false; msg.textContent='실패: '+bkErr(e); });
+          });
+          f.appendChild(inp); f.appendChild(go); f.appendChild(msg); row.appendChild(f);
+        });
+        act.appendChild(dl); act.appendChild(one); act.appendChild(rs); row.appendChild(act);
         box.appendChild(row);
       });
     }).catch(e=>{ box.innerHTML='<div class="err">백업 목록 불러오기 실패: '+esc(bkErr(e))+'</div>'; });

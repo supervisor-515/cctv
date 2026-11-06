@@ -2,7 +2,7 @@
    설치(홈 화면 추가)와 오프라인 동작을 위한 앱 셸 캐시.
    전략: 같은 출처 자원은 network-first(온라인이면 항상 최신) + 오프라인 시 캐시 폴백.
    버전을 올리면(아래 APP_VERSION) 이 앱의 이전 캐시(cctv-roster-*)만 자동 정리됩니다. */
-const APP_VERSION = '8.3.0';
+const APP_VERSION = '8.4.0';
 const CACHE = 'cctv-roster-' + APP_VERSION;
 
 /* 앱 셸: 오프라인에서도 첫 화면이 뜨도록 미리 받아둘 핵심 자원.
@@ -10,7 +10,7 @@ const CACHE = 'cctv-roster-' + APP_VERSION;
 const PRECACHE = [
   './',
   './index.html',
-  './engine.js?v=8.3.0',
+  './engine.js?v=8.4.0',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
@@ -61,13 +61,18 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // 같은 출처: network-first → 성공 시 캐시 갱신, 실패 시 캐시 폴백
+  // 같은 출처: network-first → 성공 시 캐시 갱신, 실패 시 캐시 폴백.
+  // 전파가 약해 3초 안에 못 받으면 저장본이 있을 때 먼저 보여 주고, 받아지는 대로 저장본만 새로 고친다
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
+    const net = fetch(req).then((fresh) => { if (fresh && fresh.ok) cache.put(req, fresh.clone()); return fresh; });
+    e.waitUntil(net.catch(() => {}));
     try {
-      const fresh = await fetch(req);
-      if (fresh && fresh.ok) cache.put(req, fresh.clone());
-      return fresh;
+      const cached = await cache.match(req);
+      if (!cached) return await net;
+      const slow = new Promise((res) => setTimeout(() => res('slow'), 3000));
+      const first = await Promise.race([net, slow]);
+      return first === 'slow' ? cached : first;
     } catch (_) {
       const cached = await cache.match(req);
       if (cached) return cached;

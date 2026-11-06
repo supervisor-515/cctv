@@ -71,6 +71,8 @@ nav.tabs button:hover{color:var(--ink);background:var(--panel)}
 nav.tabs button.on{color:var(--ink);background:var(--panel);border-color:var(--line)}
 nav.tabs button.on svg{color:var(--acc)}
 nav.tabs .mob{display:none}
+nav.tabs .pill{display:none}
+@media(prefers-reduced-motion:reduce){ nav.tabs .pill{transition:none!important} }
 
 .view{display:none}
 .view.on{display:block}
@@ -689,10 +691,20 @@ details.arch[open] summary{margin-bottom:8px}
 @media(max-width:640px){
   .wrap{padding:0 14px calc(84px + env(safe-area-inset-bottom))}
   header.top{padding:12px 0 10px}
-  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:50;background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:6px 4px calc(8px + env(safe-area-inset-bottom))}
-  nav.tabs button{flex-direction:column;gap:2px;font-size:10.5px;padding:4px 0;border:0;background:none;justify-content:center}
+  /* 떠 있는 캡슐 바 + 선택 탭 뒤로 미끄러지는 알약(.pill, movePill) */
+  nav.tabs{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);margin:0;z-index:50;
+    display:grid;grid-template-columns:repeat(4,68px);gap:0;padding:5px;border-radius:999px;
+    background:color-mix(in srgb,var(--panel) 88%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    border:1px solid var(--line);box-shadow:0 8px 28px -8px rgba(0,0,0,.28),0 2px 6px -2px rgba(0,0,0,.12)}
+  nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2px;font-size:10.5px;padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-faint);transition:transform .12s ease,color .2s ease}
+  nav.tabs button:hover{background:none}
+  nav.tabs button:active{transform:scale(.92)}
   nav.tabs button svg{width:22px;height:22px}
-  nav.tabs button.on,nav.tabs button.on-sub{color:var(--acc);background:none}
+  nav.tabs button.on,nav.tabs button.on-sub{color:var(--ink);font-weight:800;background:none}
+  nav.tabs button.on svg,nav.tabs button.on-sub svg{color:var(--ink);stroke-width:2.3}
+  nav.tabs .pill{display:block;position:absolute;z-index:0;top:5px;left:0;height:calc(100% - 10px);width:68px;border-radius:999px;
+    background:color-mix(in srgb,var(--ink) 9%,transparent);transition:transform .34s cubic-bezier(.3,1.25,.45,1),width .34s cubic-bezier(.3,1.25,.45,1),opacity .2s;pointer-events:none}
+  nav.tabs .pill.off{opacity:0}
   nav.tabs .desk{display:none}
   nav.tabs .mob{display:flex}
   .view{padding-top:12px}
@@ -715,7 +727,7 @@ details.arch[open] summary{margin-bottom:8px}
   .matrix select{display:none}
   .matrix .mcell{display:flex}
   .matrix td.na{height:48px}
-  .runbar{bottom:calc(62px + env(safe-area-inset-bottom))}
+  .runbar{bottom:calc(78px + env(safe-area-inset-bottom))}
   .runbar .btn{flex:1}
   .cal-grid{gap:3px}
   .cal-cell{min-height:58px;padding:5px 1px;border-radius:8px;align-items:center;gap:2px}
@@ -752,7 +764,7 @@ body.ro .mi.svc-mi, body.ro .svc-sub{display:none!important}
 body.ro #gen,body.ro #people,body.ro #settings,body.ro #backup{display:none!important}
 body.ro .btn.danger{display:none!important}
 body.ro .no-ro{display:none!important}
-@media(max-width:640px){ body.ro nav.tabs{grid-template-columns:repeat(5,1fr)} body.guest nav.tabs{grid-template-columns:repeat(5,1fr)} }
+@media(max-width:640px){ body.ro nav.tabs{grid-template-columns:repeat(5,64px)} body.guest nav.tabs{grid-template-columns:repeat(5,64px)} }
 #roBadge{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
 </style>
 </head>
@@ -761,11 +773,11 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.1.1</span>
+    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.2.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
-  <nav class="tabs" id="tabs">
+  <nav class="tabs" id="tabs"><span class="pill off" aria-hidden="true"></span>
     <button data-v="view" class="on"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg>근무표</button>
     <button data-v="cal"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>달력</button>
     <button data-v="mine"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>내 근무</button>
@@ -1246,7 +1258,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=8.1.1"></script>
+<script src="engine.js?v=8.2.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1288,7 +1300,22 @@ function showView(v){
   if(v==='backup' && window.SYNC_BACKUP_LIST) SYNC_BACKUP_LIST();
   if(v==='mine') renderMine();
   if(v==='svc') renderSvc();
+  movePill();
 }
+/* 하단 바 알약 — 선택된(보이는) 탭 버튼 위치·폭으로 미끄러진다. 처음 한 번은 애니메이션 없이 제자리 */
+function movePill(){
+  const nav=$('#tabs'), pill=nav && nav.querySelector('.pill'); if(!pill) return;
+  const on=[...nav.querySelectorAll('button')].find(b=> (b.classList.contains('on')||b.classList.contains('on-sub')) && b.offsetParent!==null);
+  if(!on || getComputedStyle(pill).display==='none'){ pill.classList.add('off'); return; }
+  const first=!pill.dataset.placed;
+  if(first) pill.style.transition='none';
+  pill.style.width=on.offsetWidth+'px'; pill.style.transform='translateX('+on.offsetLeft+'px)';
+  pill.classList.remove('off');
+  if(first){ pill.dataset.placed='1'; pill.offsetWidth; pill.style.transition=''; }
+}
+window.addEventListener('resize', movePill);
+// 관리자·구성원·게스트 전환으로 보이는 탭 수가 바뀌면 다시 맞춘다
+new MutationObserver(()=>requestAnimationFrame(movePill)).observe(document.body, {attributes:true, attributeFilter:['class']});
 $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
   const v=b.dataset.v;
   MINE.userNav=true;
@@ -4314,6 +4341,7 @@ function init(){
   refreshAll();
 }
 init();
+movePill(); window.addEventListener('load', movePill);
 /* 서버 연결 스크립트까지 다 읽은 뒤: 연결 설정이 없어졌으면 구성원 임시 화면을 되돌린다 */
 window.addEventListener('load',()=>{
   if(window.SYNC_UNAVAILABLE==='nocfg' && document.body.classList.contains('ro')){
@@ -4325,11 +4353,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=8.1.1"></script>
+<script src="firebase-config.js?v=8.2.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=8.1.1"></script>
+<script src="sync.js?v=8.2.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

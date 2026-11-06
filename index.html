@@ -24,7 +24,7 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
 :root{
   color-scheme:dark;
   --bg:#0f1217; --panel:#161a21; --panel2:#1c212a; --line:#272d38; --line2:#343b48;
-  --ink:#e6e9ee; --ink-dim:#9aa3af; --ink-faint:#687180;
+  --ink:#e6e9ee; --ink-dim:#9aa3af; --ink-faint:#838c9b;
   --acc:#34d399; --acc-ink:#06140e;
   --duty:#5b9cff; --sit:#ff9f43; --meal:#a78bfa; --patrol:#2dd4bf;
   --ok:#34d399; --warn:#fbbf24; --err:#f87171;
@@ -37,9 +37,9 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
   :root:not([data-theme="dark"]){
     color-scheme:light;
     --bg:#eef0f3; --panel:#ffffff; --panel2:#f5f6f8; --line:#dde1e7; --line2:#c9ced6;
-    --ink:#1b1f26; --ink-dim:#5b6472; --ink-faint:#858e9b;
-    --acc:#059669; --acc-ink:#ffffff;
-    --duty:#2563eb; --sit:#c2610c; --meal:#7c3aed; --patrol:#0d9488;
+    --ink:#1b1f26; --ink-dim:#5b6472; --ink-faint:#636b78;
+    --acc:#047857; --acc-ink:#ffffff;
+    --duty:#2563eb; --sit:#a14d06; --meal:#7c3aed; --patrol:#0f766e;
     --ok:#059669; --warn:#b45309; --err:#dc2626;
     --dv-lo:#2f6fe0; --dv-hi:#d9443f; --dv-mid:#e4e6ea;
     --shadow:0 12px 30px -16px rgba(20,30,50,.35);
@@ -48,9 +48,9 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
 :root[data-theme="light"]{
   color-scheme:light;
   --bg:#eef0f3; --panel:#ffffff; --panel2:#f5f6f8; --line:#dde1e7; --line2:#c9ced6;
-  --ink:#1b1f26; --ink-dim:#5b6472; --ink-faint:#858e9b;
-  --acc:#059669; --acc-ink:#ffffff;
-  --duty:#2563eb; --sit:#c2610c; --meal:#7c3aed; --patrol:#0d9488;
+  --ink:#1b1f26; --ink-dim:#5b6472; --ink-faint:#636b78;
+  --acc:#047857; --acc-ink:#ffffff;
+  --duty:#2563eb; --sit:#a14d06; --meal:#7c3aed; --patrol:#0f766e;
   --ok:#059669; --warn:#b45309; --err:#dc2626;
   --dv-lo:#2f6fe0; --dv-hi:#d9443f; --dv-mid:#e4e6ea;
   --shadow:0 12px 30px -16px rgba(20,30,50,.35);
@@ -102,9 +102,10 @@ select:disabled{opacity:.6}
 .chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-dim);cursor:pointer;user-select:none}
 /* 체크박스를 스위치 모양으로 */
 .sw{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-dim);cursor:pointer;user-select:none}
-.sw input{appearance:none;-webkit-appearance:none;width:32px;height:18px;border-radius:10px;background:var(--line2);position:relative;margin:0;cursor:pointer;transition:.15s}
-.sw input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.15s}
+.sw input{appearance:none;-webkit-appearance:none;width:32px;height:18px;border-radius:10px;background:var(--ink-faint);position:relative;margin:0;cursor:pointer;transition:.15s}
+.sw input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--panel);transition:.15s}
 .sw input:checked{background:var(--acc)}
+.sw input:checked::after{background:#fff}
 .sw input:checked::after{left:16px}
 .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
 .seg button{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-dim);background:none;border:0;border-radius:7px;padding:6px 12px;cursor:pointer;white-space:nowrap}
@@ -188,10 +189,10 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .tl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
 /* 명령서식 좌우 2열 — 폰에서도 나란히(한 칸 약 170px) */
 .tl.tl2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.tl2 .r1{gap:6px;padding:0 8px;min-height:34px}
+.tl2 .r1{gap:6px;padding:0 8px;min-height:40px}
 .tl2 .r1 .t{width:38px;font-size:11.5px}
 .tl2 .r1 .n{gap:4px;font-size:13px}
-.tl2 .r1 .tag{font-size:9.5px;padding:0 4px}
+.tl2 .r1 .tag{font-size:11px;padding:0 4px}
 .tl2 .r1 .bn{font-size:9.5px;padding:0 3px}
 .tl2 .r1 .chgb{padding:2px 7px}
 .tl2 .daysep{padding:3px 8px}
@@ -389,13 +390,13 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 /* ---------- 바텀 시트 ---------- */
 .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;display:none}
 .sheet-bg.on{display:block}
-.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(560px,100%);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom));z-index:91;display:none;box-shadow:var(--shadow)}
+.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(560px,100%);max-height:88vh;max-height:88dvh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom));z-index:91;display:none;box-shadow:var(--shadow)}
 .sheet.on{display:block}
 .sheet .grab{width:36px;height:4px;border-radius:2px;background:var(--line2);margin:0 auto 10px}
 .sheet .sh-h{display:flex;align-items:center;margin-bottom:12px}
 .sheet .sh-h b{font-size:16px}
 .sheet .sh-h .sp{flex:1}
-.sheet .x{font:inherit;font-size:16px;color:var(--ink-faint);background:none;border:0;cursor:pointer;padding:4px 8px}
+.sheet .x{font:inherit;font-size:16px;color:var(--ink-dim);background:none;border:0;cursor:pointer;min-width:44px;min-height:44px;padding:0;margin:-6px -12px -6px 0}
 .sheet .field{margin-bottom:12px}
 .sheet .field input:not([type=checkbox]),.sheet .field select{width:100%}
 .sheet .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -696,7 +697,7 @@ details.arch[open] summary{margin-bottom:8px}
     display:grid;grid-template-columns:repeat(4,68px);gap:0;padding:5px;border-radius:999px;
     background:color-mix(in srgb,var(--panel) 88%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
     border:1px solid var(--line);box-shadow:0 8px 28px -8px rgba(0,0,0,.28),0 2px 6px -2px rgba(0,0,0,.12)}
-  nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2px;font-size:10.5px;padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-faint);transition:transform .12s ease,color .2s ease}
+  nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2px;font-size:11.5px;padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-faint);transition:transform .12s ease,color .2s ease}
   nav.tabs button:hover{background:none}
   nav.tabs,nav.tabs button{-webkit-tap-highlight-color:transparent;outline:none}
   nav.tabs button:focus,nav.tabs button:focus-visible{outline:none;box-shadow:none}
@@ -714,7 +715,7 @@ details.arch[open] summary{margin-bottom:8px}
   .field{flex:1 1 100%;min-width:0}
   .field select,.field input[type=date],.field input[type=text],.field input:not([type]){width:100%}
   .btn{padding:11px 16px}
-  .btn.sm{padding:8px 12px}
+  .btn.sm{padding:8px 12px;min-height:40px}
   .kpi{grid-template-columns:repeat(2,1fr)}
   .datebar{flex-wrap:nowrap;gap:6px}
   .tbl-wrap th,.tbl-wrap td{padding:8px 7px}
@@ -775,7 +776,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.2.1</span>
+    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.3.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -853,7 +854,7 @@ body.ro .no-ro{display:none!important}
   <div class="sheet-bg" id="pickSheetBg"></div>
   <div class="sheet" id="pickSheet" role="dialog" aria-label="근무자 선택">
     <div class="grab"></div>
-    <div class="sh-h"><b id="pickTitle">선택</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b id="pickTitle">선택</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div class="picklist" id="pickList"></div>
   </div>
 
@@ -861,7 +862,7 @@ body.ro .no-ro{display:none!important}
   <div class="sheet-bg" id="pbSheetBg"></div>
   <div class="sheet" id="pbSheet" role="dialog" aria-label="일정 추가">
     <div class="grab"></div>
-    <div class="sh-h"><b>일정 추가</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b>일정 추가</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div class="field"><label>종류</label>
       <div class="kinds" id="pbKinds">
         <button data-k="vacation">휴가</button><button data-k="exday">주간 열외</button><button data-k="exboth">모두 열외</button><button data-k="duty">당직 예약</button>
@@ -901,10 +902,22 @@ body.ro .no-ro{display:none!important}
   </div>
 
   <!-- 배정 이유 시트 — 근무표 칸·역할 카드·내 근무 항목을 누르면 -->
+  <!-- 편집 중 다른 곳으로 이동할 때 — 저장 / 버리기 / 계속 편집 -->
+  <div class="sheet-bg" id="leaveSheetBg"></div>
+  <div class="sheet" id="leaveSheet" role="dialog" aria-label="저장하지 않은 변경">
+    <div class="grab"></div>
+    <div class="sh-h"><b id="leaveTitle">저장하지 않은 변경</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
+    <p class="smallnote" id="leaveMsg"></p>
+    <div class="flexgap" style="flex-direction:column;align-items:stretch;gap:8px;margin:6px 0 4px">
+      <button class="btn" type="button" id="leaveSave">저장하고 이동</button>
+      <button class="btn ghost" type="button" id="leaveDrop">변경 버리고 이동</button>
+      <button class="btn ghost" type="button" id="leaveStay">계속 편집</button>
+    </div>
+  </div>
   <div class="sheet-bg" id="whySheetBg"></div>
   <div class="sheet" id="whySheet" role="dialog" aria-label="배정 이유">
     <div class="grab"></div>
-    <div class="sh-h"><b id="whyTitle">배정 사유</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b id="whyTitle">배정 사유</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div id="whyBody"></div>
   </div>
 
@@ -912,7 +925,7 @@ body.ro .no-ro{display:none!important}
   <div class="sheet-bg" id="edSheetBg"></div>
   <div class="sheet" id="edSheet" role="dialog" aria-label="근무자 변경">
     <div class="grab"></div>
-    <div class="sh-h"><b id="edTitle">변경</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b id="edTitle">변경</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div id="edBody"></div>
   </div>
 
@@ -920,7 +933,7 @@ body.ro .no-ro{display:none!important}
   <div class="sheet-bg" id="evSheetBg"></div>
   <div class="sheet" id="evSheet" role="dialog" aria-label="일정 확인">
     <div class="grab"></div>
-    <div class="sh-h"><b>일정</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b>일정</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div id="evBody"></div>
     <div class="two no-ro" style="margin-top:12px">
       <button class="btn ghost full" id="evEdit">수정</button>
@@ -930,6 +943,7 @@ body.ro .no-ro{display:none!important}
 
   <!-- ② 근무표 생성 -->
   <section class="view" id="gen">
+    <div class="warn" id="gStale" style="display:none;margin-bottom:10px">명단이나 일정이 바뀌었습니다. 지금 고른 값은 그대로 두었습니다. <button class="btn ghost sm" type="button" id="gStaleBtn">다시 불러오기</button></div>
     <div class="gen-cols">
       <div>
         <div class="step">
@@ -1112,7 +1126,7 @@ body.ro .no-ro{display:none!important}
   <div class="sheet-bg" id="ofSheetBg"></div>
   <div class="sheet" id="ofSheet" role="dialog" aria-label="당직사관·당직사령 기록">
     <div class="grab"></div>
-    <div class="sh-h"><b id="ofTitle">기록</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b id="ofTitle">기록</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div id="ofBody"></div>
   </div>
 
@@ -1120,7 +1134,7 @@ body.ro .no-ro{display:none!important}
   <div class="sheet-bg" id="pSheetBg"></div>
   <div class="sheet" id="pSheet" role="dialog" aria-label="근무자">
     <div class="grab"></div>
-    <div class="sh-h"><b id="pSheetTitle">근무자</b><div class="sp"></div><button class="x" data-close>✕</button></div>
+    <div class="sh-h"><b id="pSheetTitle">근무자</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div id="pAddForm">
       <div class="field"><label>이름</label><input id="pName" placeholder="이름"></div>
       <div class="field"><label>구분</label>
@@ -1260,7 +1274,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=8.2.1"></script>
+<script src="engine.js?v=8.3.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1321,19 +1335,21 @@ new MutationObserver(()=>requestAnimationFrame(movePill)).observe(document.body,
 $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
   const v=b.dataset.v;
   MINE.userNav=true;
-  vResolveDraft();
-  if(v==='view'){ const L=latestSchedDate(); $('#vDate').value = L||todayStr(); renderView(); }
-  if(v==='gen'){ const L=latestSchedDate(); $('#gDate').value = L? addDays(L,1) : todayStr(); refreshGenSelectors(); }
-  showView(v);
+  vResolveDraft(()=>{
+    if(v==='view'){ const L=latestSchedDate(); $('#vDate').value = L||todayStr(); renderView(); }
+    // 생성 탭에서 고르던 값이 있으면(아직 생성 전) 그대로 돌아온다
+    if(v==='gen' && !genKeep()){ const L=latestSchedDate(); $('#gDate').value = L? addDays(L,1) : todayStr(); refreshGenSelectors(); }
+    showView(v);
+  });
 }));
-$$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ MINE.userNav=true; vResolveDraft(); showView(b.dataset.go); }));
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ MINE.userNav=true; vResolveDraft(()=>showView(b.dataset.go)); }));
 $('#mOfficers').addEventListener('click',()=>{ MINE.userNav=true; showView('people'); const p=$('#ofAdmin'); if(p) p.parentElement.scrollIntoView({block:'start'}); });
 $$('[data-back]').forEach(b=>b.addEventListener('click',()=>showView('more')));
 
 /* 바텀 시트 열기/닫기 */
 function openSheet(id){ $('#'+id).classList.add('on'); $('#'+id+'Bg').classList.add('on'); }
 function closeSheet(id){ $('#'+id).classList.remove('on'); $('#'+id+'Bg').classList.remove('on'); }
-['pbSheet','pSheet','pickSheet','evSheet','edSheet','whySheet','ofSheet'].forEach(id=>{
+['pbSheet','pSheet','pickSheet','evSheet','edSheet','whySheet','ofSheet','leaveSheet'].forEach(id=>{
   $('#'+id+'Bg').addEventListener('click',()=>closeSheet(id));
   $('#'+id+' [data-close]').addEventListener('click',()=>closeSheet(id));
 });
@@ -1424,7 +1440,17 @@ function renderFuelNotice(ds){
     box.innerHTML='<div class="warn">⚠ 금주 유조차 운전병이 등록되지 않았습니다. [달력] 탭에서 금주 유조차 일정을 등록하십시오.</div>';
   }
 }
+/* 생성 탭 입력 보존 — 사용자가 손댄 값(역할·열외·휴무일)이 있고 아직 그 날짜를 생성하지 않았으면,
+   다른 화면의 갱신(근무자 토글·일정 등록·동기화)이 그 값을 덮지 않게 하고 안내만 띄운다 */
+const GEN={dirty:false, date:null};
+function genKeep(){ const ds=$('#gDate').value; return GEN.dirty && GEN.date===ds && !DB.schedules[ds]; }
+function genTouch(){ GEN.dirty=true; GEN.date=$('#gDate').value; }
+function refreshGenSafe(){
+  if(genKeep()){ const n=$('#gStale'); if(n) n.style.display=''; return; }
+  refreshGenSelectors();
+}
 function refreshGenSelectors(){
+  GEN.dirty=false; { const n=$('#gStale'); if(n) n.style.display='none'; }
   const ds=$('#gDate').value||todayStr();
   $('#gDate').value=ds;
   const prev=DB.schedules[addDays(ds,-1)];
@@ -1839,10 +1865,14 @@ function renderCtrlNotice(){
   if(nx.length) t.push('야간 열외: 운항병 ' + ($('#gSit').value && W($('#gSit').value) && W($('#gSit').value).isNavigator ? '당일' : '익일') + ' 상황병');
   if(t.length) box.appendChild(el('div','hint','🎧 관제병 '+names+': '+t.join(' · ')+' — 근무표 생성 시 자동 반영됩니다.'));
 }
-['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gPrevDuty','#gPrevSit']
+['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gXmess','#gNextXmess','#gPrevDuty','#gPrevSit']
   .forEach(id=> $(id).addEventListener('change', previewGen));
 
 $('#gReload').addEventListener('click', refreshGenSelectors);
+$('#gStaleBtn').addEventListener('click', refreshGenSelectors);
+// 손댄 것으로 보는 입력: 역할 표·휴무일 체크·열외 칩/패널 (날짜·기간 칸은 제외)
+$('#gen').addEventListener('change', e=>{ const t=e.target; if(t.closest('.matrix,#gExChips,.expanel') || t.id==='gHoliday' || t.id==='gNextHoliday') genTouch(); }, true);
+$('#gen').addEventListener('click', e=>{ if(e.target.closest('#gExChips,.expanel,#gExSummary')) genTouch(); }, true);
 $('#gDate').addEventListener('change', refreshGenSelectors);
 
 $('#gRun').addEventListener('click',()=>{
@@ -1862,9 +1892,17 @@ $('#gRun').addEventListener('click',()=>{
   const sched=generateDay(input);
   DB.schedules[ds]=sched; save();
   const ms=Math.round(performance.now()-t0);
-  $('#gStatus').textContent='완료 ('+ms+'ms · tier '+sched.tier+')';
+  $('#gStatus').textContent='완료 ('+ms+'ms) · '+(TIER_KR[sched.tier]||'');
   $('#gResult').innerHTML='';
+  // 다음 행동 — 다음날 이어서 생성(방금 만든 표 보기는 결과 요약의 버튼)
+  const nx=el('div','flexgap'); nx.style.margin='4px 0 10px';
+  const nb=el('button','btn','다음날 생성 →'); nb.type='button';
+  nb.addEventListener('click',()=>{ $('#gDate').value=addDays(ds,1); refreshGenSelectors(); $('#gResult').innerHTML=''; $('#gStatus').textContent=''; window.scrollTo({top:0, behavior:'smooth'}); });
+  nx.appendChild(nb);
+  $('#gResult').appendChild(nx);
   $('#gResult').appendChild(renderResultSummary(sched));
+  GEN.dirty=false;
+  $('#gResult').scrollIntoView({behavior:'smooth', block:'start'});
   serverBackup(ds+' ('+DOW_KR[dow(ds)]+') 근무표 생성', $('#gResult'));
 });
 /* 생성 직후 서버 백업(자동) — 동기화 관리자일 때만. 실패해도 생성 결과는 그대로 둔다 */
@@ -2131,11 +2169,18 @@ function vCommit(){
   refreshAll();
 }
 /* 편집 중에 날짜를 옮기거나 다른 탭으로 나갈 때만 묻는다. 확인 = 저장, 취소 = 버리기 */
-function vResolveDraft(){
-  if(!vDraft) return;
+/* 편집 중 이동 — 변경이 있으면 [저장하고 이동 / 변경 버리고 이동 / 계속 편집]을 물은 뒤 next()를 실행 */
+function vResolveDraft(next){
+  next = next || (()=>{});
+  if(!vDraft){ next(); return; }
   const n=vChangedKeys().size;
-  if(n && confirm('저장되지 않은 변경사항 '+n+'건이 있습니다.\n\n[확인] 저장 후 이동   [취소] 변경사항 취소')){ vCommit(); return; }
-  vDraft=null; vMode='view';
+  if(!n){ vDraft=null; vMode='view'; next(); return; }
+  $('#leaveMsg').textContent='편집한 근무표('+calMd(vDraft.date)+')에 저장하지 않은 변경 '+n+'건이 있습니다.';
+  const done=fn=>()=>{ closeSheet('leaveSheet'); fn(); };
+  $('#leaveSave').onclick=done(()=>{ vCommit(); next(); });
+  $('#leaveDrop').onclick=done(()=>{ vDraft=null; vMode='view'; renderView(); next(); });
+  $('#leaveStay').onclick=done(()=>{ showView('view'); });
+  openSheet('leaveSheet');
 }
 /* 화면을 다시 그려도 보고 있던 행이 같은 자리에 있게 한다 */
 function keepScroll(fn){
@@ -2177,7 +2222,8 @@ function renderView(){
     if(s.nextWorkHoliday) meta.appendChild(el('span','pill','다음날 휴무'));
   }
   body.appendChild(meta);
-  if(!s){ body.appendChild(el('div','err','해당 일자의 근무표가 없습니다. [생성] 탭에서 먼저 생성하십시오.')); return; }
+  if(!s){ const ro=document.body.classList.contains('ro')||document.body.classList.contains('guest');
+    body.appendChild(el('div','err', ro ? '이 날짜의 근무표가 아직 나오지 않았습니다. 관리자가 편성하면 바로 보입니다.' : '해당 일자의 근무표가 없습니다. [생성] 탭에서 먼저 생성하십시오.')); return; }
   const changed=vChangedKeys();
   const ed = editing ? {orig:vDraft.orig, changed, onPick:openEdPick} : null;
   if(editing) body.appendChild(el('div','edbanner','<b>근무표 편집</b><span>수정 대상 슬롯의 [변경]을 선택하십시오. 저장 전까지 데이터에 반영되지 않습니다.</span>'));
@@ -2350,9 +2396,9 @@ function schedToInput(s){
     mealId:s.mealId, dayEx:s.dayEx, nightEx:s.nightEx||[], bothEx:s.bothEx, slotEx:s.slotEx, nextWorkHoliday:s.nextWorkHoliday,
     prevDutyId:s.prevDutyId, prevSituationId:s.prevSituationId};
 }
-$('#vDate').addEventListener('change',()=>{ vResolveDraft(); renderView(); });
-$('#vPrev').addEventListener('click',()=>{ vResolveDraft(); $('#vDate').value=addDays($('#vDate').value||todayStr(),-1); renderView(); });
-$('#vNext').addEventListener('click',()=>{ vResolveDraft(); $('#vDate').value=addDays($('#vDate').value||todayStr(),1); renderView(); });
+$('#vDate').addEventListener('change',()=>{ const to=$('#vDate').value; if(vDraft) $('#vDate').value=vDraft.date; vResolveDraft(()=>{ $('#vDate').value=to; renderView(); }); });
+$('#vPrev').addEventListener('click',()=>{ vResolveDraft(()=>{ $('#vDate').value=addDays($('#vDate').value||todayStr(),-1); renderView(); }); });
+$('#vNext').addEventListener('click',()=>{ vResolveDraft(()=>{ $('#vDate').value=addDays($('#vDate').value||todayStr(),1); renderView(); }); });
 $('#vPrint').addEventListener('click',()=>window.print());
 $('#vCsv').addEventListener('click',()=>{
   const ds=$('#vDate').value; const s=DB.schedules[ds]; if(!s){alert('해당 일자의 근무표가 없습니다.');return;}
@@ -2637,7 +2683,7 @@ $('#evEdit').addEventListener('click',()=>{ const id=evSheetId; closeSheet('evSh
 $('#evDel').addEventListener('click',()=>{
   const p=(DB.prebook||[]).find(x=>x.id===evSheetId); if(!p) return;
   if(!confirm(PREBOOK_KR[p.kind]+' · '+nameOf(p.wid)+' ('+p.start+(p.end!==p.start?' ~ '+p.end:'')+') 일정을 삭제하시겠습니까?')) return;
-  DB.prebook=DB.prebook.filter(x=>x.id!==p.id); save(); closeSheet('evSheet'); renderCal(); refreshGenSelectors();
+  DB.prebook=DB.prebook.filter(x=>x.id!==p.id); save(); closeSheet('evSheet'); renderCal(); refreshGenSafe();
 });
 
 /* 표용 짧은 기간 표기 — 올해면 연도를 생략한다 */
@@ -2677,7 +2723,7 @@ function renderHolidayTable(){
     const td=el('td'); const del=el('button','btn danger sm','삭제');
     del.addEventListener('click',()=>{
       for(let d=r.start; d<=r.end; d=addDays(d,1)) delete DB.holidays[d];
-      save(); renderCal(); refreshGenSelectors();
+      save(); renderCal(); refreshGenSafe();
     });
     td.appendChild(del); tr.appendChild(td);
     t.appendChild(tr);
@@ -2696,7 +2742,7 @@ $('#hdAdd').addEventListener('click',()=>{
   st.innerHTML='<div class="ok">✓ '+esc(name+' · '+start+(end!==start?' ~ '+end:''))+' 휴무일로 등록되었습니다. 근무표 생성 시 자동 반영됩니다.</div>';
   $('#hdEnd').value=''; $('#hdName').value='';
   calYM=start.slice(0,7); calSelDate=start;
-  renderCal(); refreshGenSelectors();
+  renderCal(); refreshGenSafe();
 });
 
 /* ----- 일정 사전 등록 ----- */
@@ -2808,7 +2854,7 @@ $('#pbAdd').addEventListener('click',()=>{
   $('#pbEnd').value='';
   calYM=start.slice(0,7); calSelDate=start;
   renderCal();
-  refreshGenSelectors();
+  refreshGenSafe();
 });
 /* ◀ ▶ — 월 보기에서는 한 달, 주 보기에서는 한 주씩. 선택 날짜도 함께 옮겨 상세가 비지 않게 한다 */
 function calShift(n){
@@ -3626,6 +3672,8 @@ window.onSyncPhase=function(p){
   const cur=($$('.view.on')[0]||{}).id;
   if(p==='admin' && cur==='mine') showView('view');
   // 로그인 상태 복원·가입 완료 후 최초 1회만 개인 홈으로 — 실시간 갱신이나 이후 단계 변화로 탭을 옮기지 않는다
+  // 로그인 전이고 이 기기에 근무표가 없으면(처음 쓰는 구성원) 한 번은 로그인 화면으로
+  if(p==='guest' && !MINE.routed && !MINE.userNav && !Object.keys(DB.schedules).length && cur!=='mine'){ MINE.routed=true; showView('mine'); }
   if((p==='member'||p==='legacy'||p==='join') && !MINE.routed){
     MINE.routed=true;
     if(!MINE.userNav && cur!=='mine') showView('mine');
@@ -4330,7 +4378,7 @@ function renderMore(){
   $$('#mTheme button').forEach(b=>b.classList.toggle('on', b.dataset.t===themePref()));
 }
 syncHdrH();
-function refreshAll(){ renderPeople(); renderSettings(); refreshGenSelectors(); renderView(); renderCal(); renderBackupInfo(); renderMore(); renderMine(); if($('#svc').classList.contains('on')) renderSvc(); }
+function refreshAll(){ renderPeople(); renderSettings(); refreshGenSafe(); renderView(); renderCal(); renderBackupInfo(); renderMore(); renderMine(); if($('#svc').classList.contains('on')) renderSvc(); }
 function init(){
   load();
   const L=latestSchedDate();
@@ -4355,11 +4403,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=8.2.1"></script>
+<script src="firebase-config.js?v=8.3.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=8.2.1"></script>
+<script src="sync.js?v=8.3.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

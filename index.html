@@ -698,6 +698,8 @@ details.arch[open] summary{margin-bottom:8px}
     border:1px solid var(--line);box-shadow:0 8px 28px -8px rgba(0,0,0,.28),0 2px 6px -2px rgba(0,0,0,.12)}
   nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2px;font-size:10.5px;padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-faint);transition:transform .12s ease,color .2s ease}
   nav.tabs button:hover{background:none}
+  nav.tabs,nav.tabs button{-webkit-tap-highlight-color:transparent;outline:none}
+  nav.tabs button:focus,nav.tabs button:focus-visible{outline:none;box-shadow:none}
   nav.tabs button:active{transform:scale(.92)}
   nav.tabs button svg{width:22px;height:22px}
   nav.tabs button.on,nav.tabs button.on-sub{color:var(--ink);font-weight:800;background:none}
@@ -773,7 +775,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.2.0</span>
+    <span class="pill" title="앱 버전 — 표시되지 않을 경우 캐시 새로고침 (Ctrl+Shift+R)">v8.2.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
   </header>
 
@@ -1258,7 +1260,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=8.2.0"></script>
+<script src="engine.js?v=8.2.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -4353,11 +4355,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=8.2.0"></script>
+<script src="firebase-config.js?v=8.2.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=8.2.0"></script>
+<script src="sync.js?v=8.2.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

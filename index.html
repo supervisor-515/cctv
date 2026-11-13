@@ -800,7 +800,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.1</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.2</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1058,7 +1058,7 @@ body.ro .no-ro{display:none!important}
           <div class="chips" id="gExChips"></div>
           <p class="smallnote v1only" style="margin:10px 0 0">근무자 선택 시 시간대 열외 설정이 표시됩니다. 표시 막대는 좌측부터 <b>아침·오전·오후·야간</b> 열외 상태입니다.
             저녁(17:30~21:30)은 역할 고정 슬롯이므로 열외 대상이 아닙니다. ‘분모 제외’는 종일 열외 시에만 적용됩니다.</p>
-          <p class="smallnote v2only" style="margin:10px 0 0">근무자 선택 시 시간대 열외 설정이 표시됩니다. 표시 막대는 좌측부터 <b>아침·오전·오후·저녁·야간</b> 열외 상태입니다. ‘분모 제외’는 종일 열외 시에만 적용됩니다.</p>
+          <p class="smallnote v2only" style="margin:10px 0 0">근무자를 고르면 시간대 열외 칸이 열립니다. 막대는 왼쪽부터 <b>아침·오전·오후·저녁·야간</b> 순서입니다. ‘분모 제외’는 하루 종일 열외할 때만 적용됩니다.</p>
           <div class="v2only" id="gOutBox" style="margin-top:14px">
             <div class="step-h" style="margin-bottom:6px">당일 외출<div class="sp"></div><small>평일만 · 월~목 17:30~20:30, 금 15:30~20:30 배정 제외 · 위병조장A 제외</small></div>
             <div class="chips" id="gOutChips"></div>
@@ -1165,7 +1165,7 @@ body.ro .no-ro{display:none!important}
     </div>
     <div class="cpane" data-p="ptime">
       <div id="cPtime"></div>
-      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">개인정비시간(폰 사용 시간)에 선 CCTV 시간 ÷ 대상 평일 수. 월~목 17:30·18:30·19:30 각 1h, 20:30 0.5h / 금 15:30 0.5h, 16:30 1h, 17:30 1.5h, 18:30·19:30 각 1h, 20:30 0.5h, 추가순찰 0.5h. 위병조장·배식조·외출일은 대상일에서 뺍니다. 상황병은 개인정비 칸 순번에서 빠지므로 이 표에 넣지 않습니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPtimeCsv">CSV</button></div>
+      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">개인정비시간(폰 사용 시간) CCTV 합계 ÷ 대상 평일 수. 월~목 17:30·18:30·19:30 각 1h, 20:30 0.5h / 금 15:30 0.5h, 16:30 1h, 17:30 1.5h, 18:30·19:30 각 1h, 20:30 0.5h, 추가순찰 0.5h. 위병조장·배식조·외출일은 대상일에서 제외합니다. 상황병은 순번 대상이 아니어서 표에서 뺐습니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPtimeCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="mess">
       <div class="subchips" id="cMessSub"></div>
@@ -1184,7 +1184,7 @@ body.ro .no-ro{display:none!important}
       <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">‘전체’ 기준 분모: 총 근무표 수, 그룹 선택 기준 분모: 해당 그룹 근무표 수</span><div class="sp"></div><button class="btn ghost sm no-print" id="cSlotCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="fair">
-      <p class="hint v2only" style="margin:0 0 10px">전환일 이후 근무표 기준이며, 위에서 고른 종류(평일 / 주말·휴일)만 집계합니다(신병·근무일 부족 인원 제외). 평균 근무시간에는 위병조장 시간(A 3.5h, B·C 4h, 주말·휴일 2h)이 들어가므로 일반병이 상황병보다 높게 나옵니다. 위병조장 지표는 일반병만, 배식조 지표는 [배식조 가능] 인원만 비교합니다.</p>
+      <p class="hint v2only" style="margin:0 0 10px">전환일 이후 고른 종류(평일 / 주말·휴일) 근무표만 집계합니다(신병·근무일 부족 인원 제외). 평균 근무시간에는 위병조장(A 3.5h, B·C 4h, 주말·휴일 2h)이 포함돼 일반병이 상황병보다 높게 나옵니다. 위병조장은 일반병만, 배식조는 [배식조 가능] 인원만 비교합니다.</p>
       <p class="hint v1only" style="margin:0 0 10px">조회 기간 근무표 대상 일반 근무자 기준입니다. (신병·말년·운항병 제외, 전환 인원은 전환일 이후 기록 기준) 야간·밥교대·순찰 지표는 개인별 근무표 수 기준 배정률(%)이며, 산포도가 밀집되고 변동계수(CV)·지니계수가 낮을수록 공정한 배분입니다.</p>
       <div id="cFair"></div>
     </div>
@@ -1196,7 +1196,7 @@ body.ro .no-ro{display:none!important}
     <div class="segscroll"><div class="seg" id="pFilter"></div></div>
     <div class="plist" id="pTable"></div>
     <details class="arch" id="pArchWrap"><summary><span id="pArchLabel">보관 인원</span><span>▸</span></summary><div class="plist" id="pArch"></div></details>
-    <p class="smallnote v2only" style="margin-top:14px">구분은 <b>상황병 · 일반병 · 신병</b> 세 가지입니다. <b>일반병</b>은 자동으로 위병조장 대상이 되고, 신병·상황병은 위병조장에 들어가지 않습니다. 배식조는 [배식조 가능]을 켠 사람 중에서 매일 2명이 뽑힙니다.</p>
+    <p class="smallnote v2only" style="margin-top:14px">구분은 <b>상황병 · 일반병 · 신병</b> 세 가지입니다. <b>일반병</b>만 위병조장 대상이며 신병·상황병은 빠집니다. 배식조는 [배식조 가능]을 켠 인원 중 매일 2명을 뽑습니다.</p>
     <p class="smallnote v1only" style="margin-top:14px">신병에서 당직/상황병 전환 시 일반 근무 카운트는 초기화되고 밥교대 카운트는 유지됩니다.
       <b>운항병</b>(활성 1명)은 평일 주간 고정 슬롯 및 금/토 야간 1회 배정됩니다. <b>말년</b>은 신병과 동일한 배정 규칙이 적용되며 카운트 초기화는 수행하지 않습니다.</p>
     <div class="panel no-ro" style="margin-top:14px">
@@ -1240,7 +1240,7 @@ body.ro .no-ro{display:none!important}
       </div>
       <div class="v2only" style="margin-top:12px">
         <label style="font-weight:700;font-size:var(--fs-md)">위병조장 텀 (일)</label>
-        <p class="smallnote" style="margin:4px 0 8px">이 일수 안에 선 사람은 다른 후보가 있으면 뽑지 않습니다(후보가 없을 때만 완화). ‘전체’는 A·B·C·주말을 통틀어 본 간격입니다.</p>
+        <p class="smallnote" style="margin:4px 0 8px">이 일수 안에 선 사람은 다른 후보가 있으면 뺍니다(후보 없을 때만 완화). ‘전체’는 A·B·C·주말을 통틀어 따집니다.</p>
         <div class="wgrid">
           <div class="field"><label>A끼리</label><input type="number" id="sGapA" min="0" step="1"></div>
           <div class="field"><label>B·C끼리</label><input type="number" id="sGapBC" min="0" step="1"></div>
@@ -1273,9 +1273,9 @@ body.ro .no-ro{display:none!important}
     <div class="panel no-ro" id="v2Panel">
       <h2 style="color:var(--err)">새 근무 체계</h2>
       <div class="v1only">
-        <p class="desc">당직하사·고정 CCTV·운항병·밥교대·주 단위 배식조가 없어지고, 상황병 3일 면제 · 위병조장 A·B·C(휴일 1명) · 배식조 매일 2명 · 저녁 칸 일반 배정 · 개인정비시간 순번으로 바뀝니다.
-          전환일부터 만드는 근무표에만 적용되며 <b>카운트는 전환일부터 새로 셉니다</b>(이전 근무표는 그대로 보관). 말년은 일반병이 되고 운항병 지정은 해제됩니다.
-          전환 직전 데이터가 백업 파일로 내려받아지며, 되돌리려면 그 파일을 [백업 · 내보내기]에서 불러와야 합니다.</p>
+        <p class="desc">당직하사·고정 CCTV·운항병·밥교대·주 단위 배식조가 사라집니다. 대신 상황병 3일 면제·위병조장 A·B·C(휴일 1명)·배식조 매일 2명·저녁 일반 배정·개인정비시간 순번으로 바뀝니다.
+          전환일부터 만드는 근무표에만 적용하며 <b>카운트는 전환일부터 새로 셉니다</b>(이전 표는 보관). 말년은 일반병으로 바뀌고 운항병 지정은 풀립니다.
+          전환 직전 데이터를 백업 파일로 저장합니다. 되돌리려면 [백업 · 내보내기]에서 그 파일을 불러오면 됩니다.</p>
         <div class="row"><div class="field"><label>전환일 (이 날짜 근무표부터 새 방식)</label><input type="date" id="v2Date"></div></div>
         <button class="btn solid-danger" id="v2Switch" type="button" style="margin-top:10px">새 근무 체계로 환경 전환</button>
       </div>
@@ -1375,13 +1375,13 @@ body.ro .no-ro{display:none!important}
     <div class="panel">
       <p class="smallnote v2only" style="font-size:var(--fs-sm)">
         1일 기준: 당일 06:30~익일 05:30 (1시간 단위 24개 슬롯). 주간 06:30~16:30 (11칸), 저녁 17:30~21:30 (5칸), 야간 4개 번초(1번초 22:30+02:30, 2번초 23:30+03:30, 3번초 00:30+04:30, 4번초 01:30+05:30).<br>
-        <b>상황병</b>: 예약·직접 지정. 전날 야간, 당일 전체, 다음날 전체 CCTV 면제(당일·다음날은 분모 제외). 위병조장 대상이 아니며 배식조는 전날만 가능합니다.<br>
-        <b>위병조장</b>: 평일(월~금) A·B·C 3명, 토·일·휴일 1명 — 일반병만. A는 A 배정률이 낮은 순 → 오래된 순, B·C는 합산 배정률 기준, 주말·휴일은 따로 셉니다. A·B·주말은 전날 야간자 불가(C는 가능). 당일 주간·저녁 CCTV는 서지 않고, 야간은 인원이 모자랄 때 B·C·주말만 투입합니다. 근무시간(A 3.5h, B·C 4h, 주말·휴일 2h)은 평균 근무시간에 들어갑니다.<br>
-        <b>배식조</b>: [배식조 가능] 인원 중 매일 2명. 평일 / 토 / 일·휴일을 따로 세며, 당일 CCTV 전체 열외(분모 제외)·전날 야간 제외·이틀 연속 금지·위병조장과 겹침 금지.<br>
-        <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 가장 적은 사람부터 뽑아 그 사람이 덜 선 칸에 넣습니다. <b>상황병은 이 칸들과 금요일 추가순찰에 들어가지 않습니다</b>(30분만 겹치는 20:30·금 15:30은 일반 배정). 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 주말·휴일은 제외.<br>
+        <b>상황병</b>: 예약·직접 지정. 전날 야간과 당일·다음날 CCTV 전체 면제(당일·다음날은 분모 제외). 위병조장 불가, 배식조는 전날만 가능.<br>
+        <b>위병조장</b>: 평일(월~금) A·B·C 3명, 주말·휴일 1명(일반병만). A는 배정률 낮은 순 → 오래 안 선 순, B·C는 합산 배정률, 주말·휴일은 따로 셉니다. A·B·주말은 전날 야간자 제외(C는 가능). 당일 주간·저녁 CCTV는 안 서고, 야간은 후보 부족 시 B·C·주말만 투입합니다. 위병조장 시간(A 3.5h, B·C 4h, 주말·휴일 2h)은 평균 근무시간에 포함합니다.<br>
+        <b>배식조</b>: [배식조 가능] 인원 중 매일 2명. 평일 / 토 / 일·휴일을 따로 셉니다. 당일 CCTV 전체 열외(분모 제외)·전날 야간 제외·이틀 연속 금지·위병조장 중복 금지.<br>
+        <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. <b>상황병은 이 칸들과 금요일 추가순찰에서 빠집니다</b>(30분만 겹치는 20:30·금 15:30은 일반 배정). 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 주말·휴일 제외.<br>
         <b>외출</b>(평일): 월~목 17:30~20:30, 금 15:30~20:30 배정 제외, 위병조장A 제외.<br>
-        <b>평일과 주말·휴일은 따로 셉니다</b>: 평일 근무표를 만들 때는 평일 기록만, 주말·휴일 근무표를 만들 때는 주말·휴일 기록만 비교합니다(평균 근무시간·시간대·야간·06:30 순번·순찰 모두). 야간 번초 1개는 2시간으로 계산합니다.<br>
-        <b>나머지 칸</b>: 1칸씩 먼저 돌리고 남으면 신병 우선. 06:30은 배정률 순번제. 인접 칸 연속근무·전날 야간자의 아침(06:30~08:30)·하루 두 번초는 절대 금지. 저녁 칸은 한 사람 하루 1칸(불가피할 때만 2칸).<br>
+        <b>평일·주말 분리 집계</b>: 평일 표는 평일 기록만, 주말·휴일 표는 주말·휴일 기록만 비교합니다(평균 근무시간·시간대·야간·06:30 순번·순찰 모두). 야간 번초 1개는 2시간으로 계산합니다.<br>
+        <b>나머지 칸</b>: 하루 1칸씩 먼저 돌리고 남으면 신병 우선. 06:30은 배정률 순번제. 인접 칸 연속근무·전날 야간자의 아침(06:30~08:30)·하루 두 번초는 절대 금지. 저녁 칸은 한 사람 하루 1칸 원칙(불가피할 때만 2칸).<br>
         <b>유조차 운전병</b> 규칙은 그대로이며, 관제병 규칙은 적용하지 않습니다(보류).
       </p>
       <p class="smallnote v1only" style="font-size:var(--fs-sm)">
@@ -1394,7 +1394,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.0.1"></script>
+<script src="engine.js?v=9.0.2"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2478,7 +2478,7 @@ function renderView(){
   const det=el('details','adv no-print');
   det.appendChild(el('summary',null,'배정 상세 · 근무표 관리'));
   det.appendChild(el('p','smallnote','편성 등급: tier '+s.tier+' ('+esc(TIER_KR[s.tier]||'')+') — 등급 숫자가 높을수록 제약조건을 완화하여 편성된 근무표입니다.'));
-  det.appendChild(el('p','smallnote', s.v2 ? '수정 내역은 [변경사항 저장] 시 누적 통계 및 유효성 검증에 반영됩니다. 칸·위병조장·배식조는 고른 자리만 바뀌며, 맞지 않는 배정은 점검 목록에 표시됩니다.'
+  det.appendChild(el('p','smallnote', s.v2 ? '바꾼 내용은 [변경사항 저장]을 눌러야 통계와 점검에 반영됩니다. 칸·위병조장·배식조는 고른 자리만 바뀌고, 규칙에 어긋나면 점검 목록에 뜹니다.'
     : '수정 내역은 [변경사항 저장] 시 누적 통계 및 유효성 검증에 반영됩니다. 17:30 슬롯 변경 시 해당 슬롯만 단독 교체되며, 다음날 밥교대 변경 시 연관 슬롯이 함께 자동 재조정됩니다.'));
   const delBtn=el('button','btn danger sm no-ro','당일 근무표 삭제');
   delBtn.style.margin='0 0 14px';
@@ -2538,7 +2538,7 @@ function renderDayLoad(s, who, orig){
   });
   box.appendChild(card);
   if(off.length) box.appendChild(el('div','off','열외: '+off.map(w=>esc(short(w.name))).join(', ')));
-  box.appendChild(el('p','smallnote',(s.v2?'상황병(당일·전날)·배식조는 열외로 표시, 위병조장 시간 포함, 야간 번초 2h. 평균은 '+(v2DayType(s.date,s.workHoliday)==='we'?'주말·휴일':'평일')+' 근무표만의 평균.':'당일 당직·상황병·밥교대 제외.')+' 좌측: 당일 근무시간, 성명 우측: 전일 기준 일일 평균시간. 주황: 부대 평균 초과, 녹색: 평균 미만'+(oh?', 점선: 편집 변경 인원':'')+'. 순찰 가중 포함 (공정성 지표 산출 기준과 동일).'));
+  box.appendChild(el('p','smallnote',(s.v2?'상황병(당일·전날)·배식조는 열외 표시, 위병조장 시간 포함, 야간 번초 2h. 평균은 '+(v2DayType(s.date,s.workHoliday)==='we'?'주말·휴일':'평일')+' 근무표만 계산.':'당일 당직·상황병·밥교대 제외.')+' 좌측: 당일 근무시간, 성명 우측: 전일 기준 일일 평균시간. 주황: 부대 평균 초과, 녹색: 평균 미만'+(oh?', 점선: 편집 변경 인원':'')+'. 순찰 가중 포함 (공정성 지표 산출 기준과 동일).'));
   return box;
 }
 
@@ -2555,7 +2555,7 @@ function edKeyInfo(s, key){
   if(key[0]==='E') return {title:key.slice(2)+' 근무자 변경', sub:md(s.date)+' '+key.slice(2)+' · '+(s.v2?'저녁':EVENING_LABEL[key.slice(2)][1]+' 칸'),
     note: key==='E:17:30' && !s.v2 ? '해당 슬롯 근무자만 단독 변경됩니다 (외출 등). 익일 밥교대 지정 자체를 변경하려면 상단 [다음날 밥교대] 카드를 선택하십시오.' : '해당 슬롯 근무자만 단독 변경됩니다.'};
   if(v2KeyLabel(key)){ const nx=v2RoleKey(key).next;
-    return {title:v2KeyLabel(key)+' 변경', sub:md(nx?addDays(s.date,1):s.date), note:'지정만 바뀝니다. 이미 배정된 칸과 맞지 않으면 점검 목록에 표시되니 해당 칸을 직접 바꾸십시오.'+(nx?' 다음날 근무표를 만들 때 이 사람으로 지정됩니다.':'')}; }
+    return {title:v2KeyLabel(key)+' 변경', sub:md(nx?addDays(s.date,1):s.date), note:'지정만 바뀝니다. 기존 배정과 맞지 않으면 점검 목록에 뜨니 그 칸을 직접 바꾸면 됩니다.'+(nx?' 다음날 근무표 생성 시 이 사람으로 들어갑니다.':'')}; }
   if(key==='xmess') return {title:'추가배식조 변경', sub:md(s.date), note:'해당 일자의 추가배식조만 변경됩니다 (당일 CCTV 전체 열외 및 분모 제외). 과거 일자에 입력 시 누적 기록에 소급 반영됩니다. 기존 배정 슬롯과의 충돌 여부는 점검 목록을 확인하여 수동 조정하십시오.'};
   if(key==='nextXmess') return {title:'다음날 추가배식조 변경', sub:md(addDays(s.date,1)), note:'익일 추가배식조만 변경됩니다. 대상자는 당일 야간 배정에서 제외되어야 합니다 (기 배정 시 점검 목록 표시). 익일 근무표 생성 시 해당 인원이 추가배식조로 지정됩니다.'};
   if(key==='duty') return {title:'당직 변경', sub:md(s.date), note:'당직 지정만 변경되며 배정 슬롯은 유지됩니다.'};
@@ -2901,7 +2901,7 @@ function conflictBox(p, sheetId){
   }
   if(!days.length) return null;
   const box=el('div','warn cfbox');
-  box.appendChild(el('div',null,'⚠ 이미 만든 근무표와 겹치는 날 '+days.length+'일 — 일정은 지난 표에 자동 반영되지 않습니다. 날짜마다 바로 처리하세요.'));
+  box.appendChild(el('div',null,'⚠ 이미 만든 근무표와 '+days.length+'일 겹칩니다. 일정은 기존 표에 자동 반영되지 않으니 날짜마다 바로 처리하세요.'));
   days.forEach(({d,m})=>{
     const r=el('div','cfrow');
     r.appendChild(el('div','cft','<b>'+esc(calMd(d)+' ('+DOW_KR[dow(d)]+')')+'</b> '+m.map(esc).join(' · ')));
@@ -3676,7 +3676,7 @@ function openWorkerSheet(id){
   row.appendChild(sw(V2()?'배식조 가능':'추가배식조 가능', !!w.canXmess, v=>{ w.canXmess=v; if(v && !w.xmessSince) w.xmessSince=todayStr(); save(); refreshAll(); toast('저장됨'); }));   // 켠 날부터 순번 분모를 센다
   f.appendChild(row);
   if(V2()){
-    f.appendChild(el('div','hint','배식조: 켠 사람 중 매일 2명(평일 / 토 / 일·휴일 따로 집계). 당일 CCTV 전체 열외·전날 야간 제외·근무일수 제외. 상황병은 근무 당일·다음날에는 뽑히지 않습니다.'));
+    f.appendChild(el('div','hint','배식조: 켠 사람 중 매일 2명(평일 / 토 / 일·휴일 분리 집계). 당일 CCTV 전체 열외·전날 야간 제외·근무일수 제외. 상황병은 근무 당일·다음날 배식조에서 빠집니다.'));
     f.appendChild(el('div','hint','일반병은 자동으로 위병조장 대상입니다(신병·상황병 제외).'));
   }else{
   f.appendChild(el('div','hint','추가배식조: 설정 인원 중 평일 1명 순번 배정(배정률 낮은 순 → 장기 미편성 순). 당일 CCTV 전 시간대 및 전일 야간 열외, 근무일수 산정 제외.'));
@@ -4435,10 +4435,10 @@ function renderMineStats(w){
   const box=el('div');
   if(V2()) box.appendChild(el('div','mstat-why','<b>배정 원칙</b><ul>'
     +'<li>상황병: 전날 야간·당일·다음날 CCTV 면제</li>'
-    +'<li>위병조장(일반병)·배식조: 배정률이 낮은 순 → 오래 안 선 순</li>'
-    +'<li>개인정비시간 칸(평일 17:30~19:30, 금 16:30~): 대상일당 개인정비 CCTV 시간이 적은 순 (상황병 제외)</li>'
-    +'<li>기타 시간대: 하루 1칸씩 먼저, 이후 시간대·야간 배정률과 일평균 근무시간이 낮은 순 (06:30은 순번제)</li>'
-    +'<li>개별 근무 항목 선택 시 세부 배정 사유 확인 가능</li></ul>'));
+    +'<li>위병조장(일반병)·배식조: 배정률 낮은 순 → 오래 안 선 순</li>'
+    +'<li>개인정비시간 칸(평일 17:30~19:30, 금 16:30~): 대상일당 개인정비 CCTV 시간 적은 순 (상황병 제외)</li>'
+    +'<li>나머지 시간대: 하루 1칸씩 먼저, 이후 시간대·야간 배정률과 평균시간 낮은 순 (06:30은 순번제)</li>'
+    +'<li>각 칸을 누르면 배정 이유를 볼 수 있습니다</li></ul>'));
   else box.appendChild(el('div','mstat-why','<b>배정 원칙</b><ul>'
     +'<li>당직·상황병·18:30~21:30 등: 역할 및 임무에 따라 고정 편성</li>'
     +'<li>06:30: 배정률 낮은 인원 우선 순번제 편성</li>'
@@ -4768,7 +4768,7 @@ function refreshGenSelectors2(){
   if(prev){
     pv.appendChild(el('span','pill', prev.v2 ? '전일 근무표에서 자동 연계' : '전일 근무표(구 방식) — 야간자·당직·상황병만 이어받음'));
     if(prev.night){ const ids=Object.values(prev.night).filter(Boolean).map(nameOf); if(ids.length) pv.appendChild(el('span','pill','전일 야간 · '+esc(ids.join(', ')))); }
-  }else pv.innerHTML='<span class="muted">전일 근무표 없음: 전날 상황병을 직접 지정하십시오 (전날 야간자 제외는 적용되지 않음)</span>';
+  }else pv.innerHTML='<span class="muted">전일 근무표 없음: 전날 상황병을 직접 고르세요 (전날 야간자 제외 미적용)</span>';
   if(!$('#bgStart').value){ const L=latestSchedDate(); const s0=L?addDays(L,1):todayStr(); $('#bgStart').value=s0; $('#bgEnd').value=addDays(s0,6); }
   previewGen();
 }
@@ -4907,16 +4907,16 @@ $('#cMessCsv').addEventListener('click',()=>{
 $('#v2Switch').addEventListener('click',()=>{
   if(V2()) return;
   const ds=$('#v2Date').value, box=$('#v2Status');
-  if(!ds){ box.innerHTML='<div class="err">전환일을 선택하십시오.</div>'; return; }
+  if(!ds){ box.innerHTML='<div class="err">전환일을 고르세요.</div>'; return; }
   const later=Object.keys(DB.schedules).filter(d=>d>=ds).sort();
-  const msg='['+ds+' ('+DOW_KR[dow(ds)]+')] 근무표부터 새 근무 체계로 전환합니다.\n\n'
-    +'· 당직하사·고정 CCTV·운항병·밥교대·주 단위 배식조가 없어집니다.\n'
-    +'· 카운트는 전환일부터 새로 셉니다(이전 근무표는 그대로 보관).\n'
-    +'· 말년은 일반병이 되고 운항병 지정은 해제됩니다.\n'
-    +(later.length ? '· 전환일 이후 이미 만든 근무표 '+later.length+'일분('+later[0]+(later.length>1?' ~ '+later[later.length-1]:'')+')은 삭제됩니다 — 새 방식으로 다시 생성해야 합니다.\n' : '')
-    +'\n전환 직전 데이터가 백업 파일로 저장됩니다. 되돌리려면 그 파일을 불러와야 합니다.\n계속하시겠습니까?';
+  const msg='['+ds+' ('+DOW_KR[dow(ds)]+')] 근무표부터 새 체계로 전환합니다.\n\n'
+    +'· 당직하사·고정 CCTV·운항병·밥교대·주 단위 배식조를 없앱니다.\n'
+    +'· 카운트는 전환일부터 새로 셉니다(이전 표는 보관).\n'
+    +'· 말년은 일반병이 되고 운항병 지정은 풀립니다.\n'
+    +(later.length ? '· 전환일 이후 기존 근무표 '+later.length+'일분('+later[0]+(later.length>1?' ~ '+later[later.length-1]:'')+')은 지워집니다. 새 방식으로 다시 만드세요.\n' : '')
+    +'\n전환 직전 데이터를 백업 파일로 저장합니다. 되돌리려면 그 파일을 불러오면 됩니다.\n전환할까요?';
   if(!confirm(msg)) return;
-  if(prompt('확인을 위해 "전환"을 입력하십시오.')!=='전환'){ box.innerHTML='<div class="warn">전환을 취소했습니다.</div>'; return; }
+  if(prompt('확인을 위해 "전환"을 입력하세요.')!=='전환'){ box.innerHTML='<div class="warn">전환을 취소했습니다.</div>'; return; }
   // 전환 직전 상태 보관 — 파일 + (관리자 로그인 시) 서버 백업
   downloadBlob('cctv_roster_before_switch_'+todayStr()+'.json', JSON.stringify(DB,null,2), 'application/json');
   box.innerHTML='';
@@ -4926,7 +4926,7 @@ $('#v2Switch').addEventListener('click',()=>{
   switchToV2(ds);
   vDraft=null; vMode='view';
   save(); $('#gDate').value=ds; GEN.dirty=false; refreshAll(); refreshGenSelectors();
-  box.appendChild(el('div','ok','✓ 새 근무 체계로 전환했습니다('+esc(ds)+'부터). 이어서 상황병 · 신병 · 배식조 가능 인원을 차례로 설정하십시오.'));
+  box.appendChild(el('div','ok','✓ 새 근무 체계로 전환했습니다('+esc(ds)+'부터). 이어서 상황병 · 신병 · 배식조 가능 인원을 차례로 설정하세요.'));
   openV2Setup();
 });
 
@@ -4934,9 +4934,9 @@ $('#v2Switch').addEventListener('click',()=>{
    상황병 → 신병 → 배식조 가능 → 확인. 마지막 [적용] 전까지는 아무것도 바꾸지 않는다. */
 const SETUP={step:0, sit:new Set(), rec:new Set(), mess:new Set()};
 const SETUP_STEPS=[
-  {key:'sit', title:'상황병 지정', desc:'상황병으로 근무할 사람을 모두 고르십시오. 상황병은 위병조장과 개인정비시간 칸에 들어가지 않고, 근무 전날 야간과 당일·다음날 CCTV가 면제됩니다.'},
-  {key:'rec', title:'신병 지정', desc:'아직 위병조장에 넣지 않을 신병을 고르십시오. 고르지 않은 사람은 일반병이 되어 자동으로 위병조장 대상이 됩니다. 없으면 그대로 [다음].'},
-  {key:'mess', title:'배식조 가능 인원', desc:'배식조에 들어갈 수 있는 사람을 모두 고르십시오. 이 중에서 매일 2명이 뽑힙니다(평일 / 토 / 일·휴일 따로 집계). 상황병은 근무 당일·다음날에는 뽑히지 않습니다.'},
+  {key:'sit', title:'상황병 지정', desc:'상황병을 모두 고르세요. 상황병은 위병조장과 개인정비 칸에 들어가지 않고, 근무 전날 야간과 당일·다음날 CCTV가 면제됩니다.'},
+  {key:'rec', title:'신병 지정', desc:'위병조장에 안 넣을 신병을 고르세요. 고르지 않은 사람은 일반병이 되어 위병조장 대상이 됩니다. 없으면 그대로 [다음].'},
+  {key:'mess', title:'배식조 가능 인원', desc:'배식조 가능 인원을 모두 고르세요. 이 중 매일 2명이 뽑힙니다(평일 / 토 / 일·휴일 분리 집계). 상황병은 근무 당일·다음날에는 빠집니다.'},
   {key:'done', title:'확인', desc:''}
 ];
 function openV2Setup(){
@@ -4987,9 +4987,9 @@ function renderV2Setup(){
   body.appendChild(dl);
   const warn=t=>body.appendChild(el('div','warn','⚠ '+esc(t)));
   if(!sit.length) warn('상황병이 한 명도 없습니다. 근무표 생성 시 상황병을 지정할 수 없습니다.');
-  if(gen.length<6) warn('일반병이 '+gen.length+'명입니다. 평일 위병조장 3명을 채우기 어렵거나 텀이 지켜지지 않을 수 있습니다.');
-  if(mess.length<4) warn('배식조 가능 인원이 '+mess.length+'명입니다. 매일 2명·이틀 연속 금지를 지키려면 4명 이상이 필요합니다.');
-  body.appendChild(el('p','smallnote','[적용]을 누르면 구분과 배식조 가능 여부가 저장됩니다. 나중에 [근무자 관리]에서 한 명씩 바꾸거나 [기본 설정]에서 이 설정을 다시 열 수 있습니다.'));
+  if(gen.length<6) warn('일반병이 '+gen.length+'명입니다. 평일 위병조장 3명을 채우기 어렵거나 텀이 안 지켜질 수 있습니다.');
+  if(mess.length<4) warn('배식조 가능 인원이 '+mess.length+'명입니다. 매일 2명·이틀 연속 금지를 지키려면 4명 이상 필요합니다.');
+  body.appendChild(el('p','smallnote','[적용]을 누르면 구분과 배식조 가능 여부가 저장됩니다. 나중에 [근무자 관리]에서 한 명씩 고치거나 [기본 설정]에서 이 창을 다시 열 수 있습니다.'));
 }
 $('#v2SetupPrev').addEventListener('click',()=>{ if(SETUP.step>0){ SETUP.step--; renderV2Setup(); } });
 $('#v2SetupNext').addEventListener('click',()=>{
@@ -5001,7 +5001,7 @@ $('#v2SetupNext').addEventListener('click',()=>{
     w.canXmess=on;
   });
   save(); closeSheet('v2SetupSheet'); refreshAll(); refreshGenSelectors();
-  toast('설정을 저장했습니다 — [생성] 탭에서 근무표를 만드십시오');
+  toast('설정을 저장했습니다 — [생성] 탭에서 근무표를 만드세요');
   showView('gen');
 });
 $('#v2SetupBtn').addEventListener('click', openV2Setup);
@@ -5032,11 +5032,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.0.1"></script>
+<script src="firebase-config.js?v=9.0.2"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.0.1"></script>
+<script src="sync.js?v=9.0.2"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

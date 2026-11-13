@@ -2519,7 +2519,7 @@ function generateDay2(input){
     if(id && okW(id) && !tToday.out.has(id) && !taken.has(id) && !(k==='A' && tToday.outing.has(id))){ gate[k]=id; taken.add(id); } });
   kinds.forEach(k=>{ if(gate[k]) return;
     gate[k] = v2PickGate(k, tToday, taken, allStats);
-    if(gate[k]) taken.add(gate[k]); else warnings.push('위병조장'+(k==='H'?'':k)+' 후보가 없어 미배정되었습니다.'); });
+    if(gate[k]) taken.add(gate[k]); else warnings.push('위병조장'+(k==='H'?'':k)+' 후보 없음 — 미배정.'); });
   const gateIds = Object.values(gate).filter(Boolean);
   const messIds = [];
   (input.messIds||[]).concat(prev && prev.v2 ? (prev.nextMessIds||[]) : []).forEach(id=>{
@@ -2645,9 +2645,9 @@ function generateDay2(input){
   EVENING.forEach(sl=>{ if(!fixed[sl]) warnings.push('저녁 '+sl+' 미배정'); });
   [1,2,3,4].forEach(b=>{ if(!night[b]) warnings.push('야간 '+b+'번초 미배정'); });
   { const nk = Object.values(night).filter(Boolean), c = nk.filter(id=>prevNight.has(id)), t3 = c.filter(id=>twoConsec.has(id));
-    if(t3.length) warnings.push('완화: 인원 부족으로 야간 3일 연속을 허용했습니다(불가피) — '+t3.map(nameOf).join(', '));
-    else if(c.length) warnings.push('완화: 인원 부족으로 야간 연속(전날 야간자 재투입)을 허용했습니다 — '+c.map(nameOf).join(', '));
-    if(nk.some(id=>gateIds.includes(id))) warnings.push('야간 후보 부족으로 위병조장 인원을 야간 번초에 투입했습니다.'); }
+    if(t3.length) warnings.push('완화: 인원 부족으로 야간 3일 연속 배정(불가피) — '+t3.map(nameOf).join(', '));
+    else if(c.length) warnings.push('완화: 인원 부족으로 야간 연속 배정(전날 야간자 재투입) — '+c.map(nameOf).join(', '));
+    if(nk.some(id=>gateIds.includes(id))) warnings.push('야간 후보 부족 — 위병조장 인원을 야간 번초에 투입.'); }
 
   /* 8) 17:00 추가 순찰 — 16:30·17:30 근무자와 외출자 제외, 순찰 배정률 낮은 순 */
   const pg = mealGroup(ds, wh);
@@ -2754,17 +2754,17 @@ function explainAssignment2(s, key){
   /* 순위 목록(list: 정렬된 [{id, reason}])에서 who의 위치를 문장으로 */
   const finish = (list)=>{
     const i = list.findIndex(e=>e.id===who);
-    if(!who) o.lines.push('이 자리는 비어 있습니다(후보 '+list.length+'명).');
-    else if(i<0) o.lines.push(nameOf(who)+': 규칙상 후보가 아닙니다 — 직접 지정했거나 인원 부족으로 완화해 넣은 자리입니다.');
-    else if(i===0) o.lines.push('후보 '+list.length+'명 중 1순위 — '+list[0].reason+(list[1] ? ' (다음 후보 '+nameOf(list[1].id)+': '+list[1].reason+')' : ''));
-    else o.lines.push('후보 '+list.length+'명 중 '+(i+1)+'순위 — '+list[i].reason+'. 앞 순위는 다른 칸에 먼저 쓰였거나 조합상 빠졌습니다.');
+    if(!who) o.lines.push('빈 자리 (후보 '+list.length+'명).');
+    else if(i<0) o.lines.push(nameOf(who)+': 규칙상 후보 아님. 직접 지정했거나 인원 부족으로 완화 배정했습니다.');
+    else if(i===0) o.lines.push('후보 '+list.length+'명 중 1순위: '+list[0].reason+(list[1] ? ' (다음 '+nameOf(list[1].id)+': '+list[1].reason+')' : ''));
+    else o.lines.push('후보 '+list.length+'명 중 '+(i+1)+'순위: '+list[i].reason+'. 앞 순위는 다른 칸 배정 또는 조합 제한으로 빠졌습니다.');
     list.forEach((e,k)=>{ if(e.id!==who) o.ranked.push({id:e.id, reason:e.reason, ahead: i>=0 && k<i}); });
     return o;
   };
 
   if(key==='sit'){
     o.kind='rule'; o.title='상황병';
-    o.lines=['상황병은 별도 순번에 따라 지정합니다(예약·직접 지정). 전날 야간과 당일·다음날 CCTV가 모두 면제됩니다.'];
+    o.lines=['별도 순번(예약·직접 지정)으로 정합니다. 전날 야간과 당일·다음날 CCTV가 모두 면제됩니다.'];
     return o;
   }
   const rk = v2RoleKey(key);
@@ -2780,22 +2780,22 @@ function explainAssignment2(s, key){
       const taken = new Set(order.slice(0, order.indexOf(k)).map(x=>tg[x]).filter(Boolean));
       o.title = (rk.next?'다음날 ':'')+'위병조장'+(k==='H'?'':k);
       const cfg=v2cfg();
-      o.lines.push(k==='A' ? '위병조장A는 A 배정률(선 횟수 ÷ 대상 평일)이 가장 낮은 일반병부터, 같으면 마지막으로 선 지 오래된 순으로 뽑습니다. 전날 야간자·외출자는 제외합니다.'
-        : k==='H' ? '토·일·휴일 위병조장은 주말 배정률이 낮은 일반병부터 뽑습니다(평일 A·B·C와 별도 집계). 전날 야간자는 제외합니다.'
-        : '위병조장B·C는 B·C 합산 배정률이 낮은 일반병부터 뽑습니다. B는 전날 야간자 제외, C는 전날 야간자도 가능합니다.');
+      o.lines.push(k==='A' ? '일반병 중 A 배정률(선 횟수 ÷ 대상 평일)이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자·외출자는 제외합니다.'
+        : k==='H' ? '일반병 중 주말 배정률이 낮은 순으로 뽑습니다(평일 A·B·C와 별도 집계). 전날 야간자는 제외합니다.'
+        : '일반병 중 B·C 합산 배정률이 낮은 순으로 뽑습니다. B는 전날 야간자 제외, C는 가능합니다.');
       o.lines.push('텀: 같은 종류 '+(k==='A'?cfg.gapA:k==='H'?cfg.gapH:cfg.gapBC)+'일, 위병조장 전체 '+cfg.gapAny+'일 안에 선 사람은 다른 후보가 있으면 뺍니다.');
       const grp = k==='A'?'A':k==='H'?'H':'BC';
       return finish(v2GateRank(k, t, taken, stats).map(e=>({id:e.id, reason: grp+' '+e.num+'회/'+e.den+'일('+pc(e.num,e.den)+') · 마지막 '+md(e.last)})));
     }
     const taken = new Set([...Object.values(tg).filter(Boolean), ...tm.slice(0, rk.idx)]);
     o.title = (rk.next?'다음날 ':'')+'배식조';
-    o.lines.push('배식조는 [배식조 가능] 인원 중 그날 구분(평일 / 토 / 일·휴일)의 배정률이 낮은 순 → 전체 배정률 → 마지막으로 선 지 오래된 순으로 매일 2명 뽑습니다. 이틀 연속과 위병조장 겹침은 피합니다.');
+    o.lines.push('[배식조 가능] 인원 중 해당 요일 구분(평일 / 토 / 일·휴일) 배정률 낮은 순 → 전체 배정률 → 오래 안 선 순으로 매일 2명 뽑습니다. 이틀 연속과 위병조장 중복은 피합니다.');
     return finish(v2MessRank(t, taken, stats).map(e=>({id:e.id, reason:'배식 '+e.num+'회/'+e.den+'일('+pc(e.num,e.den)+') · 마지막 '+md(e.last)})));
   }
 
   /* 근무 칸: D:hh:mm 주간 · E:hh:mm 저녁 · N:b 번초 · P 17:00 순찰 — 같은 종류(평일 / 주말·휴일) 기록만 본다 */
   const stats = buildStats2(ds, null, v2DayType(ds, wh));
-  o.lines.push((v2DayType(ds, wh)==='we' ? '주말·휴일' : '평일')+' 근무표 기록만으로 비교합니다(평일과 주말·휴일은 따로 셉니다).');
+  o.lines.push((v2DayType(ds, wh)==='we' ? '주말·휴일' : '평일')+' 기록만 비교합니다(평일·주말 분리 집계).');
   const ctx = {stats, _dayGrp:dayGroup(ds,wh), _nightGrp:nightGroup(ds,!!s.nextWorkHoliday), slotEx:s.slotEx||{}};
   const isN = key[0]==='N', isP = key==='P', slot = isP ? PATROL_SLOT : isN ? null : key.slice(2);
   const v = isN ? {type:'night', bunchoId:Number(key.slice(2))} : {type:'day', key:slot};
@@ -2840,24 +2840,24 @@ function explainAssignment2(s, key){
   if(isP){
     o.title='17:00 추가 순찰';
     const pg=mealGroup(ds,wh);
-    o.lines.push('17:00 추가 순찰은 16:30·17:30 근무자와 외출자를 뺀 주간 근무 가능자 중 순찰 배정률('+(pg==='weekday'?'평일':'주말·휴일')+')이 낮은 사람이 섭니다.');
+    o.lines.push('16:30·17:30 근무자와 외출자를 뺀 주간 가능 인원 중 순찰 배정률('+(pg==='weekday'?'평일':'주말·휴일')+')이 낮은 순으로 섭니다.');
     list = cands.map(w=>{ const r=stats[w.id];
       return {id:w.id, a: DB.settings.weights.patrolRate*rate(r.patrolGNum[pg], r.patrolGDen[pg]) + DB.settings.weights.avgHours*avgHours(r)*0.4, last:r.tiePatrol||'',
               reason:'순찰 '+pc(r.patrolGNum[pg], r.patrolGDen[pg])+' · 평균 '+avgHours(r).toFixed(2)+'h'}; }).sort((x,y)=> (x.a-y.a) || lastCmp2(x,y));
   }else if(!isN && pStrictSlots(ds,wh).includes(slot)){
     o.title=slot+' (개인정비시간)';
-    o.lines.push('개인정비시간(폰 사용 시간)과 겹치는 칸입니다. 대상일당 개인정비 CCTV 시간이 가장 적은 사람부터 뽑고, 그 사람이 가장 덜 선 칸에 넣습니다. 상황병(구분)·당일 위병조장·배식조·외출자는 제외합니다.');
+    o.lines.push('개인정비시간(폰 사용) 겹침 칸입니다. 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. 상황병(구분)·당일 위병조장·배식조·외출자는 제외합니다.');
     list = cands.map(w=>{ const r=stats[w.id], a=r.pHours/Math.max(1,r.pDen);
       return {id:w.id, a, last:r.pLast||'', reason:'개인정비 '+a.toFixed(2)+'h/일 ('+r.pHours+'h ÷ '+r.pDen+'일) · 마지막 '+md(r.pLast)}; }).sort((x,y)=> (x.a-y.a) || lastCmp2(x,y));
   }else if(isRotationVar(v)){
     o.title='06:30 (순번제)';
-    o.lines.push('06:30은 06:30 배정률(선 횟수 ÷ 근무 대상일)이 가장 낮은 사람부터, 같으면 마지막으로 선 지 오래된 순으로 돕니다.');
+    o.lines.push('06:30 배정률(선 횟수 ÷ 근무 대상일)이 낮은 순, 같으면 오래 안 선 순으로 돕니다.');
     list = cands.map(w=>{ const k=rotKeys(w.id, ctx), r=stats[w.id];
       return {id:w.id, a:k.rotRate, last:k.rotLast, reason:'06:30 '+r.rotAllNum+'회/'+r.rotAllDen+'일('+pc(r.rotAllNum,r.rotAllDen)+') · 마지막 '+md(k.rotLast)}; }).sort((x,y)=> (x.a-y.a) || lastCmp2(x,y));
   }else{
     o.title = isN ? v.bunchoId+'번초' : slot;
-    o.lines.push(isN ? '야간은 전날 야간을 서지 않은 사람 → 오늘 받은 칸수가 적은 사람 → 야간·번초 배정률과 평균 근무시간이 낮은 사람 순입니다. 다음날 상황병·위병조장(A·B·주말)·배식조는 제외합니다.'
-                     : '오늘 받은 칸수가 적은 사람 → 이 시간대를 덜 선 사람 → 배정률·평균 근무시간이 낮은 사람 순입니다(1칸씩 먼저 돌리고, 남으면 신병 우선).');
+    o.lines.push(isN ? '전날 야간 안 선 사람 → 오늘 칸수 적은 순 → 야간·번초 배정률과 평균시간 낮은 순입니다. 다음날 상황병·위병조장(A·B·주말)·배식조는 제외합니다.'
+                     : '오늘 칸수 적은 순 → 이 시간대 덜 선 순 → 배정률·평균시간 낮은 순입니다(1칸씩 먼저 돌리고, 남으면 신병 우선).');
     const th={}; Object.keys(cnt).forEach(id=>{ th[id]=cnt[id]; });
     list = cands.map(w=>{ const r=stats[w.id], c=effTodayCount(w.id, cnt[w.id]);
       const sc=score(w, isN?null:slot, {stats, todayHours:th, isNight:isN, dayGrp:ctx._dayGrp, nightGrp:ctx._nightGrp, bunchoId:isN?v.bunchoId:null});
@@ -2865,7 +2865,7 @@ function explainAssignment2(s, key){
         reason:'오늘 '+(cnt[w.id]||0)+'칸 · '+(isN ? '야간 '+pc(r.nightNum,r.nightDen)+' · '+v.bunchoId+'번초 '+r.bunchoNum[v.bunchoId]+'회'+(prevNight.has(w.id)?' · 전날 야간':'')
                                               : '이 시간대 '+(r.slotNum[slot]||0)+'회')+' · 평균 '+avgHours(r).toFixed(2)+'h'}; })
       .sort((x,y)=> (x.rn-y.rn) || (x.c-y.c) || (x.f-y.f) || (x.rec-y.rec) || (x.sc-y.sc) || lastCmp2(x,y));
-    if(isN && who && prevNight.has(who)) o.lines.push('전날에도 야간을 섰습니다 — 다른 후보가 모자라 연속 야간을 허용한 자리입니다'+(prev2 && Object.values(prev2.night||{}).includes(who)?'(3일 연속)':'')+'.');
+    if(isN && who && prevNight.has(who)) o.lines.push('전날 야간자입니다. 다른 후보가 모자라 연속 야간으로 넣었습니다'+(prev2 && Object.values(prev2.night||{}).includes(who)?'(3일 연속)':'')+'.');
     if(isN && who && gateIds.includes(who)) o.lines.push('당일 위병조장인데 야간 후보가 모자라 투입했습니다.');
   }
   return finish(list);

@@ -800,7 +800,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.0</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -945,6 +945,18 @@ body.ro .no-ro{display:none!important}
     <div class="grab"></div>
     <div class="sh-h"><b id="whyTitle">배정 사유</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
     <div id="whyBody"></div>
+  </div>
+
+  <!-- 새 근무 체계 초기 설정 — 전환 직후 상황병 → 신병 → 배식조 가능 → 확인 순서로 -->
+  <div class="sheet-bg" id="v2SetupSheetBg"></div>
+  <div class="sheet" id="v2SetupSheet" role="dialog" aria-label="새 근무 체계 설정">
+    <div class="grab"></div>
+    <div class="sh-h"><b id="v2SetupTitle">새 근무 체계 설정</b><div class="sp"></div><button class="x" data-close aria-label="닫기">✕</button></div>
+    <div id="v2SetupBody"></div>
+    <div class="two" style="margin-top:14px">
+      <button class="btn ghost full" type="button" id="v2SetupPrev">이전</button>
+      <button class="btn full" type="button" id="v2SetupNext">다음</button>
+    </div>
   </div>
 
   <!-- 근무자 변경 시트 (근무표 편집) -->
@@ -1267,7 +1279,8 @@ body.ro .no-ro{display:none!important}
         <div class="row"><div class="field"><label>전환일 (이 날짜 근무표부터 새 방식)</label><input type="date" id="v2Date"></div></div>
         <button class="btn solid-danger" id="v2Switch" type="button" style="margin-top:10px">새 근무 체계로 환경 전환</button>
       </div>
-      <div class="v2only"><div class="ok" id="v2On"></div></div>
+      <div class="v2only"><div class="ok" id="v2On"></div>
+        <button class="btn ghost" id="v2SetupBtn" type="button" style="margin-top:10px">상황병 · 신병 · 배식조 설정 (단계별)</button></div>
       <div id="v2Status" style="margin-top:10px"></div>
     </div>
   </section>
@@ -1381,7 +1394,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.0.0"></script>
+<script src="engine.js?v=9.0.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1520,7 +1533,7 @@ function restoreSnap(snap){
   toast('되돌렸습니다 · '+snap.label);
 }
 function offerUndo(snap, msg){ toast(msg, {action:'실행 취소', onAction:()=>restoreSnap(snap)}); }
-['pbSheet','pSheet','pickSheet','evSheet','edSheet','whySheet','ofSheet','leaveSheet'].forEach(id=>{
+['pbSheet','pSheet','pickSheet','evSheet','edSheet','whySheet','ofSheet','leaveSheet','v2SetupSheet'].forEach(id=>{
   $('#'+id+'Bg').addEventListener('click',()=>closeSheet(id));
   $('#'+id+' [data-close]').addEventListener('click',()=>closeSheet(id));
 });
@@ -4913,8 +4926,85 @@ $('#v2Switch').addEventListener('click',()=>{
   switchToV2(ds);
   vDraft=null; vMode='view';
   save(); $('#gDate').value=ds; GEN.dirty=false; refreshAll(); refreshGenSelectors();
-  box.appendChild(el('div','ok','✓ 새 근무 체계로 전환했습니다('+esc(ds)+'부터). [근무자 관리]에서 상황병·일반병·신병 구분과 [배식조 가능]을 확인한 뒤 [생성] 탭에서 근무표를 만드십시오.'));
+  box.appendChild(el('div','ok','✓ 새 근무 체계로 전환했습니다('+esc(ds)+'부터). 이어서 상황병 · 신병 · 배식조 가능 인원을 차례로 설정하십시오.'));
+  openV2Setup();
 });
+
+/* ----- 새 근무 체계 초기 설정 (전환 직후 자동, 이후 [기본 설정]에서 다시 열 수 있음) -----
+   상황병 → 신병 → 배식조 가능 → 확인. 마지막 [적용] 전까지는 아무것도 바꾸지 않는다. */
+const SETUP={step:0, sit:new Set(), rec:new Set(), mess:new Set()};
+const SETUP_STEPS=[
+  {key:'sit', title:'상황병 지정', desc:'상황병으로 근무할 사람을 모두 고르십시오. 상황병은 위병조장과 개인정비시간 칸에 들어가지 않고, 근무 전날 야간과 당일·다음날 CCTV가 면제됩니다.'},
+  {key:'rec', title:'신병 지정', desc:'아직 위병조장에 넣지 않을 신병을 고르십시오. 고르지 않은 사람은 일반병이 되어 자동으로 위병조장 대상이 됩니다. 없으면 그대로 [다음].'},
+  {key:'mess', title:'배식조 가능 인원', desc:'배식조에 들어갈 수 있는 사람을 모두 고르십시오. 이 중에서 매일 2명이 뽑힙니다(평일 / 토 / 일·휴일 따로 집계). 상황병은 근무 당일·다음날에는 뽑히지 않습니다.'},
+  {key:'done', title:'확인', desc:''}
+];
+function openV2Setup(){
+  if(!V2()) return;
+  const act=activeWorkers();
+  SETUP.step=0;
+  SETUP.sit=new Set(act.filter(isSituationW).map(w=>w.id));
+  SETUP.rec=new Set(act.filter(isRecruit).map(w=>w.id));
+  SETUP.mess=new Set(act.filter(w=>w.canXmess).map(w=>w.id));
+  renderV2Setup(); openSheet('v2SetupSheet');
+}
+function renderV2Setup(){
+  const st=SETUP_STEPS[SETUP.step], body=$('#v2SetupBody'), act=activeWorkers(); body.innerHTML='';
+  $('#v2SetupTitle').textContent='새 근무 체계 설정 '+(SETUP.step+1)+'/'+SETUP_STEPS.length+' · '+st.title;
+  $('#v2SetupPrev').disabled = SETUP.step===0;
+  $('#v2SetupNext').textContent = st.key==='done' ? '적용' : '다음';
+  const names=ids=> ids.length ? ids.map(nameOf).map(esc).join(', ') : '<span class="muted">없음</span>';
+  if(st.key!=='done'){
+    body.appendChild(el('p','smallnote',esc(st.desc)));
+    const set=SETUP[st.key];
+    // 신병 단계: 상황병으로 고른 사람은 대상이 아니다
+    const list = st.key==='rec' ? act.filter(w=>!SETUP.sit.has(w.id)) : act;
+    const cnt=el('div','hint'); body.appendChild(cnt);
+    const box=el('div','chips'); box.style.margin='10px 0';
+    const upd=()=>{ cnt.textContent='선택 '+list.filter(w=>set.has(w.id)).length+'명 / '+list.length+'명'; };
+    list.forEach(w=>{
+      const c=el('div','chip'+(set.has(w.id)?' on':'')); c.appendChild(el('span',null,esc(w.name)));
+      if(st.key==='mess' && SETUP.sit.has(w.id)) c.appendChild(el('span','rk','상황'));
+      c.addEventListener('click',()=>{ if(set.has(w.id)) set.delete(w.id); else set.add(w.id); c.classList.toggle('on', set.has(w.id)); upd(); });
+      box.appendChild(c);
+    });
+    body.appendChild(box); upd();
+    if(st.key==='mess'){
+      const row=el('div','flexgap');
+      const all=el('button','btn ghost sm','전체 선택'); all.type='button'; all.addEventListener('click',()=>{ list.forEach(w=>set.add(w.id)); renderV2Setup(); });
+      const none=el('button','btn ghost sm','전체 해제'); none.type='button'; none.addEventListener('click',()=>{ set.clear(); renderV2Setup(); });
+      row.appendChild(all); row.appendChild(none); body.appendChild(row);
+    }
+    return;
+  }
+  const sit=act.filter(w=>SETUP.sit.has(w.id)), rec=act.filter(w=>!SETUP.sit.has(w.id) && SETUP.rec.has(w.id));
+  const gen=act.filter(w=>!SETUP.sit.has(w.id) && !SETUP.rec.has(w.id)), mess=act.filter(w=>SETUP.mess.has(w.id));
+  const dl=el('dl','ev-dl');
+  dl.innerHTML='<dt>상황병 '+sit.length+'명</dt><dd>'+names(sit.map(w=>w.id))+'</dd>'
+    +'<dt>일반병 '+gen.length+'명</dt><dd>'+names(gen.map(w=>w.id))+'<div class="muted">위병조장 대상</div></dd>'
+    +'<dt>신병 '+rec.length+'명</dt><dd>'+names(rec.map(w=>w.id))+'</dd>'
+    +'<dt>배식조 가능 '+mess.length+'명</dt><dd>'+names(mess.map(w=>w.id))+'</dd>';
+  body.appendChild(dl);
+  const warn=t=>body.appendChild(el('div','warn','⚠ '+esc(t)));
+  if(!sit.length) warn('상황병이 한 명도 없습니다. 근무표 생성 시 상황병을 지정할 수 없습니다.');
+  if(gen.length<6) warn('일반병이 '+gen.length+'명입니다. 평일 위병조장 3명을 채우기 어렵거나 텀이 지켜지지 않을 수 있습니다.');
+  if(mess.length<4) warn('배식조 가능 인원이 '+mess.length+'명입니다. 매일 2명·이틀 연속 금지를 지키려면 4명 이상이 필요합니다.');
+  body.appendChild(el('p','smallnote','[적용]을 누르면 구분과 배식조 가능 여부가 저장됩니다. 나중에 [근무자 관리]에서 한 명씩 바꾸거나 [기본 설정]에서 이 설정을 다시 열 수 있습니다.'));
+}
+$('#v2SetupPrev').addEventListener('click',()=>{ if(SETUP.step>0){ SETUP.step--; renderV2Setup(); } });
+$('#v2SetupNext').addEventListener('click',()=>{
+  if(SETUP.step<SETUP_STEPS.length-1){ SETUP.step++; renderV2Setup(); return; }
+  activeWorkers().forEach(w=>{
+    applyRole(w, SETUP.sit.has(w.id) ? 'situation' : SETUP.rec.has(w.id) ? 'recruit' : 'duty');
+    const on=SETUP.mess.has(w.id);
+    if(on && !w.canXmess && !w.xmessSince) w.xmessSince=todayStr();
+    w.canXmess=on;
+  });
+  save(); closeSheet('v2SetupSheet'); refreshAll(); refreshGenSelectors();
+  toast('설정을 저장했습니다 — [생성] 탭에서 근무표를 만드십시오');
+  showView('gen');
+});
+$('#v2SetupBtn').addEventListener('click', openV2Setup);
 
 syncHdrH();
 function refreshAll(){ document.body.classList.toggle('v2', V2()); renderPeople(); renderSettings(); refreshGenSafe(); renderView(); renderCal(); renderBackupInfo(); renderMore(); renderMine(); if($('#svc').classList.contains('on')) renderSvc(); }
@@ -4942,11 +5032,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.0.0"></script>
+<script src="firebase-config.js?v=9.0.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.0.0"></script>
+<script src="sync.js?v=9.0.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

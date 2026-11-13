@@ -18,7 +18,8 @@ DB.workers.forEach(w => { if (sit.includes(w)) { w.roleReady = true; w.roleType 
 const start = E.addDays(E.latestSchedDate(), 1);
 const hist = DB.schedules;
 E.switchToV2(start);
-DB.settings.v2 = Object.assign(E.v2cfg(), { gapA: +(env.GAPA || 7), gapBC: +(env.GAPBC || 3), gapAny: +(env.GAPANY || 0), gapH: +(env.GAPH || 7) });
+{ const c = E.v2cfg(), n = (v, d) => v === undefined ? d : +v;   // 지정하지 않으면 앱 기본값
+  DB.settings.v2 = Object.assign(c, { gapA: n(env.GAPA, c.gapA), gapBC: n(env.GAPBC, c.gapBC), gapAny: n(env.GAPANY, c.gapAny), gapH: n(env.GAPH, c.gapH) }); }
 // 과거 열외 재현: 주 단위 배식조(폐지)는 빼고, 유조차 일정은 같은 간격으로 옮긴다
 const oldPb = DB.prebook;
 DB.prebook = oldPb.filter(p => p.kind === 'fueltruck' || p.kind === 'fuelsub')

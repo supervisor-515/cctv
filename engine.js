@@ -2481,7 +2481,7 @@ function generateDay2(input){
     date:ds, workHoliday:wh, nextWorkHoliday:nwh,
     situationId: input.situationId || (prev ? prev.nextSituationId : null) || null,
     nextSituationId: input.nextSituationId || null,
-    prevSituationId: prev ? (prev.situationId||null) : null,
+    prevSituationId: prev ? (prev.situationId||null) : (input.prevSituationId||null),
     prevDutyId: prev && !prev.v2 ? (prev.dutyId||null) : null,   // 전환 당일만: 전날(구 방식) 당직하사
     dayEx: input.dayEx||[], nightEx: input.nightEx||[], bothEx: input.bothEx||[],
     slotEx: normSlotEx(input.slotEx, true), outing: input.outing||[]
@@ -2502,7 +2502,7 @@ function generateDay2(input){
                   slotCtx:ctx, today:null, prevMess:new Set(prev && prev.v2 ? (prev.messIds||[]) : [])};
   const kinds = wk ? ['A','B','C'] : ['H'];
   const gate = {}, taken = new Set();
-  const preGate = input.gate || (prev && prev.v2 && prev.nextGate) || {};
+  const preGate = Object.assign({}, prev && prev.v2 ? prev.nextGate : null, input.gate);   // 직접 지정 > 전날 표에서 정해진 사람
   kinds.forEach(k=>{ const id=preGate[k];
     if(id && okW(id) && !tToday.out.has(id) && !taken.has(id) && !(k==='A' && tToday.outing.has(id))){ gate[k]=id; taken.add(id); } });
   kinds.forEach(k=>{ if(gate[k]) return;
@@ -2510,8 +2510,8 @@ function generateDay2(input){
     if(gate[k]) taken.add(gate[k]); else warnings.push('위병조장'+(k==='H'?'':k)+' 후보가 없어 미배정되었습니다.'); });
   const gateIds = Object.values(gate).filter(Boolean);
   const messIds = [];
-  (input.messIds || (prev && prev.v2 && prev.nextMessIds) || []).forEach(id=>{
-    if(messIds.length<2 && okW(id) && !tToday.out.has(id) && !taken.has(id)){ messIds.push(id); taken.add(id); } });
+  (input.messIds||[]).concat(prev && prev.v2 ? (prev.nextMessIds||[]) : []).forEach(id=>{
+    if(id && messIds.length<2 && okW(id) && !tToday.out.has(id) && !taken.has(id)){ messIds.push(id); taken.add(id); } });
   while(messIds.length<2){ const id=v2PickMess(tToday, taken, stats); if(!id) break; messIds.push(id); taken.add(id); }
   if(messIds.length<2) warnings.push('배식조 후보가 부족합니다('+messIds.length+'/2).');
 
@@ -2523,7 +2523,7 @@ function generateDay2(input){
   const nextGate = {}, nTaken = new Set();
   nKinds.forEach(k=>{ const id=(input.nextGate||{})[k]; if(id){ nextGate[k]=id; nTaken.add(id); } });
   nKinds.forEach(k=>{ if(nextGate[k]) return; nextGate[k] = v2PickGate(k, tNext, nTaken, stats); if(nextGate[k]) nTaken.add(nextGate[k]); });
-  const nextMessIds = (input.nextMessIds||[]).slice(0,2); nextMessIds.forEach(id=>nTaken.add(id));
+  const nextMessIds = (input.nextMessIds||[]).filter(Boolean).slice(0,2); nextMessIds.forEach(id=>nTaken.add(id));
   while(nextMessIds.length<2){ const id=v2PickMess(tNext, nTaken, stats); if(!id) break; nextMessIds.push(id); nTaken.add(id); }
 
   /* 3) 후보 풀 */

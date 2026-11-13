@@ -2,6 +2,7 @@
    사용: node tools/simulate-v2.js <백업.json> [일수=90]
    환경변수: SIT=이름,이름,…(상황병 명단·순번)  OUTING=평일 하루 외출 인원(기본 0)
             GAPA GAPBC GAPANY GAPH(위병조장 텀)  VERBOSE=1(사람별 표)
+            SIT_NOMESS=1(상황병을 배식조에서 제외)  SIT_NONIGHT=1(상황병을 야간에서 제외) — 가정 비교용
    휴가·열외는 과거 근무표의 실제 열외를 13주(91일) 뒤로 옮겨 재현한다. */
 "use strict";
 const fs = require('fs');
@@ -15,6 +16,8 @@ const sitNames = (env.SIT || '').split(',').map(s => s.trim()).filter(Boolean);
 const sit = sitNames.map(n => act().find(w => w.name.includes(n))).filter(Boolean);
 if (sit.length !== sitNames.length || !sit.length) { console.error('SIT 명단을 찾지 못했습니다'); process.exit(1); }
 DB.workers.forEach(w => { if (sit.includes(w)) { w.roleReady = true; w.roleType = 'situation'; } else if (w.roleReady) w.roleType = 'duty'; });
+if (env.SIT_NOMESS) sit.forEach(w => { w.canXmess = false; });
+const sitIds = sit.map(w => w.id);
 const start = E.addDays(E.latestSchedDate(), 1);
 const hist = DB.schedules;
 E.switchToV2(start);
@@ -52,7 +55,8 @@ for (let i = 0; i < DAYS; i++) {
     outPtr = (outPtr + (+env.OUTING)) % ws.length;
   }
   const s = E.generateDay2(Object.assign({ date: ds, workHoliday: isHol(ds), nextWorkHoliday: isHol(nds),
-    situationId: sitOf[ds], nextSituationId: sitOf[nds], outing, nextOff: [...nex.bothEx, ...nex.dayEx] }, ex));
+    situationId: sitOf[ds], nextSituationId: sitOf[nds], outing, nextOff: [...nex.bothEx, ...nex.dayEx] }, ex,
+    env.SIT_NONIGHT ? { nightEx: [...new Set([...ex.nightEx, ...sitIds])] } : {}));
   DB.schedules[ds] = s; E.invalidateStats(); made.push(s);
 }
 
@@ -92,6 +96,11 @@ const cls = w => E.isSituationW(w) ? '상황' : E.isGeneralW(w) ? '일반' : '�
 [['wd', '평일'], ['we', '주말·휴일']].forEach(([ty, tl]) => { const st = E.buildStats2(null, null, ty);
 ['상황', '일반', '신병'].forEach(c => { const ws = all.filter(w => cls(w) === c && st[w.id].denom > 0); if (!ws.length) return;
   console.log(`[${tl} · ${c}] 평균근무시간/일 ${mm(ws.map(w => E.avgHours(st[w.id])))} · 야간/대상일 ${mm(ws.map(w => st[w.id].nightNum / st[w.id].nightDen))} · CCTV칸/대상일 ${mm(ws.map(w => (Object.values(st[w.id].slotNum).reduce((a, b) => a + b, 0) + st[w.id].nightNum) / st[w.id].denom))}`); }); });
+// 구분별 총 근무시간(위병조장 시간·야간 2h·순찰 가산 포함. 배식조·상황병 근무 자체는 시간에 넣지 않는다)
+{ const sum = a => a.reduce((x, y) => x + y, 0), sm = o => o.weekday + o.sat + o.sun;
+  ['상황', '일반', '신병'].forEach(c => { const ws = all.filter(w => cls(w) === c); if (!ws.length) return;
+    const h = ws.map(w => st[w.id].hours), n = ws.map(w => st[w.id].nightNum), m = ws.map(w => sm(st[w.id].messNum)), d = ws.map(w => st[w.id].denom);
+    console.log(`<${c} ${ws.length}명> 총 근무시간 합 ${f(sum(h), 1)}h · 1인 평균 ${f(sum(h) / ws.length, 1)}h (${mm(h)}) · 대상일 평균 ${f(sum(d) / ws.length, 1)}일 · 대상일당 ${f(sum(h) / sum(d))}h · 야간 1인 평균 ${f(sum(n) / ws.length, 1)}회 · 배식조 1인 평균 ${f(sum(m) / ws.length, 1)}회`); }); }
 if (env.VERBOSE) {
   console.log('이름\t구분\t대상일\t평균h\t개인정비h/일\tA\tBC\tH\t배식(평/토/일)\t야간\t상황');
   all.forEach(w => { const r = st[w.id]; console.log([w.name, cls(w), r.denom, f(E.avgHours(r)), r.pDen ? f(r.pHours / r.pDen, 3) : '-', r.gate.A.num, r.gate.BC.num, r.gate.H.num,

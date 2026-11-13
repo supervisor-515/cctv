@@ -96,10 +96,14 @@ const cls = w => E.isSituationW(w) ? '상황' : E.isGeneralW(w) ? '일반' : '�
 [['wd', '평일'], ['we', '주말·휴일']].forEach(([ty, tl]) => { const st = E.buildStats2(null, null, ty);
 ['상황', '일반', '신병'].forEach(c => { const ws = all.filter(w => cls(w) === c && st[w.id].denom > 0); if (!ws.length) return;
   console.log(`[${tl} · ${c}] 평균근무시간/일 ${mm(ws.map(w => E.avgHours(st[w.id])))} · 야간/대상일 ${mm(ws.map(w => st[w.id].nightNum / st[w.id].nightDen))} · CCTV칸/대상일 ${mm(ws.map(w => (Object.values(st[w.id].slotNum).reduce((a, b) => a + b, 0) + st[w.id].nightNum) / st[w.id].denom))}`); }); });
-// 구분별 총 근무시간(위병조장 시간·야간 2h·순찰 가산 포함. 배식조·상황병 근무 자체는 시간에 넣지 않는다)
+// 구분별 총 근무시간(위병조장 시간·야간 2h·순찰 가산 포함. 상황병 근무 자체는 시간에 넣지 않는다)
+// 배식조 시간(토 2h, 그 외 3h)은 앱 통계에는 없고 이 보고에서만 따로 더한다
 { const sum = a => a.reduce((x, y) => x + y, 0), sm = o => o.weekday + o.sat + o.sun;
+  const messH = {}; made.forEach(s => s.messIds.forEach(id => { messH[id] = (messH[id] || 0) + (E.dow(s.date) === 6 ? 2 : 3); }));
   ['상황', '일반', '신병'].forEach(c => { const ws = all.filter(w => cls(w) === c); if (!ws.length) return;
     const h = ws.map(w => st[w.id].hours), n = ws.map(w => st[w.id].nightNum), m = ws.map(w => sm(st[w.id].messNum)), d = ws.map(w => st[w.id].denom);
+    { const mh = ws.map(w => messH[w.id] || 0), t = ws.map((w, i) => h[i] + mh[i]), dd = sum(d) + sum(m);
+      console.log(`<${c} ${ws.length}명 · 배식조 시간 포함> 배식조 ${f(sum(mh), 1)}h(1인 ${f(sum(mh) / ws.length, 1)}h) · 총합 ${f(sum(t), 1)}h · 1인 평균 ${f(sum(t) / ws.length, 1)}h (${mm(t)}) · 근무일(배식일 포함)당 ${f(sum(t) / dd)}h`); }
     console.log(`<${c} ${ws.length}명> 총 근무시간 합 ${f(sum(h), 1)}h · 1인 평균 ${f(sum(h) / ws.length, 1)}h (${mm(h)}) · 대상일 평균 ${f(sum(d) / ws.length, 1)}일 · 대상일당 ${f(sum(h) / sum(d))}h · 야간 1인 평균 ${f(sum(n) / ws.length, 1)}회 · 배식조 1인 평균 ${f(sum(m) / ws.length, 1)}회`); }); }
 if (env.VERBOSE) {
   console.log('이름\t구분\t대상일\t평균h\t개인정비h/일\tA\tBC\tH\t배식(평/토/일)\t야간\t상황');

@@ -2,7 +2,7 @@
    사용: node tools/simulate-v2.js <백업.json> [일수=90]
    환경변수: SIT=이름,이름,…(상황병 명단·순번)  OUTING=평일 하루 외출 인원(기본 0)
             GAPA GAPBC GAPANY GAPH(위병조장 텀)  VERBOSE=1(사람별 표)
-            SIT_NOMESS=1(상황병을 배식조에서 제외)  SIT_NONIGHT=1(상황병을 야간에서 제외) — 가정 비교용
+            MESS_ALL=1(전원 배식조 가능)  SIT_NOMESS=1(상황병을 배식조에서 제외)  SIT_NONIGHT=1(상황병을 야간에서 제외) — 가정 비교용
    휴가·열외는 과거 근무표의 실제 열외를 13주(91일) 뒤로 옮겨 재현한다. */
 "use strict";
 const fs = require('fs');
@@ -16,6 +16,7 @@ const sitNames = (env.SIT || '').split(',').map(s => s.trim()).filter(Boolean);
 const sit = sitNames.map(n => act().find(w => w.name.includes(n))).filter(Boolean);
 if (sit.length !== sitNames.length || !sit.length) { console.error('SIT 명단을 찾지 못했습니다'); process.exit(1); }
 DB.workers.forEach(w => { if (sit.includes(w)) { w.roleReady = true; w.roleType = 'situation'; } else if (w.roleReady) w.roleType = 'duty'; });
+if (env.MESS_ALL) act().forEach(w => { w.canXmess = true; });   // 전원 배식조 가능
 if (env.SIT_NOMESS) sit.forEach(w => { w.canXmess = false; });
 const sitIds = sit.map(w => w.id);
 const start = E.addDays(E.latestSchedDate(), 1);

@@ -127,3 +127,37 @@ test('v2: 신병은 위병조장 대상이 아니다', () => {
   const db = setup(7, 12, 3);
   runDays(db, '2027-03-01', 14).forEach(s => Object.values(s.gate).forEach(id => assert.match(id, /^g/)));
 });
+
+test('v2 연결부: 저장 형식 보존·통계 전환·검증·배정 이유·편집 키', () => {
+  const db = setup();
+  const all = runDays(db, '2027-03-01', 10);
+  // 저장/불러오기(migrate → normSched)를 거쳐도 v2 필드가 남는다
+  const back = E.migrate(JSON.parse(JSON.stringify(db)));
+  const a = all[3], b = back.schedules[a.date];
+  ['v2', 'gate', 'nextGate', 'messIds', 'nextMessIds', 'outing', 'fixed', 'assign', 'night'].forEach(k => assert.deepStrictEqual(b[k], a[k], k));
+  assert.strictEqual(back.settings.v2.since, '2027-03-01');
+  // 전환 후 buildStats는 v2 통계
+  assert.strictEqual(E.buildStats(null), E.buildStats2(null));
+  assert.ok(E.buildStats(null, '2027-03')['g0'].denom > 0);
+  all.forEach(s => {
+    assert.ok(Array.isArray(E.validateSchedule(s)));
+    E.SCHED_KEYS.forEach(k => { const x = E.explainAssignment(s, k); assert.ok(x && Array.isArray(x.lines) && x.lines.length, s.date + ' ' + k); });
+    const h = E.schedHoursByWorker(s);
+    Object.entries(s.gate).forEach(([k, id]) => assert.ok(h[id] >= E.GATE_HOURS[k]));
+    assert.ok(E.personalKeys(s, s.gate.A || s.gate.H).some(k => /^R:gate/.test(k)));
+    assert.ok(E.personalKeys(s, s.messIds[0]).includes('R:mess'));
+  });
+  // 편집 키
+  const t = JSON.parse(JSON.stringify(a));
+  E.schedKeySet(t, 'gateA', 'g9'); assert.strictEqual(E.schedKeyGet(t, 'gateA'), 'g9');
+  E.schedKeySet(t, 'mess1', 'g8'); assert.strictEqual(E.schedKeyGet(t, 'mess1'), 'g8');
+  E.schedKeySet(t, 'mess0', null); assert.deepStrictEqual(t.messIds, ['g8']);
+  E.schedKeySet(t, 'E:20:30', 'g7'); assert.strictEqual(t.fixed['20:30'], 'g7');
+  // 일괄 생성 입력
+  db.prebook.push(E.normPrebook({ kind: 'vacation', wid: 'g3', start: '2027-03-11', end: '2027-03-13' }));
+  db.prebook.push(E.normPrebook({ kind: 'situation', wid: 's2', start: '2027-03-11' }));
+  const inp = E.autoInputFor('2027-03-11');
+  assert.strictEqual(inp.situationId, 's2'); assert.deepStrictEqual(inp.bothEx, ['g3']);
+  const s = E.generateDay2(inp);
+  assert.ok(!E.validateSchedule(s).some(m => /사전등록 충돌/.test(m)));
+});

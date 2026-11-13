@@ -1127,6 +1127,7 @@ body.ro .no-ro{display:none!important}
         <select id="cView"><option value="all">전체 보기</option><option value="month">월별 보기</option></select>
       </div>
       <div class="field" id="cMonthField" style="display:none"><label>월 선택</label><select id="cMonth"></select></div>
+      <div class="field v2only"><label>근무표 종류</label><div class="seg" id="cType"><button data-t="wd" class="on">평일</button><button data-t="we">주말·휴일</button><button data-t="">전체</button></div></div>
       <label class="sw"><input type="checkbox" id="cNoRecruit"> 신병 제외</label>
       <label class="sw"><input type="checkbox" id="cShowArchived"> 보관 인원 표시</label>
     </div>
@@ -1171,7 +1172,7 @@ body.ro .no-ro{display:none!important}
       <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">‘전체’ 기준 분모: 총 근무표 수, 그룹 선택 기준 분모: 해당 그룹 근무표 수</span><div class="sp"></div><button class="btn ghost sm no-print" id="cSlotCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="fair">
-      <p class="hint v2only" style="margin:0 0 10px">전환일 이후 근무표 기준입니다(신병·근무일 부족 인원 제외). 평균 근무시간에는 위병조장 시간(A 3.5h, B·C 4h, 주말·휴일 2h)이 들어가므로 일반병이 상황병보다 높게 나옵니다. 위병조장 지표는 일반병만, 배식조 지표는 [배식조 가능] 인원만 비교합니다.</p>
+      <p class="hint v2only" style="margin:0 0 10px">전환일 이후 근무표 기준이며, 위에서 고른 종류(평일 / 주말·휴일)만 집계합니다(신병·근무일 부족 인원 제외). 평균 근무시간에는 위병조장 시간(A 3.5h, B·C 4h, 주말·휴일 2h)이 들어가므로 일반병이 상황병보다 높게 나옵니다. 위병조장 지표는 일반병만, 배식조 지표는 [배식조 가능] 인원만 비교합니다.</p>
       <p class="hint v1only" style="margin:0 0 10px">조회 기간 근무표 대상 일반 근무자 기준입니다. (신병·말년·운항병 제외, 전환 인원은 전환일 이후 기록 기준) 야간·밥교대·순찰 지표는 개인별 근무표 수 기준 배정률(%)이며, 산포도가 밀집되고 변동계수(CV)·지니계수가 낮을수록 공정한 배분입니다.</p>
       <div id="cFair"></div>
     </div>
@@ -1366,6 +1367,7 @@ body.ro .no-ro{display:none!important}
         <b>배식조</b>: [배식조 가능] 인원 중 매일 2명. 평일 / 토 / 일·휴일을 따로 세며, 당일 CCTV 전체 열외(분모 제외)·전날 야간 제외·이틀 연속 금지·위병조장과 겹침 금지.<br>
         <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 가장 적은 사람부터 뽑아 그 사람이 덜 선 칸에 넣습니다. 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 주말·휴일은 제외.<br>
         <b>외출</b>(평일): 월~목 17:30~20:30, 금 15:30~20:30 배정 제외, 위병조장A 제외.<br>
+        <b>평일과 주말·휴일은 따로 셉니다</b>: 평일 근무표를 만들 때는 평일 기록만, 주말·휴일 근무표를 만들 때는 주말·휴일 기록만 비교합니다(평균 근무시간·시간대·야간·06:30 순번·순찰 모두). 야간 번초 1개는 2시간으로 계산합니다.<br>
         <b>나머지 칸</b>: 1칸씩 먼저 돌리고 남으면 신병 우선. 06:30은 배정률 순번제. 인접 칸 연속근무·전날 야간자의 아침(06:30~08:30)·하루 두 번초는 절대 금지. 저녁 칸은 한 사람 하루 1칸(불가피할 때만 2칸).<br>
         <b>유조차 운전병</b> 규칙은 그대로이며, 관제병 규칙은 적용하지 않습니다(보류).
       </p>
@@ -1403,7 +1405,10 @@ const $$=s=>Array.from(document.querySelectorAll(s));
 /* 새 근무 체계(v2) — 전환 후에는 화면 전체가 새 규칙(상황병·위병조장·배식조·개인정비)으로 바뀐다 */
 const V2=()=>isV2();
 /* 통계에 들어가는 근무표 날짜 — 전환 후에는 전환일 이후 v2 표만 */
-function statDates(){ const c=v2cfg(); return Object.keys(DB.schedules).filter(d=> !c.since || (d>=c.since && DB.schedules[d].v2)); }
+function statDates(type){ const c=v2cfg(); return Object.keys(DB.schedules).filter(d=> !c.since || (d>=c.since && DB.schedules[d].v2 && (!type || v2DayType(d, DB.schedules[d].workHoliday)===type))); }
+/* 카운트 화면의 평일 / 주말·휴일 / 전체 (새 체계는 두 쪽을 따로 센다) */
+let cType='wd';
+const cTypeNow=()=> V2() ? cType : '';
 const EX_BANDS2=[EX_BANDS[0],EX_BANDS[1],EX_BANDS[2],{id:'evening',label:'저녁',range:'17:30~21:30',units:EVENING.slice()},EX_BANDS[3]];
 function exBands(){ return V2()?EX_BANDS2:EX_BANDS; }
 function exUnits(){ return V2()?EX_UNITS.concat(EVENING):EX_UNITS; }
@@ -2486,7 +2491,8 @@ function renderView(){
 /* 사람별 이 표 근무시간 + 전날까지 하루 평균 — 편집할 때 누구를 넣을지 고르기 쉽게 덜 선 사람부터 */
 const fmtH=x=> (Math.round(x*10)/10)+'h';
 function dayLoadInfo(s){
-  const st=buildStats(s.date), nPrev=statDates().filter(d=>d<s.date).length;
+  const ty = s.v2 ? v2DayType(s.date, s.workHoliday) : '';   // 새 체계: 같은 종류(평일 / 주말·휴일) 기록만
+  const st = s.v2 ? buildStats2(s.date, null, ty) : buildStats(s.date), nPrev=statDates(ty).filter(d=>d<s.date).length;
   const pool=activeWorkers().filter(w=>inAvgPool(w, st, minDaysFor(nPrev))).map(w=>avgHours(st[w.id]));
   return {st, h:schedHoursByWorker(s), mean: pool.length ? pool.reduce((a,b)=>a+b,0)/pool.length : null};
 }
@@ -2519,7 +2525,7 @@ function renderDayLoad(s, who, orig){
   });
   box.appendChild(card);
   if(off.length) box.appendChild(el('div','off','열외: '+off.map(w=>esc(short(w.name))).join(', ')));
-  box.appendChild(el('p','smallnote',(s.v2?'상황병(당일·전날)·배식조는 열외로 표시, 위병조장 시간 포함.':'당일 당직·상황병·밥교대 제외.')+' 좌측: 당일 근무시간, 성명 우측: 전일 기준 일일 평균시간. 주황: 부대 평균 초과, 녹색: 평균 미만'+(oh?', 점선: 편집 변경 인원':'')+'. 순찰 가중 포함 (공정성 지표 산출 기준과 동일).'));
+  box.appendChild(el('p','smallnote',(s.v2?'상황병(당일·전날)·배식조는 열외로 표시, 위병조장 시간 포함, 야간 번초 2h. 평균은 '+(v2DayType(s.date,s.workHoliday)==='we'?'주말·휴일':'평일')+' 근무표만의 평균.':'당일 당직·상황병·밥교대 제외.')+' 좌측: 당일 근무시간, 성명 우측: 전일 기준 일일 평균시간. 주황: 부대 평균 초과, 녹색: 평균 미만'+(oh?', 점선: 편집 변경 인원':'')+'. 순찰 가중 포함 (공정성 지표 산출 기준과 동일).'));
   return box;
 }
 
@@ -3117,7 +3123,7 @@ function renderCount(){
   // 그 범위에 실제로 포함된 사람 중 평균 계산 대상만
   const fairHours=ws.filter(countFair).map(w=>avgHours(st[w.id]));
   const kpi=$('#cKpi'); kpi.innerHTML='';
-  const totalSched=statDates().filter(d=>!month||d.slice(0,7)===month).length;
+  const totalSched=statDates(cTypeNow()).filter(d=>!month||d.slice(0,7)===month).length;
   addKpi(kpi,month?'생성된 근무표 ('+month+')':'생성된 근무표', totalSched+'일');
   addKpi(kpi,'근무자', ws.length+'명');
   addKpi(kpi,'하루 평균시간 CV', (cv(fairHours)*100).toFixed(1)+'%');
@@ -3175,13 +3181,13 @@ function countMonth(){ return $('#cView').value==='month' ? ($('#cMonth').value|
 /* 신병→역할 전환자는 전환일(카운트 초기화) 이후 기록으로만 센다 — 배정 엔진·내 근무와 같은 기준.
    (예전엔 '신병 제외'를 끄면 신병 시절 기록까지 합쳐 보여 주고, 그 대신 전환자를 평균에서 빼서
    이미 전환한 지 오래된 사람이 계속 평균 대상에서 빠졌다) */
-function countStats(){ return buildStats(null, countMonth(), false); }
+function countStats(){ return V2() ? buildStats2(null, countMonth(), cTypeNow()) : buildStats(null, countMonth(), false); }
 /* 표본이 너무 적은 사람(그 범위 근무일이 짧음)은 하루 평균이 크게 흔들리므로 평균 계산에서만 뺀다 */
 /* 평균 계산 대상 — 카운트·내 근무·더보기 요약이 모두 이 한 기준을 쓴다:
    비신병·비운항병(활성) + 그 범위 근무일이 최소 기준 이상(7일, 범위의 근무표가 적으면 그 25%) */
 function minDaysFor(nSched){ return Math.max(1, Math.min(7, Math.ceil(nSched*0.25))); }
 function inAvgPool(w, st, minDays){ const r=st[w.id]; return isFairW(w) && !!r && r.denom >= minDays; }
-function countMinDays(){ const m=countMonth(); return minDaysFor(statDates().filter(d=>!m||d.slice(0,7)===m).length); }
+function countMinDays(){ const m=countMonth(); return minDaysFor(statDates(cTypeNow()).filter(d=>!m||d.slice(0,7)===m).length); }
 function countFair(w){
   return inAvgPool(w, countStats(), countMinDays());
 }
@@ -3197,6 +3203,7 @@ function refreshCountMonths(){
   $('#cMonthField').style.display = $('#cView').value==='month' ? '' : 'none';
 }
 $('#cView').addEventListener('change',renderCount);
+$$('#cType button').forEach(b=>b.addEventListener('click',()=>{ cType=b.dataset.t; $$('#cType button').forEach(x=>x.classList.toggle('on', x===b)); renderCount(); }));
 $('#cMonth').addEventListener('change',renderCount);
 $('#cNoRecruit').addEventListener('change',renderCount);
 $('#cShowArchived').addEventListener('change',renderCount);
@@ -4430,15 +4437,22 @@ function renderMineStats(w){
   box.appendChild(seg);
   const today=todayStr();
   const range = MINE.period==='4w' ? {from:addDays(today,-27), to:today} : null;
-  const dates=statDates().filter(d=>!range || (d>=range.from && d<=range.to)).sort();
-  const st=buildStats(null, range), r=st[w.id];
+  if(V2()){   // 평일 / 주말·휴일은 따로 센다
+    const sg=el('div','seg'); sg.style.marginTop='6px';
+    [['wd','평일'],['we','주말·휴일']].forEach(([k,t])=>{ const b=el('button',(MINE.dtype||'wd')===k?'on':'',t); b.type='button';
+      b.addEventListener('click',()=>{ MINE.dtype=k; const d=b.closest('.mine-db'); d.innerHTML=''; d.appendChild(renderMineStats(w)); }); sg.appendChild(b); });
+    box.appendChild(sg);
+  }
+  const mty = V2() ? (MINE.dtype||'wd') : '';
+  const dates=statDates(mty).filter(d=>!range || (d>=range.from && d<=range.to)).sort();
+  const st = V2() ? buildStats2(null, range, mty) : buildStats(null, range), r=st[w.id];
   const minD=minDaysFor(dates.length);
   const pool=activeWorkers().filter(x=>inAvgPool(x, st, minD));
   const rangeTxt = dates.length ? calMd(range?range.from:dates[0])+' ~ '+calMd(range?range.to:dates[dates.length-1])+' (근무표 '+dates.length+'일분)' : '근무표 없음';
   box.appendChild(el('p','smallnote','비교 기간: '+esc(rangeTxt)+' · 비교군: 신병·운항병 제외 활성 인원 중 해당 기간 근무일수 '+minD+'일 이상인 '+pool.length+'명 · 산출: 개인별 근무표 포함 일수(분모) 대비 배정 횟수(분자) — [카운트 › 공정성] 기준 동일'));
   if(!r || !r.denom){ box.appendChild(el('div','mnone','해당 기간 내 포함된 근무표가 없어 집계할 수 없습니다.')); return box; }
   box.appendChild(el('div','mstat-sum','근무표 포함 일수 <b>'+r.denom+'일</b> · 집계 근무시간 <b>'+r.hours.toFixed(1)+'h</b> · 일평균 <b>'+avgHours(r).toFixed(2)+'h</b>'
-    +'<span class="muted"> (07:30·17:30 순찰 가중치 포함)</span>'));
+    +'<span class="muted"> (07:30·17:30 순찰 가중치 포함'+(V2()?', 야간 번초 2h, 위병조장 시간 포함':'')+')</span>'));
   if(!isFairW(w)) box.appendChild(el('p','smallnote', esc(roleLabel(w))+' 직책은 배정 규칙 상이로 부대 평균 산출에서 제외됩니다.'));
   else if(!inAvgPool(w, st, minD)) box.appendChild(el('p','smallnote','해당 기간 근무일수가 '+r.denom+'일로 최소 기준('+minD+'일) 미달하여 부대 평균 산출에서 제외되었습니다. 개인 수치는 정상 표시됩니다.'));
   const guard=f=> x=> (st[x.id] && st[x.id].denom>0) ? f(x) : null;

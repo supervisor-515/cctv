@@ -161,3 +161,29 @@ test('v2 연결부: 저장 형식 보존·통계 전환·검증·배정 이유·
   const s = E.generateDay2(inp);
   assert.ok(!E.validateSchedule(s).some(m => /사전등록 충돌/.test(m)));
 });
+
+test('v2: 평일과 주말·휴일 카운트 분리, 야간 번초 2시간', () => {
+  const db = setup();
+  const all = runDays(db, '2027-03-01', 28);
+  const wd = E.buildStats2(null, null, 'wd'), we = E.buildStats2(null, null, 'we'), al = E.buildStats2(null);
+  db.workers.forEach(w => {
+    assert.strictEqual(wd[w.id].denom + we[w.id].denom, al[w.id].denom);
+    assert.strictEqual(wd[w.id].hours + we[w.id].hours, al[w.id].hours);
+    assert.strictEqual(we[w.id].pHours, 0);
+    assert.strictEqual(wd[w.id].gate.H.num, 0); assert.strictEqual(we[w.id].gate.A.num, 0);
+  });
+  // 야간 2시간: 표 한 장의 시간 합 = 주간 11 + 07:30 가산 0.5 + 저녁 5 + 17:30 가산 0.5 + 순찰 0.5 + 야간 4×2 + 위병조장
+  const s = all[0], h = E.schedHoursByWorker(s);
+  const gateH = Object.keys(s.gate).reduce((a, k) => a + E.GATE_HOURS[k], 0);
+  assert.strictEqual(Object.values(h).reduce((a, b) => a + b, 0), 11 + 0.5 + 5 + 0.5 + 0.5 + 8 + gateH);
+  assert.ok(h[s.night[1]] >= 2);
+  // 주말 근무표를 만들 때는 평일 기록이 순위에 영향을 주지 않는다: 평일 표를 바꿔도 주말 표는 같게 나온다
+  const sat = all.find(x => x.date === '2027-03-20');
+  const input = { date: sat.date, workHoliday: true, nextWorkHoliday: true, situationId: sat.situationId, nextSituationId: sat.nextSituationId,
+    gate: sat.gate, nextGate: sat.nextGate, messIds: sat.messIds, nextMessIds: sat.nextMessIds };
+  const a = E.generateDay2(input);
+  ['2027-03-15', '2027-03-16', '2027-03-17', '2027-03-18'].forEach(d => { const t = db.schedules[d]; E.DAY_SLOTS.forEach((sl, i) => { t.assign[sl] = 'g' + (i % 3); }); });
+  E.invalidateStats();
+  const b = E.generateDay2(input);
+  assert.deepStrictEqual(b.assign, a.assign); assert.deepStrictEqual(b.fixed, a.fixed);
+});

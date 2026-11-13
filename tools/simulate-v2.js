@@ -89,8 +89,9 @@ made.forEach(s => Object.entries(s.gate).forEach(([k, id]) => {
 Object.entries(gaps).forEach(([k, a]) => { const h = {}; a.forEach(x => { const b = x >= 8 ? '8+' : x; h[b] = (h[b] || 0) + 1; }); console.log(`위병조장 간격(${k}) 분포[일:건수]`, h, '평균', f(a.reduce((x, y) => x + y, 0) / a.length, 1)); });
 ['weekday', 'sat', 'sun'].forEach(g => { const ws = all.filter(w => w.canXmess); const a = ws.map(w => st[w.id].messNum[g]); console.log(`배식조 ${g} 횟수: ${mm(a)} (표준편차 ${f(sd(a))})`); });
 const cls = w => E.isSituationW(w) ? '상황' : E.isGeneralW(w) ? '일반' : '신병';
+[['wd', '평일'], ['we', '주말·휴일']].forEach(([ty, tl]) => { const st = E.buildStats2(null, null, ty);
 ['상황', '일반', '신병'].forEach(c => { const ws = all.filter(w => cls(w) === c && st[w.id].denom > 0); if (!ws.length) return;
-  console.log(`[${c}] 평균근무시간/일 ${mm(ws.map(w => E.avgHours(st[w.id])))} · 야간/대상일 ${mm(ws.map(w => st[w.id].nightNum / st[w.id].nightDen))} · CCTV칸/대상일 ${mm(ws.map(w => (Object.values(st[w.id].slotNum).reduce((a, b) => a + b, 0) + st[w.id].nightNum) / st[w.id].denom))}`); });
+  console.log(`[${tl} · ${c}] 평균근무시간/일 ${mm(ws.map(w => E.avgHours(st[w.id])))} · 야간/대상일 ${mm(ws.map(w => st[w.id].nightNum / st[w.id].nightDen))} · CCTV칸/대상일 ${mm(ws.map(w => (Object.values(st[w.id].slotNum).reduce((a, b) => a + b, 0) + st[w.id].nightNum) / st[w.id].denom))}`); }); });
 if (env.VERBOSE) {
   console.log('이름\t구분\t대상일\t평균h\t개인정비h/일\tA\tBC\tH\t배식(평/토/일)\t야간\t상황');
   all.forEach(w => { const r = st[w.id]; console.log([w.name, cls(w), r.denom, f(E.avgHours(r)), r.pDen ? f(r.pHours / r.pDen, 3) : '-', r.gate.A.num, r.gate.BC.num, r.gate.H.num,

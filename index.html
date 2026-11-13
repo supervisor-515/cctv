@@ -1153,7 +1153,7 @@ body.ro .no-ro{display:none!important}
     </div>
     <div class="cpane" data-p="ptime">
       <div id="cPtime"></div>
-      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">개인정비시간(폰 사용 시간)에 선 CCTV 시간 ÷ 대상 평일 수. 월~목 17:30·18:30·19:30 각 1h, 20:30 0.5h / 금 15:30 0.5h, 16:30 1h, 17:30 1.5h, 18:30·19:30 각 1h, 20:30 0.5h, 추가순찰 0.5h. 위병조장·배식조·외출·상황병 면제일은 대상일에서 뺍니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPtimeCsv">CSV</button></div>
+      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">개인정비시간(폰 사용 시간)에 선 CCTV 시간 ÷ 대상 평일 수. 월~목 17:30·18:30·19:30 각 1h, 20:30 0.5h / 금 15:30 0.5h, 16:30 1h, 17:30 1.5h, 18:30·19:30 각 1h, 20:30 0.5h, 추가순찰 0.5h. 위병조장·배식조·외출일은 대상일에서 뺍니다. 상황병은 개인정비 칸 순번에서 빠지므로 이 표에 넣지 않습니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPtimeCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="mess">
       <div class="subchips" id="cMessSub"></div>
@@ -1365,7 +1365,7 @@ body.ro .no-ro{display:none!important}
         <b>상황병</b>: 예약·직접 지정. 전날 야간, 당일 전체, 다음날 전체 CCTV 면제(당일·다음날은 분모 제외). 위병조장 대상이 아니며 배식조는 전날만 가능합니다.<br>
         <b>위병조장</b>: 평일(월~금) A·B·C 3명, 토·일·휴일 1명 — 일반병만. A는 A 배정률이 낮은 순 → 오래된 순, B·C는 합산 배정률 기준, 주말·휴일은 따로 셉니다. A·B·주말은 전날 야간자 불가(C는 가능). 당일 주간·저녁 CCTV는 서지 않고, 야간은 인원이 모자랄 때 B·C·주말만 투입합니다. 근무시간(A 3.5h, B·C 4h, 주말·휴일 2h)은 평균 근무시간에 들어갑니다.<br>
         <b>배식조</b>: [배식조 가능] 인원 중 매일 2명. 평일 / 토 / 일·휴일을 따로 세며, 당일 CCTV 전체 열외(분모 제외)·전날 야간 제외·이틀 연속 금지·위병조장과 겹침 금지.<br>
-        <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 가장 적은 사람부터 뽑아 그 사람이 덜 선 칸에 넣습니다. 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 주말·휴일은 제외.<br>
+        <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 가장 적은 사람부터 뽑아 그 사람이 덜 선 칸에 넣습니다. <b>상황병은 이 칸들과 금요일 추가순찰에 들어가지 않습니다</b>(30분만 겹치는 20:30·금 15:30은 일반 배정). 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 주말·휴일은 제외.<br>
         <b>외출</b>(평일): 월~목 17:30~20:30, 금 15:30~20:30 배정 제외, 위병조장A 제외.<br>
         <b>평일과 주말·휴일은 따로 셉니다</b>: 평일 근무표를 만들 때는 평일 기록만, 주말·휴일 근무표를 만들 때는 주말·휴일 기록만 비교합니다(평균 근무시간·시간대·야간·06:30 순번·순찰 모두). 야간 번초 1개는 2시간으로 계산합니다.<br>
         <b>나머지 칸</b>: 1칸씩 먼저 돌리고 남으면 신병 우선. 06:30은 배정률 순번제. 인접 칸 연속근무·전날 야간자의 아침(06:30~08:30)·하루 두 번초는 절대 금지. 저녁 칸은 한 사람 하루 1칸(불가피할 때만 2칸).<br>
@@ -3367,7 +3367,7 @@ function fairMetrics(st){
     const mt=r=>[r.messNum.weekday+r.messNum.sat+r.messNum.sun, r.messDen.weekday+r.messDen.sat+r.messDen.sun];
     return [
       ['평균 근무시간','h/일',2, w=>avgHours(st[w.id])],
-      ['개인정비시간 CCTV','h/일',2, w=> st[w.id].pDen>0 ? st[w.id].pHours/st[w.id].pDen : null],
+      ['개인정비시간 CCTV','h/일',2, w=> st[w.id].pDen>0 && !isSituationW(w) ? st[w.id].pHours/st[w.id].pDen : null],
       ['야간 · 평일전야','%',0, w=>pr(st[w.id].nightGNum.weekday, st[w.id].nightGDen.weekday)],
       ['야간 · 휴일전야','%',0, w=>pr(st[w.id].nightGNum.holiday, st[w.id].nightGDen.holiday)],
       ['위병조장A','%',0, G('A')], ['위병조장B·C','%',0, G('BC')], ['위병조장 주말·휴일','%',0, G('H')],
@@ -4423,7 +4423,7 @@ function renderMineStats(w){
   if(V2()) box.appendChild(el('div','mstat-why','<b>배정 원칙</b><ul>'
     +'<li>상황병: 전날 야간·당일·다음날 CCTV 면제</li>'
     +'<li>위병조장(일반병)·배식조: 배정률이 낮은 순 → 오래 안 선 순</li>'
-    +'<li>개인정비시간 칸(평일 17:30~19:30, 금 16:30~): 대상일당 개인정비 CCTV 시간이 적은 순</li>'
+    +'<li>개인정비시간 칸(평일 17:30~19:30, 금 16:30~): 대상일당 개인정비 CCTV 시간이 적은 순 (상황병 제외)</li>'
     +'<li>기타 시간대: 하루 1칸씩 먼저, 이후 시간대·야간 배정률과 일평균 근무시간이 낮은 순 (06:30은 순번제)</li>'
     +'<li>개별 근무 항목 선택 시 세부 배정 사유 확인 가능</li></ul>'));
   else box.appendChild(el('div','mstat-why','<b>배정 원칙</b><ul>'
@@ -4459,7 +4459,7 @@ function renderMineStats(w){
   fairMetrics(st).forEach(([label,unit,dec,f0])=>{
     const f=guard(f0);
     if(label.startsWith('밥교대') && !w.canMeal && !r.mealNum) return;
-    if(/^(위병조장|배식조)/.test(label) && f(w)==null) return;   // 대상이 아닌 지표는 숨긴다
+    if(/^(위병조장|배식조|개인정비)/.test(label) && f(w)==null) return;   // 대상이 아닌 지표는 숨긴다
     const mine=f(w), vals=pool.map(f).filter(x=>x!=null), others=pool.filter(x=>x.id!==w.id).map(f).filter(x=>x!=null);
     const fmt=x=> dec? x.toFixed(dec) : String(Math.round(x));
     const card=el('div','strip cmp');
@@ -4877,7 +4877,7 @@ function renderMessRates(st){
   renderRank($('#cMess'), ws, k==='total'?w=>sum(R(w).messNum):w=>R(w).messNum[k], k==='total'?w=>sum(R(w).messDen):w=>R(w).messDen[k], '배식조 '+opts.find(o=>o[0]===k)[1]);
 }
 function renderPtimeRates(st){
-  renderRank($('#cPtime'), countWs(st).filter(w=>st[w.id].pDen>0), w=>st[w.id].pHours, w=>st[w.id].pDen, '개인정비시간 CCTV', true);
+  renderRank($('#cPtime'), countWs(st).filter(w=>st[w.id].pDen>0 && !isSituationW(w)), w=>st[w.id].pHours, w=>st[w.id].pDen, '개인정비시간 CCTV', true);
 }
 $('#cPtimeCsv').addEventListener('click',()=>{
   const st=countStats(), rows=[['이름','개인정비_시간','대상일','시간/일','17:30','18:30','19:30','16:30(금)']];

@@ -75,8 +75,8 @@ console.log('하드 위반', hard.length); hard.slice(0, 15).forEach(m => consol
 console.log('완화·미배정(건수)', softCnt);
 console.log('완화 단계(tier)별 일수', tiers, '· 하루 최다 근무 칸수별 일수', perDayMax);
 const gen = act().filter(E.isGeneralW), all = act();
-const pAvg = all.filter(w => st[w.id].pDen > 0).map(w => st[w.id].pHours / st[w.id].pDen);
-console.log(`개인정비 CCTV 시간/대상일: ${mm(pAvg)} (표준편차 ${f(sd(pAvg), 3)})`);
+const pAvg = all.filter(w => st[w.id].pDen > 0 && !E.isSituationW(w)).map(w => st[w.id].pHours / st[w.id].pDen);
+console.log(`개인정비 CCTV 시간/대상일(상황병 제외): ${mm(pAvg)} (표준편차 ${f(sd(pAvg), 3)})`);
 ['A', 'BC', 'H'].forEach(g => { const a = gen.map(w => st[w.id].gate[g].num); console.log(`위병조장 ${g} 횟수: ${mm(a)} (표준편차 ${f(sd(a))})`); });
 // 위병조장 간격
 const gaps = { any: [], A: [], BC: [] }, lastG = {};

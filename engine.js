@@ -2337,6 +2337,11 @@ function pStrictSlots(ds, workHoliday){
   return dow(ds)===5 ? ['16:30','17:30','18:30','19:30'] : ['17:30','18:30','19:30'];
 }
 /* 평일 외출자가 설 수 없는 칸 */
+/* 상황병(구분)은 개인정비 칸 순번에서 빠진다 — 평일 17:30·18:30·19:30(금 16:30 포함)과 금요일 추가순찰. 30분만 겹치는 칸(20:30, 금 15:30)은 일반 배정 */
+function v2SitBarred(wid, ds, workHoliday, key){
+  const w=W(wid); if(!w || !isSituationW(w)) return false;
+  return key==='P' ? !!pHoursMap(ds, workHoliday).P : pStrictSlots(ds, workHoliday).includes(key);
+}
 function outingSlots(ds){ return dow(ds)===5 ? ['15:30','16:30','17:30','18:30','19:30','20:30'] : ['17:30','18:30','19:30','20:30']; }
 /* 전환: 이 날짜부터 새 시스템. 카운트는 전부 초기화(통계는 전환일 이후 v2 표만 본다).
    운항병 개념 삭제, 말년은 일반병으로. */
@@ -2564,7 +2569,7 @@ function generateDay2(input){
         같은 사람 두 칸은 후보가 모자랄 때만(2차). */
   const strict = pStrictSlots(ds, wh).filter(sl=> !fuelDay[sl]), pm = pHoursMap(ds, wh);
   const pre = {}, occ = {}, todayP = {};
-  const candOf = sl => (DAY_SLOTS.includes(sl) ? dayCand : eveCand).filter(id=> !slotExcluded(ctx, id, sl));
+  const candOf = sl => (DAY_SLOTS.includes(sl) ? dayCand : eveCand).filter(id=> !slotExcluded(ctx, id, sl) && !v2SitBarred(id, ds, wh, sl));
   for(let pass=0; pass<2; pass++){
     for(;;){
       const free = strict.filter(sl=> !pre[sl]); if(!free.length) break;
@@ -2646,7 +2651,7 @@ function generateDay2(input){
 
   /* 8) 17:00 추가 순찰 — 16:30·17:30 근무자와 외출자 제외, 순찰 배정률 낮은 순 */
   const pg = mealGroup(ds, wh);
-  const pc = dayCand.filter(id=> id!==assign['16:30'] && id!==fixed['17:30'] && !ctx.outing.includes(id) && !slotExcluded(ctx, id, PATROL_SLOT))
+  const pc = dayCand.filter(id=> id!==assign['16:30'] && id!==fixed['17:30'] && !ctx.outing.includes(id) && !slotExcluded(ctx, id, PATROL_SLOT) && !v2SitBarred(id, ds, wh, 'P'))
     .map(id=>{ const r=stats[id];
       return {id, sc: DB.settings.weights.patrolRate*rate(r.patrolGNum[pg], r.patrolGDen[pg]) + DB.settings.weights.avgHours*avgHours(r)*0.4
                       + (isRecruit(W(id)) ? DB.settings.weights.recruitBias : 0), last:r.tiePatrol||''}; })
@@ -2688,6 +2693,7 @@ function validateSchedule2(s){
     if(isN && (s.nightEx||[]).includes(wid)) hard.push(n+': 야간열외인데 '+lab+' 배정');
     if(slotExcluded(s, wid, unit) && !fuelOk) hard.push(n+': 시간대 열외인데 '+lab+' 배정');
     if(isD && MORNING_AFTER_NIGHT.includes(unit) && prevNight.has(wid)) hard.push(n+': 전날 야간자인데 '+unit+' 배정');
+    if(!isN && v2SitBarred(wid, s.date, s.workHoliday, unit)) soft.push(n+': 상황병인데 개인정비 칸 '+unit+' 배정');
     if(isN){
       const ng = s.nextGate||{};
       if(wid===s.nextSituationId) hard.push(n+': 다음날 상황병인데 야간 배정');
@@ -2709,6 +2715,7 @@ function validateSchedule2(s){
     if(exempt.includes(id)) hard.push(nameOf(id)+': 상황병 당일·다음날인데 배식조');
     if(prev && prev.v2 && (prev.messIds||[]).includes(id)) soft.push(nameOf(id)+': 배식조 이틀 연속');
   });
+  if(s.patrolExtra && v2SitBarred(s.patrolExtra, s.date, s.workHoliday, 'P')) soft.push(nameOf(s.patrolExtra)+': 상황병인데 금요일 추가순찰 배정');
   const wk = dayGroup(s.date, s.workHoliday)!=='weekend';
   (wk ? ['A','B','C'] : ['H']).forEach(k=>{ if(!gate[k]) soft.push('위병조장'+(k==='H'?'':k)+' 미배정'); });
   if(mess.length<2) soft.push('배식조 '+mess.length+'/2');
@@ -2808,6 +2815,7 @@ function explainAssignment2(s, key){
     if(!isN && gateIds.includes(id)) return '당일 위병조장';
     if(isDaySl && (s.dayEx||[]).includes(id)) return '주간 열외';
     if(slotExcluded(s, id, unit)) return (s.outing||[]).includes(id) && !isN ? '외출' : '시간대 열외';
+    if(!isN && v2SitBarred(id, ds, wh, isP ? 'P' : slot)) return '상황병(개인정비 칸 제외)';
     if(isP){
       if((s.outing||[]).includes(id)) return '외출';
       if(id===(s.assign||{})['16:30'] || id===(s.fixed||{})['17:30']) return '16:30·17:30 근무자';
@@ -2838,7 +2846,7 @@ function explainAssignment2(s, key){
               reason:'순찰 '+pc(r.patrolGNum[pg], r.patrolGDen[pg])+' · 평균 '+avgHours(r).toFixed(2)+'h'}; }).sort((x,y)=> (x.a-y.a) || lastCmp2(x,y));
   }else if(!isN && pStrictSlots(ds,wh).includes(slot)){
     o.title=slot+' (개인정비시간)';
-    o.lines.push('개인정비시간(폰 사용 시간)과 겹치는 칸입니다. 대상일당 개인정비 CCTV 시간이 가장 적은 사람부터 뽑고, 그 사람이 가장 덜 선 칸에 넣습니다. 상황병·당일 위병조장·배식조·외출자는 제외합니다.');
+    o.lines.push('개인정비시간(폰 사용 시간)과 겹치는 칸입니다. 대상일당 개인정비 CCTV 시간이 가장 적은 사람부터 뽑고, 그 사람이 가장 덜 선 칸에 넣습니다. 상황병(구분)·당일 위병조장·배식조·외출자는 제외합니다.');
     list = cands.map(w=>{ const r=stats[w.id], a=r.pHours/Math.max(1,r.pDen);
       return {id:w.id, a, last:r.pLast||'', reason:'개인정비 '+a.toFixed(2)+'h/일 ('+r.pHours+'h ÷ '+r.pDen+'일) · 마지막 '+md(r.pLast)}; }).sort((x,y)=> (x.a-y.a) || lastCmp2(x,y));
   }else if(isRotationVar(v)){
@@ -2884,7 +2892,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, generateDay2, buildStats2, v2DayType, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
+    generateDay, generateDay2, buildStats2, v2DayType, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
     autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,

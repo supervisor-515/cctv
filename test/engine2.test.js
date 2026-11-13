@@ -101,7 +101,7 @@ test('v2: 개인정비 시간이 사람마다 고르게 돈다(90일, 대상일�
   const db = setup();
   runDays(db, '2027-03-01', 90);
   const st = E.buildStats2(null);
-  const a = db.workers.map(w => st[w.id].pHours / st[w.id].pDen);
+  const a = db.workers.filter(E.isGeneralW).map(w => st[w.id].pHours / st[w.id].pDen);   // 상황병은 개인정비 칸 순번에서 빠진다
   assert.ok(Math.max(...a) - Math.min(...a) < 0.08, 'range ' + (Math.max(...a) - Math.min(...a)));
   const A = db.workers.filter(E.isGeneralW).map(w => st[w.id].gate.A.num);
   assert.ok(Math.max(...A) - Math.min(...A) <= 1, 'A ' + A.join(','));
@@ -186,4 +186,18 @@ test('v2: 평일과 주말·휴일 카운트 분리, 야간 번초 2시간', () 
   E.invalidateStats();
   const b = E.generateDay2(input);
   assert.deepStrictEqual(b.assign, a.assign); assert.deepStrictEqual(b.fixed, a.fixed);
+});
+
+test('v2: 상황병은 개인정비 칸(평일 17:30~19:30, 금 16:30 포함)과 금요일 추가순찰에 들어가지 않는다', () => {
+  const db = setup();
+  runDays(db, '2027-03-01', 40).forEach(s => {
+    E.pStrictSlots(s.date, s.workHoliday).forEach(sl => {
+      const id = E.DAY_SLOTS.includes(sl) ? s.assign[sl] : s.fixed[sl];
+      assert.ok(id && /^g/.test(id), s.date + ' ' + sl + ' ' + id);
+    });
+    if (E.pHoursMap(s.date, s.workHoliday).P) assert.ok(!/^s/.test(s.patrolExtra || ''), s.date + ' 순찰');
+    assert.ok(!E.validateSchedule2(s).soft.some(m => /상황병인데/.test(m)));
+  });
+  // 30분만 겹치는 20:30에는 상황병도 들어간다
+  assert.ok(Object.values(db.schedules).some(s => /^s/.test(s.fixed['20:30'] || '')));
 });

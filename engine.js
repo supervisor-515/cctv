@@ -373,7 +373,7 @@ function presentOn(w, ds, sched){
   if(sched){
     if((sched.bothEx||[]).includes(w.id)) return false;            // 전체열외 → 분모 제외
     if(sched.xmessId===w.id) return false;                          // 추가배식조 → 그날 분모 제외
-    if(sched.v2 && ((sched.messIds||[]).includes(w.id) || v2Exempt(sched).includes(w.id))) return false;   // v2: 배식조·상황병(당일·다음날) → 분모 제외
+    if(sched.v2 && v2Exempt(sched).includes(w.id)) return false;   // v2: 상황병(당일·다음날) → 분모 제외 (배식조는 근무시간이 들어가므로 분모에 남는다)
     if(Array.isArray(sched.activeIds)) return sched.activeIds.includes(w.id); // 생성시 활성자 스냅샷이 정답
     // 스냅샷 없는 구버전 표: 그 표가 만들어질 때 근무자가 아직 없었으면 제외(신규 추가자는 분모 0부터)
     if(w.createdAt && sched.generatedAt && sched.generatedAt < w.createdAt) return false;
@@ -518,7 +518,8 @@ function schedHoursByWorker(s){
   const fx=s.fixed||{};
   ['18:30','19:30','20:30','21:30','14:30','13:30'].forEach(k=> add(fx[k], 1));
   add(fx['17:30'], 1+DB.settings.patrolBonus);
-  if(s.v2) Object.entries(s.gate||{}).forEach(([k,id])=> add(id, GATE_HOURS[k]));   // 위병조장 근무시간
+  if(s.v2){ Object.entries(s.gate||{}).forEach(([k,id])=> add(id, GATE_HOURS[k]));   // 위병조장 근무시간
+    (s.messIds||[]).forEach(id=> add(id, v2MessHours(s.date))); }                     // 배식조 근무시간
   return h;
 }
 function rate(num,den){ return den>0 ? num/den : 0; }
@@ -2315,7 +2316,9 @@ function workHeatmap(wid, from, to, today){
    솔버(solve·greedyFill·localImprove)와 점수(score)는 기존 것을 그대로 쓴다.
    ============================================================ */
 const GATE_HOURS = {A:3.5, B:4, C:4, H:2};
-const NIGHT_HOURS2 = 2;   // v2: 야간 번초 1개 = 실제 근무 2시간
+const NIGHT_HOURS2 = 2;
+/* v2: 배식조 근무시간 — 토 2h, 그 외 요일 3h (평균 근무시간에 산입) */
+function v2MessHours(ds){ return dow(ds)===6 ? 2 : 3; }   // v2: 야간 번초 1개 = 실제 근무 2시간
 /* 평일('wd') / 주말·휴일('we') — v2는 두 쪽의 CCTV 카운트를 완전히 따로 센다 */
 function v2DayType(ds, workHoliday){ return dayGroup(ds, workHoliday)==='weekend' ? 'we' : 'wd'; }   // 위병조장 근무시간(평균 근무시간에 산입)
 /* since: 전환일(이 날짜부터 v2 표·통계). gap*: 위병조장 텀(일) — 후보가 없을 때만 완화되는 소프트 제약 */
@@ -2400,7 +2403,8 @@ function _computeStats2(uptoDate, month, type){
       const base = !inInactive(w, ds) && !(s.bothEx||[]).includes(w.id) && !exempt.includes(w.id)   // 상황병 당일·다음날은 분모 제외
                    && (!Array.isArray(s.activeIds) || s.activeIds.includes(w.id));
       if(w.canXmess && (mess.includes(w.id) || base)) r.messDen[xg]++;
-      if(!base || mess.includes(w.id)) return;                       // 배식조도 그날 분모 제외
+      if(!base) return;
+      if(mess.includes(w.id)){ r.denom++; return; }                  // 배식조: 근무일(평균 근무시간 분모)에는 넣고, CCTV 칸 배정률 분모에서는 뺀다
       r.denom++; r.slotDen++; r.rotAllDen++; r.groupDen[g]++; r.nightDen++; r.nightGDen[ng]++;
       if(s.assign['16:30']!==w.id && (s.fixed||{})['17:30']!==w.id){ r.patrolDen++; r.patrolGDen[mg]++; }
       if(wk && !gateIds.includes(w.id) && !outing.includes(w.id)) r.pDen++;
@@ -2427,7 +2431,7 @@ function _computeStats2(uptoDate, month, type){
       const r = id && st[id]; if(!r) return;
       const q = r.gate[k==='A'?'A': k==='H'?'H':'BC']; q.num++; q.last=ds; addH(id, GATE_HOURS[k]);
     });
-    mess.forEach(id=>{ if(st[id]){ st[id].messNum[xg]++; st[id].messLast=ds; } });
+    mess.forEach(id=>{ if(st[id]){ st[id].messNum[xg]++; st[id].messLast=ds; addH(id, v2MessHours(ds)); } });
     if(s.situationId && st[s.situationId]) st[s.situationId].sitCnt++;
   }
   return st;
@@ -2892,7 +2896,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, generateDay2, buildStats2, v2DayType, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
+    generateDay, generateDay2, buildStats2, v2DayType, v2MessHours, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
     autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,

@@ -174,8 +174,8 @@ test('v2: 평일과 주말·휴일 카운트 분리, 야간 번초 2시간', () 
   });
   // 야간 2시간: 표 한 장의 시간 합 = 주간 11 + 07:30 가산 0.5 + 저녁 5 + 17:30 가산 0.5 + 순찰 0.5 + 야간 4×2 + 위병조장
   const s = all[0], h = E.schedHoursByWorker(s);
-  const gateH = Object.keys(s.gate).reduce((a, k) => a + E.GATE_HOURS[k], 0);
-  assert.strictEqual(Object.values(h).reduce((a, b) => a + b, 0), 11 + 0.5 + 5 + 0.5 + 0.5 + 8 + gateH);
+  const gateH = Object.keys(s.gate).reduce((a, k) => a + E.GATE_HOURS[k], 0), messH = s.messIds.length * E.v2MessHours(s.date);
+  assert.strictEqual(Object.values(h).reduce((a, b) => a + b, 0), 11 + 0.5 + 5 + 0.5 + 0.5 + 8 + gateH + messH);
   assert.ok(h[s.night[1]] >= 2);
   // 주말 근무표를 만들 때는 평일 기록이 순위에 영향을 주지 않는다: 평일 표를 바꿔도 주말 표는 같게 나온다
   const sat = all.find(x => x.date === '2027-03-20');
@@ -200,4 +200,20 @@ test('v2: 상황병은 개인정비 칸(평일 17:30~19:30, 금 16:30 포함)과
   });
   // 30분만 겹치는 20:30에는 상황병도 들어간다
   assert.ok(Object.values(db.schedules).some(s => /^s/.test(s.fixed['20:30'] || '')));
+});
+
+test('v2: 배식조 시간(토 2h, 그 외 3h)은 평균 근무시간에 들어가고, 그날은 근무일로 센다', () => {
+  assert.strictEqual(E.v2MessHours('2027-03-06'), 2);   // 토
+  assert.strictEqual(E.v2MessHours('2027-03-07'), 3);   // 일
+  assert.strictEqual(E.v2MessHours('2027-03-03'), 3);   // 수
+  const db = setup();
+  const all = runDays(db, '2027-03-01', 14);
+  const st = E.buildStats2(null);
+  const want = {}, days = {};
+  all.forEach(s => { Object.entries(E.schedHoursByWorker(s)).forEach(([id, h]) => { want[id] = (want[id] || 0) + h; });
+    s.messIds.forEach(id => { days[id] = (days[id] || 0) + 1; }); });
+  db.workers.forEach(w => assert.strictEqual(st[w.id].hours, want[w.id] || 0, w.id));
+  const id = Object.keys(days)[0], s0 = all.find(s => s.messIds.includes(id));
+  assert.ok(E.presentOn(E.W(id), s0.date, s0));
+  assert.ok(E.schedHoursByWorker(s0)[id] >= E.v2MessHours(s0.date));
 });

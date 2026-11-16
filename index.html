@@ -212,7 +212,6 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .tl2 .r1 .tag{font-size:var(--fs-xs);padding:0 4px}
 .tl2 .r1 .bn{font-size:var(--fs-xs);padding:0 3px}
 .tl2 .r1 .chgb{padding:2px 7px}
-.tl2 .daysep{padding:3px 8px}
 .evsep{height:0;border-top:2px solid var(--ink-dim)}
 .tlw .ptl{margin-top:10px}
 .tlw .ptl .r1{min-height:34px}
@@ -399,7 +398,6 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .cday-iss>div{font-size:var(--fs-sm);line-height:1.45;padding:7px 10px;border-radius:var(--r-ctl);background:color-mix(in srgb,var(--warn) 11%,transparent);border-left:3px solid var(--warn)}
 .cday-ok{font-size:var(--fs-sm);color:var(--ok);font-weight:600}
 .cday-me{font-size:var(--fs-md);padding:8px 10px;border-radius:var(--r-ctl);background:color-mix(in srgb,var(--acc) 9%,transparent)}
-.daysep{font-size:var(--fs-xs);font-weight:700;color:var(--ink-dim);padding:4px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
 .ev-dl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:7px 10px;font-size:var(--fs-md);margin:4px 0 12px}
 .ev-dl dt{color:var(--ink-faint);font-size:var(--fs-sm)}
 .ev-dl dd{margin:0;font-weight:600}
@@ -2304,10 +2302,7 @@ function renderSchedTimeline(s, who, ed){
   const nights=[];
   NIGHT_BUNCHO.forEach(b=> b.slots.forEach(t=> nights.push({t,b})));
   nights.sort((x,y)=>SLOT_ORDER.indexOf(x.t)-SLOT_ORDER.indexOf(y.t));
-  // 자정 이후 칸은 실제로 다음날 새벽 — 근무표 날짜와 헷갈리지 않게 구분선
-  const nx=addDays(s.date,1);
   nights.forEach(({t,b})=>{
-    if(t.startsWith('00:')) right.push(el('div','daysep', esc(calMd(nx)+'('+DOW_KR[dow(nx)]+') 새벽'), ));
     const id=s.night&&s.night[b.id];
     right.push(row('N:'+b.id, t, id||null, [el('span','bn', b.id+'번'), id&&s.mealId===id?tagEl('meal','밥'):(id&&gIds.includes(id)?tagEl('meal','위병'):null), id&&roleTag(id)], ''));
   });

@@ -4850,17 +4850,17 @@ function previewGen2(){
 /* ----- 카운트 ----- */
 function countRows2(st){
   const rows=[['근무자','구분','분모','누적시간','평균시간','개인정비h/일','개인정비h','개인정비_대상일','월화목%','수%','금%','토일%','야간%','번초1','번초2','번초3','번초4',
-               '위병A','위병A_분모','위병BC','위병BC_분모','위병주말','위병주말_분모','배식_평일','배식_토','배식_일휴일','순찰']];
+               '위병A','위병A_분모','위병BC','위병BC_분모','위병주말','위병주말_분모','배식_평일','배식_평일_분모','배식_토','배식_토_분모','배식_일휴일','배식_일휴일_분모','순찰']];
   countWs(st).forEach(w=>{ const r=st[w.id], g=r.gate;
     rows.push([w.name, roleLabel(w), r.denom, r.hours.toFixed(1), avgHours(r).toFixed(2), r.pDen?(r.pHours/r.pDen).toFixed(3):'', r.pHours, r.pDen,
       pct(r.groupNum.mtth,r.groupDen.mtth),pct(r.groupNum.wed,r.groupDen.wed),pct(r.groupNum.fri,r.groupDen.fri),pct(r.groupNum.weekend,r.groupDen.weekend),
       pct(r.nightNum,r.nightDen), r.bunchoNum[1],r.bunchoNum[2],r.bunchoNum[3],r.bunchoNum[4],
-      g.A.num,g.A.den,g.BC.num,g.BC.den,g.H.num,g.H.den, r.messNum.weekday,r.messNum.sat,r.messNum.sun, r.patrolNum]); });
+      g.A.num,g.A.den,g.BC.num,g.BC.den,g.H.num,g.H.den, r.messNum.weekday,r.messDen.weekday,r.messNum.sat,r.messDen.sat,r.messNum.sun,r.messDen.sun, r.patrolNum]); });
   return rows;
 }
 function renderCountTable2(t, ws, st){
   const head=el('tr');
-  ['근무자','구분','분모','누적h','평균h','개인정비h/일','월화목','수','금','토일','야간율','번초1~4','위병A','위병B·C','위병 주말','배식 평/토/일','순찰']
+  ['근무자','구분','분모','누적h','평균h','개인정비h/일','월화목','수','금','토일','야간율','번초1~4','위병A','위병B·C','위병 주말','배식 평일','배식 토','배식 일·휴일','순찰']
     .forEach(h=> head.appendChild(el('th',/h|율|분모/.test(h)?'num':'',h)));
   t.appendChild(head);
   ws.sort((a,b)=>avgHours(st[b.id])-avgHours(st[a.id]));
@@ -4880,7 +4880,8 @@ function renderCountTable2(t, ws, st){
     tr.appendChild(barCell(pct(r.nightNum,r.nightDen), rate(r.nightNum,r.nightDen)));
     tr.appendChild(el('td','num', [1,2,3,4].map(b=>r.bunchoNum[b]).join('/')));
     tr.appendChild(el('td','num', gc(g.A))); tr.appendChild(el('td','num', gc(g.BC))); tr.appendChild(el('td','num', gc(g.H)));
-    tr.appendChild(el('td','num', (w.canXmess||mt) ? [r.messNum.weekday,r.messNum.sat,r.messNum.sun].join('/') : '—'));
+    // 배식조도 위병조장처럼 배정률로 뽑으므로 횟수(배정률)로 보여 준다 — 평일 / 토 / 일·휴일 따로
+    ['weekday','sat','sun'].forEach(k=> tr.appendChild(el('td','num', (w.canXmess||mt) ? r.messNum[k]+' ('+pct(r.messNum[k],r.messDen[k])+')' : '—')));
     tr.appendChild(el('td','num', r.patrolNum+' ('+pct(r.patrolNum,r.patrolDen)+')'));
     t.appendChild(tr);
   });

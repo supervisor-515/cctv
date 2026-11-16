@@ -212,7 +212,6 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .tl2 .r1 .tag{font-size:var(--fs-xs);padding:0 4px}
 .tl2 .r1 .bn{font-size:var(--fs-xs);padding:0 3px}
 .tl2 .r1 .chgb{padding:2px 7px}
-.tl2 .daysep{padding:3px 8px}
 .evsep{height:0;border-top:2px solid var(--ink-dim)}
 .tlw .ptl{margin-top:10px}
 .tlw .ptl .r1{min-height:34px}
@@ -399,7 +398,6 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .cday-iss>div{font-size:var(--fs-sm);line-height:1.45;padding:7px 10px;border-radius:var(--r-ctl);background:color-mix(in srgb,var(--warn) 11%,transparent);border-left:3px solid var(--warn)}
 .cday-ok{font-size:var(--fs-sm);color:var(--ok);font-weight:600}
 .cday-me{font-size:var(--fs-md);padding:8px 10px;border-radius:var(--r-ctl);background:color-mix(in srgb,var(--acc) 9%,transparent)}
-.daysep{font-size:var(--fs-xs);font-weight:700;color:var(--ink-dim);padding:4px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
 .ev-dl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:7px 10px;font-size:var(--fs-md);margin:4px 0 12px}
 .ev-dl dt{color:var(--ink-faint);font-size:var(--fs-sm)}
 .ev-dl dd{margin:0;font-weight:600}
@@ -800,7 +798,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.4</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.5</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1165,7 +1163,7 @@ body.ro .no-ro{display:none!important}
     </div>
     <div class="cpane" data-p="ptime">
       <div id="cPtime"></div>
-      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">개인정비시간(폰 사용 시간) CCTV 합계 ÷ 대상 평일 수. 월~목 17:30·18:30·19:30 각 1h, 20:30 0.5h / 금 15:30 0.5h, 16:30 1h, 17:30 1.5h, 18:30·19:30 각 1h, 20:30 0.5h, 추가순찰 0.5h. 위병조장·배식조·외출일은 대상일에서 제외합니다. 상황병은 순번 대상이 아니어서 표에서 뺐습니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPtimeCsv">CSV</button></div>
+      <div class="pane-h" style="margin-top:12px"><span class="hint" style="margin:0">개인정비시간(폰 사용 시간) CCTV 합계 ÷ 대상 평일 수. 월~목 17:30·18:30·19:30 각 1h, 20:30 0.5h / 금 15:30 0.5h, 16:30 1h, 17:30 1.5h, 18:30·19:30 각 1h, 20:30 0.5h, 추가순찰 0.5h. 평일 위병조장A·배식조 날은 1h로 셉니다(개인정비시간 1시간 침해). 위병조장B·C·외출일은 대상일에서 제외합니다. 상황병은 순번 대상이 아니어서 표에서 뺐습니다.</span><div class="sp"></div><button class="btn ghost sm no-print" id="cPtimeCsv">CSV</button></div>
     </div>
     <div class="cpane" data-p="mess">
       <div class="subchips" id="cMessSub"></div>
@@ -1378,7 +1376,7 @@ body.ro .no-ro{display:none!important}
         <b>상황병</b>: 예약·직접 지정. 전날 야간과 당일·다음날 CCTV 전체 면제(당일·다음날은 분모 제외). 위병조장 불가, 배식조는 전날만 가능.<br>
         <b>위병조장</b>: 평일(월~금) A·B·C 3명, 주말·휴일 1명(일반병만). A는 배정률 낮은 순 → 오래 안 선 순, B·C는 합산 배정률, 주말·휴일은 따로 셉니다. A·B·주말은 전날 야간자 제외(C는 가능). 당일 주간·저녁 CCTV는 안 서고, 야간은 후보 부족 시 B·C·주말만 투입합니다. 위병조장 시간(A 3.5h, B·C 4h, 주말·휴일 2h)은 평균 근무시간에 포함합니다.<br>
         <b>배식조</b>: [배식조 가능] 인원 중 매일 2명. 평일 / 토 / 일·휴일을 따로 셉니다. 당일 CCTV 전체 열외·전날 야간 제외·이틀 연속 금지·위병조장 중복 금지. 근무시간(토 2h, 그 외 3h)은 평균 근무시간에 들어갑니다.<br>
-        <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. <b>상황병은 이 칸들과 금요일 추가순찰에서 빠집니다</b>(30분만 겹치는 20:30·금 15:30은 일반 배정). 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 주말·휴일 제외.<br>
+        <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. <b>상황병은 이 칸들과 금요일 추가순찰에서 빠집니다</b>(30분만 겹치는 20:30·금 15:30은 일반 배정). 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 평일 위병조장A·배식조 날은 1시간 침해로 셉니다. 주말·휴일 제외.<br>
         <b>외출</b>(평일): 월~목 17:30~20:30, 금 15:30~20:30 배정 제외, 위병조장A 제외.<br>
         <b>평일·주말 분리 집계</b>: 평일 표는 평일 기록만, 주말·휴일 표는 주말·휴일 기록만 비교합니다(평균 근무시간·시간대·야간·06:30 순번·순찰 모두). 야간 번초 1개는 2시간으로 계산합니다.<br>
         <b>나머지 칸</b>: 하루 1칸씩 먼저 돌리고 남으면 신병 우선. 06:30은 배정률 순번제. 인접 칸 연속근무·전날 야간자의 아침(06:30~08:30)·하루 두 번초는 절대 금지. 저녁 칸은 한 사람 하루 1칸 원칙(불가피할 때만 2칸).<br>
@@ -1394,7 +1392,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.0.4"></script>
+<script src="engine.js?v=9.0.5"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2304,10 +2302,7 @@ function renderSchedTimeline(s, who, ed){
   const nights=[];
   NIGHT_BUNCHO.forEach(b=> b.slots.forEach(t=> nights.push({t,b})));
   nights.sort((x,y)=>SLOT_ORDER.indexOf(x.t)-SLOT_ORDER.indexOf(y.t));
-  // 자정 이후 칸은 실제로 다음날 새벽 — 근무표 날짜와 헷갈리지 않게 구분선
-  const nx=addDays(s.date,1);
   nights.forEach(({t,b})=>{
-    if(t.startsWith('00:')) right.push(el('div','daysep', esc(calMd(nx)+'('+DOW_KR[dow(nx)]+') 새벽'), ));
     const id=s.night&&s.night[b.id];
     right.push(row('N:'+b.id, t, id||null, [el('span','bn', b.id+'번'), id&&s.mealId===id?tagEl('meal','밥'):(id&&gIds.includes(id)?tagEl('meal','위병'):null), id&&roleTag(id)], ''));
   });
@@ -4447,7 +4442,7 @@ function renderMineStats(w){
   if(V2()) box.appendChild(el('div','mstat-why','<b>배정 원칙</b><ul>'
     +'<li>상황병: 전날 야간·당일·다음날 CCTV 면제</li>'
     +'<li>위병조장(일반병)·배식조: 배정률 낮은 순 → 오래 안 선 순</li>'
-    +'<li>개인정비시간 칸(평일 17:30~19:30, 금 16:30~): 대상일당 개인정비 CCTV 시간 적은 순 (상황병 제외)</li>'
+    +'<li>개인정비시간 칸(평일 17:30~19:30, 금 16:30~): 대상일당 개인정비 CCTV 시간 적은 순 (상황병 제외, 평일 위병조장A·배식조 날은 1h 침해로 계산)</li>'
     +'<li>나머지 시간대: 하루 1칸씩 먼저, 이후 시간대·야간 배정률과 평균시간 낮은 순 (06:30은 순번제)</li>'
     +'<li>각 칸을 누르면 배정 이유를 볼 수 있습니다</li></ul>'));
   else box.appendChild(el('div','mstat-why','<b>배정 원칙</b><ul>'
@@ -4850,17 +4845,17 @@ function previewGen2(){
 /* ----- 카운트 ----- */
 function countRows2(st){
   const rows=[['근무자','구분','분모','누적시간','평균시간','개인정비h/일','개인정비h','개인정비_대상일','월화목%','수%','금%','토일%','야간%','번초1','번초2','번초3','번초4',
-               '위병A','위병A_분모','위병BC','위병BC_분모','위병주말','위병주말_분모','배식_평일','배식_토','배식_일휴일','순찰']];
+               '위병A','위병A_분모','위병BC','위병BC_분모','위병주말','위병주말_분모','배식_평일','배식_평일_분모','배식_토','배식_토_분모','배식_일휴일','배식_일휴일_분모','순찰']];
   countWs(st).forEach(w=>{ const r=st[w.id], g=r.gate;
     rows.push([w.name, roleLabel(w), r.denom, r.hours.toFixed(1), avgHours(r).toFixed(2), r.pDen?(r.pHours/r.pDen).toFixed(3):'', r.pHours, r.pDen,
       pct(r.groupNum.mtth,r.groupDen.mtth),pct(r.groupNum.wed,r.groupDen.wed),pct(r.groupNum.fri,r.groupDen.fri),pct(r.groupNum.weekend,r.groupDen.weekend),
       pct(r.nightNum,r.nightDen), r.bunchoNum[1],r.bunchoNum[2],r.bunchoNum[3],r.bunchoNum[4],
-      g.A.num,g.A.den,g.BC.num,g.BC.den,g.H.num,g.H.den, r.messNum.weekday,r.messNum.sat,r.messNum.sun, r.patrolNum]); });
+      g.A.num,g.A.den,g.BC.num,g.BC.den,g.H.num,g.H.den, r.messNum.weekday,r.messDen.weekday,r.messNum.sat,r.messDen.sat,r.messNum.sun,r.messDen.sun, r.patrolNum]); });
   return rows;
 }
 function renderCountTable2(t, ws, st){
   const head=el('tr');
-  ['근무자','구분','분모','누적h','평균h','개인정비h/일','월화목','수','금','토일','야간율','번초1~4','위병A','위병B·C','위병 주말','배식 평/토/일','순찰']
+  ['근무자','구분','분모','누적h','평균h','개인정비h/일','월화목','수','금','토일','야간율','번초1~4','위병A','위병B·C','위병 주말','배식 평일','배식 토','배식 일·휴일','순찰']
     .forEach(h=> head.appendChild(el('th',/h|율|분모/.test(h)?'num':'',h)));
   t.appendChild(head);
   ws.sort((a,b)=>avgHours(st[b.id])-avgHours(st[a.id]));
@@ -4880,7 +4875,8 @@ function renderCountTable2(t, ws, st){
     tr.appendChild(barCell(pct(r.nightNum,r.nightDen), rate(r.nightNum,r.nightDen)));
     tr.appendChild(el('td','num', [1,2,3,4].map(b=>r.bunchoNum[b]).join('/')));
     tr.appendChild(el('td','num', gc(g.A))); tr.appendChild(el('td','num', gc(g.BC))); tr.appendChild(el('td','num', gc(g.H)));
-    tr.appendChild(el('td','num', (w.canXmess||mt) ? [r.messNum.weekday,r.messNum.sat,r.messNum.sun].join('/') : '—'));
+    // 배식조도 위병조장처럼 배정률로 뽑으므로 횟수(배정률)로 보여 준다 — 평일 / 토 / 일·휴일 따로
+    ['weekday','sat','sun'].forEach(k=> tr.appendChild(el('td','num', (w.canXmess||mt) ? r.messNum[k]+' ('+pct(r.messNum[k],r.messDen[k])+')' : '—')));
     tr.appendChild(el('td','num', r.patrolNum+' ('+pct(r.patrolNum,r.patrolDen)+')'));
     t.appendChild(tr);
   });
@@ -5043,11 +5039,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.0.4"></script>
+<script src="firebase-config.js?v=9.0.5"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.0.4"></script>
+<script src="sync.js?v=9.0.5"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

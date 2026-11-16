@@ -93,7 +93,8 @@ test('v2: 개인정비 CCTV 시간 — 월~목 17:30 1h·20:30 0.5h, 금 15:30 0
   const all = runDays(db, '2027-03-01', 5);   // 월~금
   const st = E.buildStats2(null), want = {};
   all.forEach(s => { const pm = E.pHoursMap(s.date, s.workHoliday);
-    Object.entries(pm).forEach(([sl, h]) => { const id = sl === 'P' ? s.patrolExtra : E.DAY_SLOTS.includes(sl) ? s.assign[sl] : s.fixed[sl]; if (id) want[id] = (want[id] || 0) + h; }); });
+    Object.entries(pm).forEach(([sl, h]) => { const id = sl === 'P' ? s.patrolExtra : E.DAY_SLOTS.includes(sl) ? s.assign[sl] : s.fixed[sl]; if (id) want[id] = (want[id] || 0) + h; });
+    if (Object.keys(pm).length) [s.gate.A, ...s.messIds].forEach(id => { if (id) want[id] = (want[id] || 0) + 1; }); });   // 평일 위병조장A·배식조: 1h 침해
   db.workers.forEach(w => assert.strictEqual(st[w.id].pHours, want[w.id] || 0, w.id));
 });
 

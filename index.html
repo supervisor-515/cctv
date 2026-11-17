@@ -798,7 +798,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.6</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.7</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1392,7 +1392,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.0.6"></script>
+<script src="engine.js?v=9.0.7"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1579,10 +1579,15 @@ function roleTag(id){ const w=W(id); if(!w) return null;
   const t = isNavigator(w)?'운항' : isVeteran(w)?'말년' : isRecruit(w)?'신병' : null;
   return t ? el('span','tag kind', t) : null; }
 /* 구분 값을 근무자에 적용. 운항병 지정 시 활성 1명 제한, 신병→역할 전환 시 카운트 초기화(말년은 초기화 안 함). 성공 true. */
-function applyRole(w, v){
-  if(V2()){   // 신병 / 일반병(위병조장 대상) / 상황병 — 카운트 초기화 없음
+function applyRole(w, v, quiet){
+  if(V2()){   // 신병 / 일반병(위병조장 대상) / 상황병 — 신병에서 전환할 때 카운트 초기화(기존 방식과 같음)
+    const wasRecruit = isRecruit(w);
     w.isNavigator=false; w.isVeteran=false;
     if(v==='recruit') w.roleReady=false; else { w.roleReady=true; w.roleType = v==='situation'?'situation':'duty'; }
+    if(wasRecruit && v!=='recruit' && DB.workers.includes(w)){   // 새로 추가하는 근무자는 기록이 없으므로 제외
+      w.countResetAt=todayStr();
+      if(!quiet) alert(w.name+' 역할 전환: 오늘부로 신병 근무 카운트를 초기화합니다. (06:30·배식조·개인정비 순번 기록은 유지)');
+    }
     return true;
   }
   if(v==='navigator'){
@@ -5007,7 +5012,7 @@ $('#v2SetupPrev').addEventListener('click',()=>{ if(SETUP.step>0){ SETUP.step--;
 $('#v2SetupNext').addEventListener('click',()=>{
   if(SETUP.step<SETUP_STEPS.length-1){ SETUP.step++; renderV2Setup(); return; }
   activeWorkers().forEach(w=>{
-    applyRole(w, SETUP.sit.has(w.id) ? 'situation' : SETUP.rec.has(w.id) ? 'recruit' : 'duty');
+    applyRole(w, SETUP.sit.has(w.id) ? 'situation' : SETUP.rec.has(w.id) ? 'recruit' : 'duty', true);
     const on=SETUP.mess.has(w.id);
     if(on && !w.canXmess && !w.xmessSince) w.xmessSince=todayStr();
     w.canXmess=on;
@@ -5044,11 +5049,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.0.6"></script>
+<script src="firebase-config.js?v=9.0.7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.0.6"></script>
+<script src="sync.js?v=9.0.7"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

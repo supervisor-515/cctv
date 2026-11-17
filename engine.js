@@ -2399,47 +2399,60 @@ function _computeStats2(uptoDate, month, type){
     const xg = messGroup(ds, s.workHoliday), wk = g!=='weekend', pm = pHoursMap(ds, s.workHoliday);
     const gate = s.gate||{}, gateIds = Object.values(gate).filter(Boolean), mess = s.messIds||[];
     const exempt = v2Exempt(s), outing = s.outing||[];
-    const addH = (id, x)=>{ st[id].hours += x; };
+    // 카운트 초기화(countResetAt, 신병→일반병·상황병 전환): 기존 방식과 같게 그 날짜 이전의 CCTV 칸·야간·순찰 횟수와
+    // 분모·누적시간, 위병조장 횟수·분모는 0 취급(위병조장 분모는 지금 구분으로 세므로, 안 자르면 신병 시절이 '설 수 있었는데 안 선 날'로 소급돼 몰아받는다).
+    // 06:30 순번(rotAll)·마지막 근무일(tie*)·배식조·개인정비 순번은 구분과 무관한 순번이라 유지
+    // (지우면 분모가 0이 되어 전환 직후 연달아 뽑힌다 — 기존 방식이 밥교대 카운트를 유지하는 것과 같은 이유).
+    const okReset = {};
+    DB.workers.forEach(w=>{ okReset[w.id] = !w.countResetAt || ds>=w.countResetAt; });
+    const addH = (id, x)=>{ if(okReset[id]) st[id].hours += x; };
     DB.workers.forEach(w=>{
-      const r = st[w.id];
+      const r = st[w.id], ok = okReset[w.id];
       const base = !inInactive(w, ds) && !(s.bothEx||[]).includes(w.id) && !exempt.includes(w.id)   // 상황병 당일·다음날은 분모 제외
                    && (!Array.isArray(s.activeIds) || s.activeIds.includes(w.id));
       if(w.canXmess && (mess.includes(w.id) || base)) r.messDen[xg]++;
       if(!base) return;
       if(mess.includes(w.id)){                                        // 배식조: 근무일(평균 근무시간 분모)에는 넣고, CCTV 칸 배정률 분모에서는 뺀다
-        r.denom++;
+        if(ok) r.denom++;
         if(wk){ r.pDen++; r.pHours += PTIME_LOSS.mess; r.pLast = ds; }   // 평일 배식조: 개인정비시간 1h 침해
         return;
       }
-      r.denom++; r.slotDen++; r.rotAllDen++; r.groupDen[g]++; r.nightDen++; r.nightGDen[ng]++;
-      if(s.assign['16:30']!==w.id && (s.fixed||{})['17:30']!==w.id){ r.patrolDen++; r.patrolGDen[mg]++; }
+      r.rotAllDen++;
+      if(ok){
+        r.denom++; r.slotDen++; r.groupDen[g]++; r.nightDen++; r.nightGDen[ng]++;
+        if(s.assign['16:30']!==w.id && (s.fixed||{})['17:30']!==w.id){ r.patrolDen++; r.patrolGDen[mg]++; }
+      }
       if(wk && (gate.A===w.id || !gateIds.includes(w.id)) && !outing.includes(w.id)) r.pDen++;   // 위병조장A 날은 대상일(1h 침해), B·C 날은 제외
-      if(isGeneralW(w)){ if(wk){ r.gate.A.den++; r.gate.BC.den++; } else r.gate.H.den++; }
+      if(ok && isGeneralW(w)){ if(wk){ r.gate.A.den++; r.gate.BC.den++; } else r.gate.H.den++; }
     });
     AS.forEach(slot=>{
       const id = DAY_SLOTS.includes(slot) ? (s.assign||{})[slot] : (s.fixed||{})[slot];
       const r = id && st[id]; if(!r) return;
-      r.slotNum[slot]++; r.groupNum[g]++; r.slotGNum[g][slot]++; r.slotLast[slot]=ds; r.tieDay[slot]=ds;
+      r.tieDay[slot]=ds;
       if(slot==='06:30') r.rotAllNum++;
+      if(okReset[id]){ r.slotNum[slot]++; r.groupNum[g]++; r.slotGNum[g][slot]++; r.slotLast[slot]=ds; }
       addH(id, slot==='17:30' ? 1+DB.settings.patrolBonus : slotHours(slot));
       if(pm[slot]){ r.pHours += pm[slot]; r.pLast = ds; r.pSlot[slot] = (r.pSlot[slot]||0)+1; }
     });
     NIGHT_BUNCHO.forEach(b=>{
       const id = s.night && s.night[b.id], r = id && st[id]; if(!r) return;
-      r.nightNum++; r.nightGNum[ng]++; r.bunchoNum[b.id]++; r.tieNight[b.id]=ds; addH(id, NIGHT_HOURS2);
+      r.tieNight[b.id]=ds; addH(id, NIGHT_HOURS2);
+      if(okReset[id]){ r.nightNum++; r.nightGNum[ng]++; r.bunchoNum[b.id]++; }
     });
     if(s.patrolExtra && st[s.patrolExtra]){
       const r = st[s.patrolExtra];
-      r.patrolNum++; r.patrolGNum[mg]++; r.tiePatrol=ds; addH(s.patrolExtra, DB.settings.patrolBonus);
+      r.tiePatrol=ds; addH(s.patrolExtra, DB.settings.patrolBonus);
+      if(okReset[s.patrolExtra]){ r.patrolNum++; r.patrolGNum[mg]++; }
       if(pm.P){ r.pHours += pm.P; }
     }
     Object.entries(gate).forEach(([k,id])=>{
       const r = id && st[id]; if(!r) return;
-      const q = r.gate[k==='A'?'A': k==='H'?'H':'BC']; q.num++; q.last=ds; addH(id, GATE_HOURS[k]);
+      const q = r.gate[k==='A'?'A': k==='H'?'H':'BC']; q.last=ds; addH(id, GATE_HOURS[k]);
+      if(okReset[id]) q.num++;
       if(k==='A' && wk){ r.pHours += PTIME_LOSS.gateA; r.pLast = ds; }   // 위병조장A: 개인정비시간 1h 침해
     });
     mess.forEach(id=>{ if(st[id]){ st[id].messNum[xg]++; st[id].messLast=ds; addH(id, v2MessHours(ds)); } });
-    if(s.situationId && st[s.situationId]) st[s.situationId].sitCnt++;
+    if(s.situationId && st[s.situationId] && okReset[s.situationId]) st[s.situationId].sitCnt++;
   }
   return st;
 }

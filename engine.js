@@ -2400,7 +2400,8 @@ function _computeStats2(uptoDate, month, type){
     const gate = s.gate||{}, gateIds = Object.values(gate).filter(Boolean), mess = s.messIds||[];
     const exempt = v2Exempt(s), outing = s.outing||[];
     // 카운트 초기화(countResetAt, 신병→일반병·상황병 전환): 기존 방식과 같게 그 날짜 이전의 CCTV 칸·야간·순찰 횟수와
-    // 분모·누적시간은 0 취급. 06:30 순번(rotAll)·마지막 근무일(tie*)·배식조·개인정비 순번·위병조장은 구분과 무관한 순번이라 유지
+    // 분모·누적시간, 위병조장 횟수·분모는 0 취급(위병조장 분모는 지금 구분으로 세므로, 안 자르면 신병 시절이 '설 수 있었는데 안 선 날'로 소급돼 몰아받는다).
+    // 06:30 순번(rotAll)·마지막 근무일(tie*)·배식조·개인정비 순번은 구분과 무관한 순번이라 유지
     // (지우면 분모가 0이 되어 전환 직후 연달아 뽑힌다 — 기존 방식이 밥교대 카운트를 유지하는 것과 같은 이유).
     const okReset = {};
     DB.workers.forEach(w=>{ okReset[w.id] = !w.countResetAt || ds>=w.countResetAt; });
@@ -2422,7 +2423,7 @@ function _computeStats2(uptoDate, month, type){
         if(s.assign['16:30']!==w.id && (s.fixed||{})['17:30']!==w.id){ r.patrolDen++; r.patrolGDen[mg]++; }
       }
       if(wk && (gate.A===w.id || !gateIds.includes(w.id)) && !outing.includes(w.id)) r.pDen++;   // 위병조장A 날은 대상일(1h 침해), B·C 날은 제외
-      if(isGeneralW(w)){ if(wk){ r.gate.A.den++; r.gate.BC.den++; } else r.gate.H.den++; }
+      if(ok && isGeneralW(w)){ if(wk){ r.gate.A.den++; r.gate.BC.den++; } else r.gate.H.den++; }
     });
     AS.forEach(slot=>{
       const id = DAY_SLOTS.includes(slot) ? (s.assign||{})[slot] : (s.fixed||{})[slot];
@@ -2446,7 +2447,8 @@ function _computeStats2(uptoDate, month, type){
     }
     Object.entries(gate).forEach(([k,id])=>{
       const r = id && st[id]; if(!r) return;
-      const q = r.gate[k==='A'?'A': k==='H'?'H':'BC']; q.num++; q.last=ds; addH(id, GATE_HOURS[k]);
+      const q = r.gate[k==='A'?'A': k==='H'?'H':'BC']; q.last=ds; addH(id, GATE_HOURS[k]);
+      if(okReset[id]) q.num++;
       if(k==='A' && wk){ r.pHours += PTIME_LOSS.gateA; r.pLast = ds; }   // 위병조장A: 개인정비시간 1h 침해
     });
     mess.forEach(id=>{ if(st[id]){ st[id].messNum[xg]++; st[id].messLast=ds; addH(id, v2MessHours(ds)); } });

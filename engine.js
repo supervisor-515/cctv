@@ -2895,6 +2895,70 @@ function explainAssignment2(s, key){
   return finish(list);
 }
 
+/* ---------- 야간 후보 (근무표 화면 · 사람별 근무 시간 아래) ----------
+   그 표의 야간 번초에 들어갈 수 있는 사람을 엔진이 투입하는 순서(티어)대로 나눈다.
+   반환 {tiers:[{key, label, desc, list:[{id, on, note, nights, last}]}], blocked:[{id, reason}], need}
+   on: 오늘 이미 선 번초 번호(없으면 0). 같은 티어 안에서는 야간 배정률이 낮은 순 → 마지막 야간이 오래된 순 */
+function nightPool(s){
+  const ds=s.date, v2=!!s.v2, prev=DB.schedules[addDays(ds,-1)], prev2=DB.schedules[addDays(ds,-2)];
+  const pn=new Set(prev&&prev.night ? Object.values(prev.night).filter(Boolean) : []);
+  const p2=new Set(prev2&&prev2.night ? Object.values(prev2.night).filter(Boolean) : []);
+  const night=s.night||{}, onB=id=>{ const b=NIGHT_BUNCHO.find(x=>night[x.id]===id); return b ? b.id : 0; };
+  const fuel=fuelAllowedKey(s), fuelNight=fuel && fuel.key && fuel.key[0]==='N' ? fuel.wid : null;
+  const stats = v2 ? buildStats2(ds, null, v2DayType(ds, s.workHoliday)) : buildStats(ds);
+  const blocked=[], put={};
+  const tierDefs = v2
+    ? [['ok','정상','야간 우선 후보'],['gate','위병조장','당일 위병조장B·C·주말 — 연속 야간을 피하려고 투입'],['c2','이틀 연속','전날 야간자 — 후보가 모자랄 때'],['c3','3일 연속','그저께·어제 야간자 — 최후']]
+    : [['ok','정상','야간 우선 후보'],['c2','이틀 연속','전날 야간자 — 후보가 모자랄 때'],['c3','3일 연속','그저께·어제 야간자 — 최후'],['meal','밥교대','당일 밥교대 — 야간이 비었을 때만']];
+  tierDefs.forEach(([k])=>{ put[k]=[]; });
+  let why;
+  if(v2){
+    const gate=s.gate||{}, ng=s.nextGate||{}, ex=v2Exempt(s);
+    why = id=>{
+      if(ex.includes(id)) return '상황병 면제';
+      if(id===s.nextSituationId) return '다음날 상황병';
+      if((s.messIds||[]).includes(id)) return '당일 배식조';
+      if((s.nextMessIds||[]).includes(id)) return '다음날 배식조';
+      if(gate.A===id) return '당일 위병조장A';
+      if([ng.A,ng.B,ng.H].includes(id)) return '다음날 위병조장';
+      if((s.bothEx||[]).includes(id) && id!==fuelNight) return '전체 열외';
+      if((s.nightEx||[]).includes(id)) return '야간 열외';
+      return null;
+    };
+  }else{
+    const x=xmessEx(s), roles=[s.prevDutyId,s.dutyId,s.nextDutyId,s.prevSituationId,s.situationId,s.nextSituationId];
+    why = id=>{
+      const w=W(id);
+      if(roles.includes(id)) return id===s.nextDutyId||id===s.nextSituationId ? '다음날 당직·상황병' : id===s.dutyId||id===s.situationId ? '당일 당직·상황병' : '전날 당직·상황병';
+      if(id===s.nextMealId) return '다음날 밥교대';
+      if(id===s.xmessId) return '당일 추가배식조';
+      if(id===s.nextXmessId) return '다음날 추가배식조';
+      if(w && isNavigator(w) && !onB(id)) return '운항병(지정 야간만)';
+      if(x.bothEx.includes(id) && id!==fuelNight) return '전체 열외';
+      if(x.nightEx.includes(id)) return '야간 열외';
+      return null;
+    };
+  }
+  const ws=activeWorkers().filter(w=> !inInactive(w, ds) && (!Array.isArray(s.activeIds) || s.activeIds.includes(w.id)));
+  ws.forEach(w=>{
+    const id=w.id, r=why(id), b=onB(id);
+    if(r && !b){ blocked.push({id, reason:r}); return; }
+    const exN=NIGHT_BUNCHO.filter(x=>slotExcluded(s, id, 'N'+x.id)).map(x=>x.id);
+    if(exN.length===4 && !b){ blocked.push({id, reason:'번초 전부 시간대 열외'}); return; }
+    const st=stats[id]||{nightNum:0,nightDen:0,tieNight:{}};
+    const last=Object.values(st.tieNight||{}).filter(Boolean).sort().pop()||'';
+    const e={id, on:b, nights:st.nightNum||0, rate: st.nightDen ? st.nightNum/st.nightDen : 0, last,
+             note: [r ? r+' (직접 지정)' : '', exN.length ? exN.join('·')+'번초 열외' : ''].filter(Boolean).join(' · ')};
+    const k = pn.has(id) ? (p2.has(id) ? 'c3' : 'c2')
+            : v2 && [s.gate&&s.gate.B, s.gate&&s.gate.C, s.gate&&s.gate.H].includes(id) ? 'gate'
+            : !v2 && id===s.mealId ? 'meal' : 'ok';
+    put[k].push(e);
+  });
+  const cmp=(a,b)=> (a.rate-b.rate) || (a.last<b.last?-1:a.last>b.last?1:0);
+  return {need:NIGHT_BUNCHO.length, blocked,
+    tiers: tierDefs.map(([key,label,desc])=>({key, label, desc, list:put[key].sort(cmp)}))};
+}
+
 /* ---------- Node(테스트) 내보내기 ---------- */
 if(typeof module!=='undefined' && module.exports){
   module.exports = {
@@ -2916,7 +2980,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, generateDay2, buildStats2, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
+    generateDay, generateDay2, buildStats2, nightPool, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
     autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,

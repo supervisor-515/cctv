@@ -253,3 +253,18 @@ test('v2: 신병→일반병 전환 후 같은 기간 일반병과 비슷하게 
   assert.ok(ratio > 0.975 && ratio < 1.06, '전환자 ÷ 일반병 = ' + ratio.toFixed(3));
   assert.ok(gc('r0') / gAvg < 1.15, '위병조장 전환자 ÷ 일반병 = ' + (gc('r0') / gAvg).toFixed(3));
 });
+
+test('nightPool: 야간 후보 티어 — 실제 야간 근무자는 후보에 있고, 제외 사유가 엔진 규칙과 맞다', () => {
+  const db = setup();
+  const all = runDays(db, '2027-03-01', 21);
+  all.forEach((s, i) => {
+    const P = E.nightPool(s), ids = P.tiers.flatMap(t => t.list.map(e => e.id)), bl = P.blocked.map(b => b.id);
+    assert.ok(Object.values(s.night).every(id => ids.includes(id)), s.date);
+    assert.ok(P.tiers.flatMap(t => t.list).filter(e => e.on).length === Object.values(s.night).filter(Boolean).length);
+    assert.ok(bl.includes(s.situationId) && bl.includes(s.nextSituationId));
+    s.messIds.concat(s.nextMessIds).forEach(id => assert.ok(bl.includes(id) || Object.values(s.night).includes(id)));
+    if (s.gate.A) assert.ok(bl.includes(s.gate.A));
+    if (i > 0) Object.values(all[i - 1].night).forEach(id => { if (ids.includes(id)) assert.ok(['c2', 'c3'].includes(P.tiers.find(t => t.list.some(e => e.id === id)).key)); });
+    assert.strictEqual(new Set(ids.concat(bl)).size, ids.length + bl.length);   // 한 사람은 한 곳에만
+  });
+});

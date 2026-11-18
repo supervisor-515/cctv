@@ -249,6 +249,17 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .lc.me{border-color:var(--acc)}
 .lc.chg{border-color:var(--warn);border-style:dashed}
 .load .off{font-size:var(--fs-sm);color:var(--ink-faint);margin-top:6px}
+.npool .load-ln .np-t{width:76px;font-family:var(--kr);font-size:var(--fs-sm);font-weight:600;color:var(--ink-dim);white-space:nowrap}
+.npool .load-ln .np-t b{font-family:var(--mono);color:var(--ink);margin-right:2px}
+.npool .lc.np-on{border-color:var(--ink-dim);background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
+.npool .lc.np-note{border-color:var(--line2);border-style:dashed}
+.npool .lc .np-b{font-family:var(--mono);font-size:var(--fs-xs);color:var(--acc)}
+.npool .np-none{font-size:var(--fs-sm);color:var(--ink-faint);padding-top:3px}
+.npool .np-warn{margin-top:6px}
+.npool .np-ex{margin-top:6px;font-size:var(--fs-sm);color:var(--ink-dim)}
+.npool .np-ex summary{cursor:pointer}
+.npool .np-exl{display:flex;flex-wrap:wrap;gap:4px 12px;padding:6px 2px}
+.npool .np-exl b{color:var(--ink);font-weight:600}
 .tag.chgd{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);background:none}
 .roles3>div.ed{cursor:pointer}
 .roles3 .rl .sp{flex:1}
@@ -2470,10 +2481,10 @@ function renderView(){
   whoRow.appendChild(whoSel); body.appendChild(whoRow);
   body.appendChild(renderSchedTimeline(s, whoSel.value||null, ed));
   if(!editing) body.appendChild(el('p','smallnote no-print','슬롯 또는 역할 카드를 선택하면 세부 배정 사유를 확인할 수 있습니다.'));
-  { const dl=renderDayLoad(s, whoSel.value||null, editing?vDraft.orig:null);
+  { const dl=renderDayLoad(s, whoSel.value||null, editing?vDraft.orig:null), np=renderNightPool(s, whoSel.value||null);
     if(document.body.classList.contains('ro')){   // 관리자 편집용 정보라 구성원 화면에서는 접어 둔다
-      const d=el('details','adv no-print'); d.appendChild(el('summary',null,'사람별 근무 시간 보기')); d.appendChild(dl); body.appendChild(d);
-    }else body.appendChild(dl); }
+      const d=el('details','adv no-print'); d.appendChild(el('summary',null,'사람별 근무 시간 · 야간 후보 보기')); d.appendChild(dl); d.appendChild(np); body.appendChild(d);
+    }else{ body.appendChild(dl); body.appendChild(np); } }
   // 기술적인 설명과 삭제는 평소에 접어 둔다
   const det=el('details','adv no-print');
   det.appendChild(el('summary',null,'배정 상세 · 근무표 관리'));
@@ -2542,6 +2553,37 @@ function renderDayLoad(s, who, orig){
   return box;
 }
 
+/* 야간 후보 — 엔진이 야간 번초에 넣는 순서(티어)대로. 오늘 선 사람은 번초 번호를 붙여 강조 */
+function renderNightPool(s, who){
+  const P=nightPool(s), short=n=> String(n).replace(/^(이병|일병|상병|병장)\s+/,'');
+  const ago=d=>{ if(!d) return '야간 없음'; const n=Math.round((new Date(s.date+'T00:00:00')-new Date(d+'T00:00:00'))/86400000); return n<=0?'오늘':n+'일 전'; };
+  const okN=P.tiers[0].list.length;
+  const box=el('div','load npool no-print');
+  box.appendChild(el('div','band-h','야간 후보<span class="r">투입 순서별</span><span class="sp"></span><small>정상 후보 '+okN+'명 / '+P.need+'번초</small>'));
+  const card=el('div','load-box');
+  P.tiers.forEach((t,i)=>{
+    const ln=el('div','load-ln');
+    const hh=el('div','hh np-t', '<b>'+(i+1)+'</b> '+esc(t.label)); hh.title=t.desc; ln.appendChild(hh);
+    const cs=el('div','cs');
+    if(!t.list.length) cs.appendChild(el('span','np-none','없음'));
+    t.list.forEach(e=>{
+      const c=el('span','lc'+(e.on?' np-on':'')+(e.id===who?' me':''), esc(short(nameOf(e.id)))+(e.on?'<b class="np-b">'+e.on+'번</b>':'')+'<i>'+Math.round(e.rate*100)+'%</i>');
+      c.title=nameOf(e.id)+' · 야간 '+e.nights+'회(배정률 '+Math.round(e.rate*100)+'%) · 마지막 야간 '+ago(e.last)+(e.note?' · '+e.note:'')+(e.on?' · 오늘 '+e.on+'번초':'');
+      if(e.note) c.classList.add('np-note');
+      cs.appendChild(c);
+    });
+    ln.appendChild(cs); card.appendChild(ln);
+  });
+  box.appendChild(card);
+  if(okN < P.need) box.appendChild(el('div','warn np-warn','정상 후보가 '+okN+'명으로 번초 '+P.need+'개보다 적어 다음 순서의 인원이 투입됩니다.'));
+  if(P.blocked.length){
+    const d=el('details','np-ex'); d.appendChild(el('summary',null,'야간 제외 '+P.blocked.length+'명'));
+    const l=el('div','np-exl'); P.blocked.forEach(b=> l.appendChild(el('span',null,'<b>'+esc(short(nameOf(b.id)))+'</b> '+esc(b.reason)))); d.appendChild(l);
+    box.appendChild(d);
+  }
+  box.appendChild(el('p','smallnote', P.tiers.map((t,i)=>(i+1)+' '+t.label+': '+t.desc).join(' · ')+'. 같은 순서 안에서는 야간 배정률이 낮은 사람이 앞. 숫자 = 야간 배정률(야간 횟수 ÷ 근무 대상일)'+(s.v2?'('+(v2DayType(s.date,s.workHoliday)==='we'?'주말·휴일':'평일')+' 기록)':'')+', 테두리 = 오늘 야간 근무자, 점선 = 직접 지정·일부 번초 열외.'));
+  return box;
+}
 /* 편집 — 누른 칸만 아래 선택창에서 바꾼다(생성 탭의 근무자 선택 시트와 같은 모양) */
 function edKeyInfo(s, key){
   const md=d=>calMd(d)+' ('+DOW_KR[dow(d)]+')';

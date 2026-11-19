@@ -534,6 +534,18 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .mroles button.tag{font:inherit;font-size:var(--fs-sm);font-weight:700;border:0;cursor:pointer;padding:5px 10px;min-height:32px}
 .mpb{font-size:var(--fs-sm);margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .mnone{font-size:var(--fs-md);color:var(--ink-dim);padding:6px 2px}
+.mfc-me{font-size:var(--fs-md);padding:8px 10px;border-radius:var(--r-ctl);background:var(--panel2);margin-bottom:8px}
+.mfc-me.on{background:color-mix(in srgb,var(--acc) 12%,var(--panel2))}
+.mfc-l{display:flex;flex-direction:column}
+.mfc-r{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line)}
+.mfc-r:last-child{border-bottom:0}
+.mfc-r .d{flex:none;width:76px;font-size:var(--fs-sm);color:var(--ink-dim);font-variant-numeric:tabular-nums}
+.mfc-r .n{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px 10px;font-size:var(--fs-md);font-weight:600}
+.mfc-r .n i{font-style:normal;font-family:var(--mono);font-size:var(--fs-xs);color:var(--ink-faint);margin-right:3px}
+.mfc-r .n .mine{color:var(--acc)}
+.mfc-r.me{background:color-mix(in srgb,var(--acc) 8%,transparent);border-radius:var(--r-ctl)}
+.mfc-r .st{flex:none;font-size:var(--fs-xs);color:var(--ink-faint)}
+.mfc-r .st.fixed,.mfc-r .st.next{color:var(--ink-dim);font-weight:700}
 .msub{font-size:var(--fs-sm);font-weight:700;color:var(--ink-dim);margin:10px 0 6px}
 .mchg{border-color:color-mix(in srgb,var(--warn) 55%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--panel))}
 .mchg h3 .cnt{font-size:var(--fs-sm);font-weight:700;color:var(--warn)}
@@ -809,7 +821,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.8</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.9</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1403,7 +1415,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.0.8"></script>
+<script src="engine.js?v=9.0.9"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -4292,6 +4304,7 @@ function renderMine(){
 
   // 5) 내일 · 이번 주
   box.appendChild(renderMineTomorrow(w, today));
+  box.appendChild(renderMineMealForecast(w, today));
   box.appendChild(renderMineWeek(w, today));
 
   // 6) 이후 · 지난 · 통계 · 계정 (접어 둠)
@@ -4416,6 +4429,39 @@ function mineDaySummary(w, ds){
   if(!its.length){ box.appendChild(el('div','mnone', pbs.length?'배정된 CCTV 근무 없음 (상단 일정 참조)':'배정된 CCTV 근무 없음')); return box; }
   const l=el('div','mits'); its.forEach(it=>l.appendChild(mineItemRow(it, new Date()))); box.appendChild(l);
   return box;
+}
+/* 밥교대(새 체계: 위병조장) 앞으로 7일 예상 순번 — 근무표를 미리 만들어 보는 계산이라 데이터가 바뀔 때만 다시 계산 */
+let _mfCache={key:null, val:null};
+function renderMineMealForecast(w, today){
+  const v2=V2(), from=addDays(today,1), L=latestSchedDate()||'';
+  const key=[today, L, Object.keys(DB.schedules).length, (DB.schedules[L]||{}).generatedAt, JSON.stringify(DB.prebook||[]).length,
+             JSON.stringify(DB.workers).length, JSON.stringify(DB.holidays||{}).length, v2, JSON.stringify(DB.schedules[L]||{}).length].join('|');
+  if(_mfCache.key!==key){ let val=[]; try{ val=mealForecast(from, 7); }catch(e){ console.warn(e); } _mfCache={key, val}; }
+  const F=_mfCache.val, label = v2 ? '위병조장' : '밥교대';
+  const sec=el('section','mcard mfc'); sec.setAttribute('aria-label', label+' 예상 순번');
+  sec.appendChild(el('h3',null, esc(label)+' 순번 <span class="muted">앞으로 7일</span>'));
+  if(!F.length || F.every(x=>x.state==='none')){ sec.appendChild(el('div','mnone','근무표가 아직 없어 예상할 수 없습니다.')); return sec; }
+  const mine=F.find(x=>x.list.some(e=>e.id===w.id));
+  const ST={fixed:'확정', next:'확정', guess:'예상'};
+  sec.appendChild(el('div','mfc-me'+(mine?' on':''), mine
+    ? '내 다음 '+esc(label)+': <b>'+esc(mdw(mine.date))+'</b>'+(v2 && mine.list.find(e=>e.id===w.id).k!=='H' ? ' '+esc(mine.list.find(e=>e.id===w.id).k) : '')+' <span class="muted">· '+ST[mine.state]+'</span>'
+    : '앞으로 7일 안에는 '+esc(label)+' 예정이 없습니다.'));
+  const list=el('div','mfc-l');
+  const short=n=> String(n).replace(/^(이병|일병|상병|병장)\s+/,'');
+  F.forEach(x=>{
+    const r=el('div','mfc-r'+(x.list.some(e=>e.id===w.id)?' me':''));
+    r.appendChild(el('span','d', esc(mdw(x.date))));
+    const nm=el('span','n');
+    if(x.state==='none') nm.appendChild(el('span','muted','예상 범위 밖'));
+    else if(!x.list.some(e=>e.id)) nm.appendChild(el('span','muted','미배정'));
+    else x.list.forEach(e=>{ if(!e.id) return; nm.appendChild(el('span', e.id===w.id?'mine':null, (v2 && e.k!=='H'?'<i>'+e.k+'</i>':'')+esc(short(nameOf(e.id))))); });
+    r.appendChild(nm);
+    if(x.state!=='none') r.appendChild(el('span','st '+x.state, ST[x.state]));
+    list.appendChild(r);
+  });
+  sec.appendChild(list);
+  sec.appendChild(el('p','smallnote','확정: 이미 나온 근무표(또는 마지막 근무표에서 정해진 다음날). 예상: 지금 등록된 휴가·일정으로 근무표를 미리 만들어 본 결과라, 휴가 등록이나 근무표 수정에 따라 바뀔 수 있습니다.'));
+  return sec;
 }
 function renderMineTomorrow(w, today){
   const t=addDays(today,1);
@@ -5091,11 +5137,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.0.8"></script>
+<script src="firebase-config.js?v=9.0.9"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.0.8"></script>
+<script src="sync.js?v=9.0.9"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

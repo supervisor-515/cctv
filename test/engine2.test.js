@@ -268,3 +268,25 @@ test('nightPool: 야간 후보 티어 — 실제 야간 근무자는 후보에 �
     assert.strictEqual(new Set(ids.concat(bl)).size, ids.length + bl.length);   // 한 사람은 한 곳에만
   });
 });
+
+test('mealForecast: 실제 데이터는 그대로 두고, 예상 순번이 실제로 근무표를 만들었을 때와 같다', () => {
+  // 지금 체계(v1)
+  const ws = []; for (let i = 0; i < 16; i++) ws.push(E.normWorker({ id: 'm' + i, name: 'm' + i, roleReady: true, roleType: i % 2 ? 'duty' : 'situation', canMeal: true, active: true }, i));
+  const db = { version: 2, workers: ws, schedules: {}, prebook: [], holidays: {}, settings: JSON.parse(JSON.stringify(E.DEFAULT_SETTINGS)) };
+  E.setDB(db);
+  for (let i = 0; i < 5; i++) { const d = E.addDays('2027-03-01', i); db.schedules[d] = E.generateDay(E.autoInputFor(d)); E.invalidateStats(); }
+  const before = JSON.stringify(db);
+  const F = E.mealForecast('2027-03-04', 7);
+  assert.strictEqual(JSON.stringify(E.getDB()), before);
+  assert.deepStrictEqual(F.map(x => x.state), ['fixed', 'fixed', 'next', 'guess', 'guess', 'guess', 'guess']);
+  assert.strictEqual(F[2].list[0].id, db.schedules['2027-03-05'].nextMealId);
+  for (let i = 5; i < 10; i++) { const d = E.addDays('2027-03-01', i); db.schedules[d] = E.generateDay(E.autoInputFor(d)); E.invalidateStats(); }
+  F.forEach(x => assert.strictEqual(x.list[0].id, db.schedules[x.date].mealId, x.date));
+  // 새 체계(v2)
+  const db2 = setup();
+  runDays(db2, '2027-03-01', 3);
+  const b2 = JSON.stringify(db2), F2 = E.mealForecast('2027-03-03', 7);
+  assert.strictEqual(JSON.stringify(E.getDB()), b2);
+  for (let i = 3; i < 10; i++) { const d = E.addDays('2027-03-01', i); db2.schedules[d] = E.generateDay2(E.autoInputFor(d)); E.invalidateStats(); }
+  F2.forEach(x => assert.deepStrictEqual(x.list.map(e => e.k + e.id), Object.keys(db2.schedules[x.date].gate).filter(k => 'ABCH'.includes(k)).sort((a, b) => 'ABCH'.indexOf(a) - 'ABCH'.indexOf(b)).map(k => k + db2.schedules[x.date].gate[k]), x.date));
+});

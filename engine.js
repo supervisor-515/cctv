@@ -2959,6 +2959,35 @@ function nightPool(s){
     tiers: tierDefs.map(([key,label,desc])=>({key, label, desc, list:put[key].sort(cmp)}))};
 }
 
+/* ---------- 밥교대(새 체계: 위병조장) 예상 순번 ----------
+   from부터 n일. 이미 만든 근무표는 그 표의 값(확정), 마지막 표의 '다음날' 몫도 확정,
+   그 뒤는 지금 등록된 휴가·일정으로 근무표를 미리 만들어 본 결과(예상) — 실제 DB는 건드리지 않는다.
+   반환 [{date, list:[{k:'meal'|'A'|'B'|'C'|'H', id}], state:'fixed'|'next'|'guess'|'none'}] */
+function mealForecast(from, n){
+  const v2=isV2(), pick = s => v2 ? ['A','B','C','H'].filter(k=> s.gate && k in s.gate).map(k=>({k, id:s.gate[k]||null}))
+                                     : [{k:'meal', id:s.mealId||null}];
+  const L=latestSchedDate(), out=[], end=addDays(from, n-1);
+  if(!L) return out;
+  const real=DB; let sim=false;
+  try{
+    // 마지막 표 다음날부터 end까지 앞에서부터 차례로 만든다(전날 표·통계가 이어져야 하므로). 너무 멀면 만들지 않는다
+    const gen=[]; for(let d=addDays(L,1); d<=end && gen.length<21; d=addDays(d,1)) gen.push(d);
+    if(gen.length && dayDiff(L, end) <= 21){
+      DB=JSON.parse(JSON.stringify(real)); invalidateStats(); sim=true;
+      gen.forEach(d=>{ DB.schedules[d] = v2 ? generateDay2(autoInputFor(d)) : generateDay(autoInputFor(d)); invalidateStats(); });
+    }
+    for(let i=0;i<n;i++){
+      const ds=addDays(from,i), s=DB.schedules[ds];
+      if(!s){ out.push({date:ds, list:[], state:'none'}); continue; }
+      const state = real.schedules[ds] ? 'fixed' : ds===addDays(L,1) ? 'next' : 'guess';
+      out.push({date:ds, list:pick(s), state});
+    }
+  } finally {
+    if(sim){ DB=real; invalidateStats(); }
+  }
+  return out;
+}
+
 /* ---------- Node(테스트) 내보내기 ---------- */
 if(typeof module!=='undefined' && module.exports){
   module.exports = {
@@ -2980,7 +3009,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, generateDay2, buildStats2, nightPool, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
+    generateDay, generateDay2, buildStats2, nightPool, mealForecast, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
     autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,

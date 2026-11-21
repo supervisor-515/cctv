@@ -33,6 +33,7 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
   --ok:#34d399; --warn:#fbbf24; --err:#f87171;
   --dv-lo:#4c8dff; --dv-hi:#f0645f; --dv-mid:#323843;
   --shadow:0 12px 30px -14px rgba(0,0,0,.6);
+  --sw-off:#272e3a; --sw-catch:rgba(255,255,255,.07); --sw-in:rgba(0,0,0,.52); --sw-ind:rgba(255,255,255,.26);
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"D2Coding","Roboto Mono",monospace;
   --kr:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
 }
@@ -46,6 +47,7 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
     --ok:#059669; --warn:#b45309; --err:#dc2626;
     --dv-lo:#2f6fe0; --dv-hi:#d9443f; --dv-mid:#e4e6ea;
     --shadow:0 12px 30px -16px rgba(20,30,50,.35);
+    --sw-off:#c3cbd6; --sw-catch:rgba(255,255,255,.82); --sw-in:rgba(15,23,42,.16); --sw-ind:rgba(255,255,255,.78);
   }
 }
 :root[data-theme="light"]{
@@ -57,6 +59,7 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
   --ok:#059669; --warn:#b45309; --err:#dc2626;
   --dv-lo:#2f6fe0; --dv-hi:#d9443f; --dv-mid:#e4e6ea;
   --shadow:0 12px 30px -16px rgba(20,30,50,.35);
+  --sw-off:#c3cbd6; --sw-catch:rgba(255,255,255,.82); --sw-in:rgba(15,23,42,.16); --sw-ind:rgba(255,255,255,.78);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -89,7 +92,7 @@ body.sheet-open{overflow:hidden}
 .cfbox{display:flex;flex-direction:column;gap:6px}
 .cfrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:6px;border-top:1px dashed color-mix(in srgb,var(--warn) 40%,transparent)}
 .cfrow .cft{flex:1 1 100%;font-size:var(--fs-sm)}
-@media(prefers-reduced-motion:reduce){ nav.tabs .pill{transition:none!important} }
+@media(prefers-reduced-motion:reduce){ nav.tabs .pill,.sw,.sw input,.sw input::before,.sw input::after{transition:none!important} }
 
 .view{display:none}
 .view.on{display:block}
@@ -117,13 +120,39 @@ select:disabled{opacity:.6}
 .btn.danger:hover{background:color-mix(in srgb,var(--err) 12%,transparent)}
 .btn.sm{padding:5px 11px;font-size:var(--fs-sm)}
 .chk{display:flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--ink-dim);cursor:pointer;user-select:none}
-/* 체크박스를 스위치 모양으로 */
-.sw{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs-sm);color:var(--ink-dim);cursor:pointer;user-select:none}
-.sw input{appearance:none;-webkit-appearance:none;width:32px;height:18px;border-radius:var(--r-ctl);background:var(--ink-faint);position:relative;margin:0;cursor:pointer;transition:.15s}
-.sw input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--panel);transition:.15s}
-.sw input:checked{background:var(--acc)}
-.sw input:checked::after{background:#fff}
-.sw input:checked::after{left:16px}
+/* 체크박스를 스위치 모양으로 — 리퀴드 글래스 + 음각 캐치라이트 트랙 + 좌우 드래그 지원 */
+.sw{display:inline-flex;align-items:center;gap:9px;padding:5px 0;font-size:var(--fs-sm);font-weight:600;color:var(--ink-dim);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:color .2s ease}
+.sw:has(input:checked){color:var(--ink)}
+.sw input{flex:none;appearance:none;-webkit-appearance:none;width:46px;height:24px;padding:0;margin:0;border:0;border-radius:999px;position:relative;cursor:pointer;outline:none;touch-action:pan-y;-webkit-tap-highlight-color:transparent;
+  background-color:var(--sw-off);background-image:linear-gradient(180deg,rgba(0,0,0,.09),rgba(255,255,255,.06));
+  box-shadow:inset 0 1.5px 3px var(--sw-in),inset 0 0 0 .75px rgba(0,0,0,.06),0 1px 0 var(--sw-catch);
+  transition:background-color .24s ease,box-shadow .24s ease}
+.sw input::before{content:"";position:absolute;z-index:0;top:9px;left:32px;width:6px;height:6px;border-radius:50%;border:1.5px solid var(--sw-ind);background:transparent;pointer-events:none;transition:all .22s ease}
+.sw input::after{content:"";position:absolute;z-index:1;top:2px;left:2px;width:24px;height:20px;border-radius:999px;pointer-events:none;
+  background:linear-gradient(180deg,#ffffff 0%,#eef2f7 100%);
+  box-shadow:0 2px 5px rgba(0,0,0,.24),0 1px 1.5px rgba(0,0,0,.14),inset 0 1px .5px #fff,inset 0 -.5px 1px rgba(0,0,0,.06);
+  transition:transform .32s cubic-bezier(.22,1.32,.36,1),width .16s ease,background .15s ease,box-shadow .15s ease}
+.sw input:checked{background-color:var(--acc);
+  box-shadow:inset 0 1.5px 3px rgba(0,0,0,.18),inset 0 0 0 .75px rgba(0,0,0,.06),0 1px 0 var(--sw-catch),0 3px 10px -3px color-mix(in srgb,var(--acc) 50%,transparent)}
+.sw input:checked::before{top:8px;left:9px;width:2px;height:8px;border-radius:2px;border:0;background:rgba(255,255,255,.82)}
+.sw input:checked::after{transform:translateX(18px)}
+.sw:active input:not(:disabled)::after,.sw input.sw-press::after,.sw input.sw-drag::after{width:28px;
+  background:linear-gradient(155deg,rgba(255,255,255,.78) 0%,rgba(255,255,255,.34) 52%,rgba(255,255,255,.64) 100%);
+  backdrop-filter:blur(2px) saturate(150%);-webkit-backdrop-filter:blur(2px) saturate(150%);
+  box-shadow:0 3px 9px rgba(0,0,0,.26),0 1px 2px rgba(0,0,0,.15),inset 0 1.5px 1.5px rgba(255,255,255,.98),inset 0 -1px 1.5px rgba(0,0,0,.12),inset 0 0 0 .75px rgba(255,255,255,.6)}
+.sw:active input:checked:not(:disabled)::after,.sw input:checked.sw-press::after{transform:translateX(14px)}
+.sw input.sw-drag{transition:none;
+  background-color:color-mix(in srgb,var(--acc) calc(var(--p,0)*100%),var(--sw-off));
+  box-shadow:inset 0 1.5px 3px var(--sw-in),inset 0 0 0 .75px rgba(0,0,0,.06),0 1px 0 var(--sw-catch),0 3px 10px -3px color-mix(in srgb,var(--acc) calc(var(--p,0)*50%),transparent)}
+.sw input.sw-drag::after{transition:background .14s ease,box-shadow .14s ease,width .14s ease;transform:translateX(calc(var(--p,0)*14px))!important}
+.sw input:focus{border-color:transparent;box-shadow:inset 0 1.5px 3px var(--sw-in),inset 0 0 0 .75px rgba(0,0,0,.06),0 1px 0 var(--sw-catch)}
+.sw input:checked:focus{box-shadow:inset 0 1.5px 3px rgba(0,0,0,.18),inset 0 0 0 .75px rgba(0,0,0,.06),0 1px 0 var(--sw-catch),0 3px 10px -3px color-mix(in srgb,var(--acc) 50%,transparent)}
+.sw input:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 30%,transparent)!important}
+.sw input:disabled{opacity:.45;cursor:not-allowed}
+/* 배경 위에 단독으로 놓인 필터용 캡슐 (카운트 상단 등) */
+.sw.sw-pill{padding:5px 12px 5px 6px;border-radius:var(--r-chip);background:var(--panel);border:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.05);transition:border-color .2s ease,background-color .2s ease,color .2s ease,transform .12s ease}
+.sw.sw-pill:active{transform:scale(.98)}
+.sw.sw-pill:has(input:checked){border-color:color-mix(in srgb,var(--acc) 45%,var(--line));background:color-mix(in srgb,var(--acc) 7%,var(--panel))}
 .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r-ctl);padding:3px;gap:2px}
 .seg button{font:inherit;font-size:var(--fs-sm);font-weight:600;color:var(--ink-dim);background:none;border:0;border-radius:var(--r-ctl);padding:6px 12px;cursor:pointer;white-space:nowrap}
 .seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.2)}
@@ -821,7 +850,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.9</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.0.10</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -882,7 +911,7 @@ body.ro .no-ro{display:none!important}
 
     <details class="adv" id="calLists" style="margin-top:18px">
       <summary>전체 등록 일정 및 휴무일 관리</summary>
-      <div class="flexgap" style="margin-bottom:10px"><label class="chk"><input type="checkbox" id="pbHidePast" checked> 지난 일정·휴무일 숨기기</label></div>
+      <div class="flexgap" style="margin-bottom:10px"><label class="sw"><input type="checkbox" id="pbHidePast" checked> 지난 일정·휴무일 숨기기</label></div>
       <div class="panel">
         <h2>등록된 일정</h2>
         <p class="desc">휴가·열외·당직/상황 예약·유조차는 [근무표 생성] 시 자동 반영됩니다. 기 생성된 근무표에는 소급 적용되지 않습니다.</p>
@@ -1161,8 +1190,8 @@ body.ro .no-ro{display:none!important}
       </div>
       <div class="field" id="cMonthField" style="display:none"><label>월 선택</label><select id="cMonth"></select></div>
       <div class="field v2only"><label>근무표 종류</label><div class="seg" id="cType"><button data-t="wd" class="on">평일</button><button data-t="we">주말·휴일</button><button data-t="">전체</button></div></div>
-      <label class="sw"><input type="checkbox" id="cNoRecruit"> 신병 제외</label>
-      <label class="sw"><input type="checkbox" id="cShowArchived"> 보관 인원 표시</label>
+      <label class="sw sw-pill"><input type="checkbox" id="cNoRecruit"> 신병 제외</label>
+      <label class="sw sw-pill"><input type="checkbox" id="cShowArchived"> 보관 인원 표시</label>
     </div>
     <div class="kpi" id="cKpi"></div>
     <div class="segscroll"><div class="seg" id="cTabs">
@@ -1415,7 +1444,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.0.9"></script>
+<script src="engine.js?v=9.0.10"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -5134,14 +5163,55 @@ window.addEventListener('load',()=>{
     showView('view'); refreshAll();
   }else if(window.SYNC_UNAVAILABLE) renderMineIfShown();
 });
+/* 토글 스위치(.sw) — 누를 때 리퀴드 글래스, 좌우 드래그 실시간 보간, 안드로이드 미세 햅틱 */
+(function(){
+  const buzz=()=>{ try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){} };
+  let st=null;
+  document.addEventListener('pointerdown', e=>{
+    const inp=e.target.closest && e.target.closest('.sw input');
+    if(!inp || inp.disabled) return;
+    st={inp, id:e.pointerId, sx:e.clientX, sp:inp.checked?1:0, p:inp.checked?1:0, dragged:false};
+    inp.classList.add('sw-press');
+    try{ inp.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  document.addEventListener('pointermove', e=>{
+    if(!st || e.pointerId!==st.id) return;
+    const dx=e.clientX-st.sx;
+    if(!st.dragged && Math.abs(dx)<4) return;
+    st.dragged=true;
+    st.inp.classList.add('sw-drag');
+    st.p=Math.max(0, Math.min(1, st.sp + dx/22));
+    st.inp.style.setProperty('--p', st.p.toFixed(3));
+  });
+  const finish=e=>{
+    if(!st || (e && e.pointerId!==st.id)) return;
+    const {inp, dragged, p}=st; st=null;
+    inp.classList.remove('sw-press','sw-drag');
+    inp.style.removeProperty('--p');
+    if(dragged){
+      inp._swSkip=true; setTimeout(()=>{ inp._swSkip=false; }, 60);
+      const next=p>=0.5;
+      if(next!==inp.checked){ inp.checked=next; buzz(); inp.dispatchEvent(new Event('change',{bubbles:true})); }
+    }
+  };
+  document.addEventListener('pointerup', finish);
+  document.addEventListener('pointercancel', finish);
+  document.addEventListener('click', e=>{
+    const sw=e.target.closest && e.target.closest('.sw'), inp=sw && sw.querySelector('input');
+    if(inp && inp._swSkip){ e.preventDefault(); e.stopPropagation(); inp._swSkip=false; }
+  }, true);
+  document.addEventListener('change', e=>{
+    if(e.target && e.target.matches && e.target.matches('.sw input') && e.isTrusted) buzz();
+  });
+})();
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.0.9"></script>
+<script src="firebase-config.js?v=9.0.10"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.0.9"></script>
+<script src="sync.js?v=9.0.10"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

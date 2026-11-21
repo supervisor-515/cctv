@@ -37,6 +37,15 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
   --tray:#11151c; --tray-in:rgba(0,0,0,.48); --bar-bg:#222834; --ctl-bg:#1c222d;
   --hi-bg:rgba(248,113,113,.15); --hi-fg:#fca5a5; --lo-bg:rgba(52,211,153,.15); --lo-fg:#6ee7b7;
   --sw-off:#272e3a; --sw-catch:rgba(255,255,255,.07); --sw-in:rgba(0,0,0,.52); --sw-ind:rgba(255,255,255,.26);
+  --lg-bg:linear-gradient(180deg,rgba(36,44,58,.62) 0%,rgba(19,23,31,.50) 52%,rgba(28,35,48,.56) 100%);
+  --lg-sh:0 20px 44px -10px rgba(0,0,0,.68),0 4px 14px -2px rgba(0,0,0,.42),0 0 0 .5px rgba(0,0,0,.62),inset 0 1.25px 0 rgba(255,255,255,.32),inset 0 10px 20px -12px rgba(255,255,255,.12),inset 0 -1.25px 1px rgba(255,255,255,.12),inset 0 0 0 1px rgba(255,255,255,.06);
+  --lg-rim:linear-gradient(135deg,rgba(255,255,255,.48) 0%,rgba(180,225,255,.16) 24%,rgba(255,255,255,.06) 52%,rgba(140,240,210,.16) 78%,rgba(255,255,255,.32) 100%);
+  --lg-sheen:rgba(255,255,255,.22);
+  --lg-pill-bg:linear-gradient(180deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.08) 54%,rgba(255,255,255,.13) 100%);
+  --lg-pill-sh:inset 0 1.25px 0 rgba(255,255,255,.46),inset 0 -1px 1.5px rgba(255,255,255,.12),0 4px 14px -3px rgba(0,0,0,.44),0 0 0 .5px rgba(255,255,255,.13);
+  --lg-lens-bg:linear-gradient(180deg,rgba(255,255,255,.25) 0%,rgba(255,255,255,.05) 52%,rgba(255,255,255,.17) 100%);
+  --lg-lens-sh:inset 0 1.75px 0 rgba(255,255,255,.72),inset 0 -1.5px 2px rgba(255,255,255,.28),inset 0 0 14px rgba(52,211,153,.15),0 10px 26px -4px rgba(0,0,0,.58),0 0 0 .75px rgba(255,255,255,.28);
+  --lg-gloss:rgba(255,255,255,.34);
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"D2Coding","Roboto Mono",monospace;
   --kr:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
 }
@@ -54,6 +63,15 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
     --tray:#e2e6ed; --tray-in:rgba(15,23,42,.10); --bar-bg:#e6eaf0; --ctl-bg:#ffffff;
     --hi-bg:rgba(217,68,63,.10); --hi-fg:#c83a35; --lo-bg:rgba(4,120,87,.10); --lo-fg:#047857;
     --sw-off:#c3cbd6; --sw-catch:rgba(255,255,255,.82); --sw-in:rgba(15,23,42,.16); --sw-ind:rgba(255,255,255,.78);
+    --lg-bg:linear-gradient(180deg,rgba(255,255,255,.60) 0%,rgba(244,248,255,.42) 50%,rgba(255,255,255,.52) 100%);
+    --lg-sh:0 16px 38px -10px rgba(15,23,42,.20),0 4px 12px -2px rgba(15,23,42,.08),0 0 0 .5px rgba(15,23,42,.09),inset 0 1.5px 0 rgba(255,255,255,.98),inset 0 10px 18px -10px rgba(255,255,255,.74),inset 0 -1.5px 1px rgba(255,255,255,.78),inset 0 0 0 1px rgba(255,255,255,.38);
+    --lg-rim:linear-gradient(135deg,rgba(255,255,255,.98) 0%,rgba(190,228,255,.62) 22%,rgba(255,255,255,.22) 50%,rgba(167,243,208,.50) 78%,rgba(255,255,255,.90) 100%);
+    --lg-sheen:rgba(255,255,255,.90);
+    --lg-pill-bg:linear-gradient(180deg,rgba(255,255,255,.88) 0%,rgba(242,247,252,.60) 56%,rgba(255,255,255,.78) 100%);
+    --lg-pill-sh:inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1.5px 2px rgba(15,23,42,.05),inset 0 -1px 0 rgba(255,255,255,.92),0 4px 12px -3px rgba(15,23,42,.14),0 1px 3px rgba(15,23,42,.07),0 0 0 .5px rgba(15,23,42,.06);
+    --lg-lens-bg:linear-gradient(180deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.26) 52%,rgba(255,255,255,.64) 100%);
+    --lg-lens-sh:inset 0 2px 0 rgba(255,255,255,1),inset 0 -1.5px 2px rgba(255,255,255,.96),inset 0 0 14px rgba(4,120,87,.09),0 10px 24px -5px rgba(15,23,42,.20),0 2px 6px rgba(15,23,42,.08),0 0 0 .75px rgba(255,255,255,.94);
+    --lg-gloss:rgba(255,255,255,.94);
   }
 }
 :root[data-theme="light"]{
@@ -69,6 +87,15 @@ try{ const t=localStorage.getItem('cctv_theme_v1'); if(t==='dark'||t==='light') 
   --tray:#e2e6ed; --tray-in:rgba(15,23,42,.10); --bar-bg:#e6eaf0; --ctl-bg:#ffffff;
   --hi-bg:rgba(217,68,63,.10); --hi-fg:#c83a35; --lo-bg:rgba(4,120,87,.10); --lo-fg:#047857;
   --sw-off:#c3cbd6; --sw-catch:rgba(255,255,255,.82); --sw-in:rgba(15,23,42,.16); --sw-ind:rgba(255,255,255,.78);
+  --lg-bg:linear-gradient(180deg,rgba(255,255,255,.60) 0%,rgba(244,248,255,.42) 50%,rgba(255,255,255,.52) 100%);
+  --lg-sh:0 16px 38px -10px rgba(15,23,42,.20),0 4px 12px -2px rgba(15,23,42,.08),0 0 0 .5px rgba(15,23,42,.09),inset 0 1.5px 0 rgba(255,255,255,.98),inset 0 10px 18px -10px rgba(255,255,255,.74),inset 0 -1.5px 1px rgba(255,255,255,.78),inset 0 0 0 1px rgba(255,255,255,.38);
+  --lg-rim:linear-gradient(135deg,rgba(255,255,255,.98) 0%,rgba(190,228,255,.62) 22%,rgba(255,255,255,.22) 50%,rgba(167,243,208,.50) 78%,rgba(255,255,255,.90) 100%);
+  --lg-sheen:rgba(255,255,255,.90);
+  --lg-pill-bg:linear-gradient(180deg,rgba(255,255,255,.88) 0%,rgba(242,247,252,.60) 56%,rgba(255,255,255,.78) 100%);
+  --lg-pill-sh:inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -1.5px 2px rgba(15,23,42,.05),inset 0 -1px 0 rgba(255,255,255,.92),0 4px 12px -3px rgba(15,23,42,.14),0 1px 3px rgba(15,23,42,.07),0 0 0 .5px rgba(15,23,42,.06);
+  --lg-lens-bg:linear-gradient(180deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.26) 52%,rgba(255,255,255,.64) 100%);
+  --lg-lens-sh:inset 0 2px 0 rgba(255,255,255,1),inset 0 -1.5px 2px rgba(255,255,255,.96),inset 0 0 14px rgba(4,120,87,.09),0 10px 24px -5px rgba(15,23,42,.20),0 2px 6px rgba(15,23,42,.08),0 0 0 .75px rgba(255,255,255,.94);
+  --lg-gloss:rgba(255,255,255,.94);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -836,21 +863,38 @@ details.arch[open] summary{margin-bottom:8px}
   .wrap{padding:0 14px calc(84px + env(safe-area-inset-bottom))}
   header.top{margin:0 -14px;padding:11px 14px 10px}
   #view .datebar{margin:-8px -14px 4px;padding:8px 14px}
-  /* 떠 있는 캡슐 바 + 선택 탭 뒤로 미끄러지는 알약(.pill, movePill) */
-  nav.tabs{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);margin:0;z-index:50;
-    display:grid;grid-template-columns:repeat(4,68px);gap:0;padding:5px;border-radius:999px;
-    background:color-mix(in srgb,var(--panel) 84%,transparent);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);
-    border:1px solid var(--card-bd);box-shadow:0 10px 30px -8px rgba(0,0,0,.28),0 2px 8px -2px rgba(0,0,0,.10)}
-  nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2px;font-size:var(--fs-sm);padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-faint);transition:transform .12s ease,color .2s ease}
+  /* 리퀴드 글래스 플로팅 독 + 굴절 크리스탈 물방울(.pill) + 스와이프 스크러빙 */
+  nav.tabs{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);margin:0;z-index:50;
+    isolation:isolate;touch-action:none;user-select:none;-webkit-user-select:none;
+    display:grid;grid-template-columns:repeat(4,min(74px,calc((100vw - 38px)/4)));gap:0;padding:5px;border-radius:999px;border:0;
+    background:var(--lg-bg);-webkit-backdrop-filter:blur(26px) saturate(210%) brightness(1.05);backdrop-filter:blur(26px) saturate(210%) brightness(1.05);
+    box-shadow:var(--lg-sh);transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .28s ease}
+  nav.tabs.scrubbing{transform:translateX(-50%) scale(1.028)}
+  nav.tabs::before{content:"";position:absolute;inset:0;border-radius:999px;padding:1.25px;background:var(--lg-rim);
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:3}
+  nav.tabs::after{content:"";position:absolute;inset:1px 12px auto;height:44%;border-radius:999px;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse 44% 95% at var(--lg-x,50%) 0%,var(--lg-sheen) 0%,transparent 72%);opacity:.78}
+  nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2.5px;font-size:11.5px;font-weight:600;letter-spacing:-.01em;padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-dim);transition:transform .22s cubic-bezier(.34,1.56,.64,1),color .18s ease}
   nav.tabs button:hover{background:none}
   nav.tabs,nav.tabs button{-webkit-tap-highlight-color:transparent;outline:none}
   nav.tabs button:focus,nav.tabs button:focus-visible{outline:none;box-shadow:none}
-  nav.tabs button:active{transform:scale(.92)}
-  nav.tabs button svg{width:22px;height:22px}
-  nav.tabs button.on,nav.tabs button.on-sub{color:var(--ink);font-weight:800;background:none;box-shadow:none;border-color:transparent}
-  nav.tabs button.on svg,nav.tabs button.on-sub svg{color:var(--ink);stroke-width:2.3}
-  nav.tabs .pill{display:block;position:absolute;z-index:0;top:5px;left:0;height:calc(100% - 10px);width:68px;border-radius:999px;
-    background:color-mix(in srgb,var(--ink) 9%,transparent);transition:transform .34s cubic-bezier(.3,1.25,.45,1),width .34s cubic-bezier(.3,1.25,.45,1),opacity .2s;pointer-events:none}
+  nav.tabs:not(.scrubbing) button:active{transform:scale(.91)}
+  nav.tabs button svg{width:21px;height:21px;transition:transform .28s cubic-bezier(.34,1.56,.64,1),stroke-width .18s ease}
+  nav.tabs button.on,nav.tabs button.on-sub,nav.tabs button.scrub-hi{color:var(--acc);font-weight:800;background:none;box-shadow:none;border-color:transparent}
+  nav.tabs button.on svg,nav.tabs button.on-sub svg,nav.tabs button.scrub-hi svg{color:var(--acc);stroke-width:2.25;transform:translateY(-1px) scale(1.08)}
+  nav.tabs.scrubbing button.on:not(.scrub-hi),nav.tabs.scrubbing button.on-sub:not(.scrub-hi){color:var(--ink-dim);font-weight:600}
+  nav.tabs.scrubbing button.on:not(.scrub-hi) svg,nav.tabs.scrubbing button.on-sub:not(.scrub-hi) svg{color:currentColor;stroke-width:1.8;transform:none}
+  nav.tabs .pill{display:block;position:absolute;z-index:0;top:5px;left:0;height:calc(100% - 10px);width:70px;border-radius:999px;
+    background:var(--lg-pill-bg);box-shadow:var(--lg-pill-sh);
+    transition:background .22s ease,box-shadow .22s ease,opacity .18s ease;pointer-events:none;will-change:transform,width}
+  nav.tabs .pill::before{content:"";position:absolute;left:12%;right:12%;top:1.5px;height:46%;border-radius:999px;
+    background:linear-gradient(180deg,var(--lg-gloss) 0%,transparent 100%);opacity:.86;transition:opacity .2s,height .2s;pointer-events:none}
+  nav.tabs .pill::after{content:"";position:absolute;left:22%;right:22%;bottom:2px;height:20%;border-radius:999px;
+    background:linear-gradient(0deg,var(--lg-gloss) 0%,transparent 100%);opacity:.38;transition:opacity .2s;pointer-events:none}
+  nav.tabs .pill.lens{background:var(--lg-lens-bg);box-shadow:var(--lg-lens-sh);
+    -webkit-backdrop-filter:blur(2px) brightness(1.08) contrast(1.05);backdrop-filter:blur(2px) brightness(1.08) contrast(1.05)}
+  nav.tabs .pill.lens::before{opacity:1;height:52%}
+  nav.tabs .pill.lens::after{opacity:.72}
   nav.tabs .pill.off{opacity:0}
   nav.tabs .desk{display:none}
   nav.tabs .mob{display:flex}
@@ -920,7 +964,7 @@ body.v2 .v1only{display:none!important}
 .roles-next{margin-top:8px}
 .roles-next>small{display:block;color:var(--ink-faint);font-size:var(--fs-sm);margin:0 0 4px 2px}
 body.ro .no-ro{display:none!important}
-@media(max-width:640px){ body.ro nav.tabs{grid-template-columns:repeat(5,64px)} body.guest nav.tabs{grid-template-columns:repeat(5,64px)} }
+@media(max-width:640px){ body.ro nav.tabs,body.guest nav.tabs{grid-template-columns:repeat(5,min(66px,calc((100vw - 38px)/5)))} }
 #roBadge{color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,var(--panel));border-color:color-mix(in srgb,var(--warn) 28%,transparent)}
 </style>
 </head>
@@ -929,7 +973,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.2.2</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.3.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1528,7 +1572,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.2.2"></script>
+<script src="engine.js?v=9.3.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1586,21 +1630,63 @@ function showView(v){
   if(v==='svc') renderSvc();
   movePill();
 }
-/* 하단 바 알약 — 선택된(보이는) 탭 버튼 위치·폭으로 미끄러진다. 처음 한 번은 애니메이션 없이 제자리 */
-function movePill(){
-  const nav=$('#tabs'), pill=nav && nav.querySelector('.pill'); if(!pill) return;
-  const on=[...nav.querySelectorAll('button')].find(b=> (b.classList.contains('on')||b.classList.contains('on-sub')) && b.offsetParent!==null);
-  if(!on || getComputedStyle(pill).display==='none'){ pill.classList.add('off'); return; }
-  const first=!pill.dataset.placed;
-  if(first) pill.style.transition='none';
-  pill.style.width=on.offsetWidth+'px'; pill.style.transform='translateX('+on.offsetLeft+'px)';
-  pill.classList.remove('off');
-  if(first){ pill.dataset.placed='1'; pill.offsetWidth; pill.style.transition=''; }
+/* 하단 리퀴드 글래스 독 — 스프링 물리 + 속도 젤리 변형 + 손가락 스와이프 스크러빙 + 햅틱 */
+const DOCK={x:0,vx:0,tx:0,w:68,tw:68,s:0,ts:0,raf:0,t0:0,placed:false,down:false,drag:false,pid:0,sx:0,sy:0,hBtn:null,holdT:0,suppressClick:0};
+function dockTabs(){ const nav=$('#tabs'); return nav?[...nav.querySelectorAll('button')].filter(b=>b.offsetParent!==null):[]; }
+function dockPaint(nav, pill, lensOn){
+  const spd=Math.abs(DOCK.vx);
+  const str=Math.min(.22, spd*.011);
+  const sx=(1 + DOCK.s*.13)*(1 + str);
+  const sy=(1 + DOCK.s*.10)/Math.sqrt(1 + str*.85);
+  pill.style.width=DOCK.w.toFixed(2)+'px';
+  pill.style.transform='translate3d('+DOCK.x.toFixed(2)+'px,0,0) scale('+sx.toFixed(4)+','+sy.toFixed(4)+')';
+  pill.classList.toggle('lens', !!lensOn);
+  const pct=Math.max(8, Math.min(92, ((DOCK.x + DOCK.w/2)/Math.max(1, nav.clientWidth))*100));
+  nav.style.setProperty('--lg-x', pct.toFixed(1)+'%');
 }
-window.addEventListener('resize', movePill);
-// 관리자·구성원·게스트 전환으로 보이는 탭 수가 바뀌면 다시 맞춘다
-new MutationObserver(()=>requestAnimationFrame(movePill)).observe(document.body, {attributes:true, attributeFilter:['class']});
-$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
+function dockStep(now){
+  const nav=$('#tabs'), pill=nav && nav.querySelector('.pill');
+  if(!pill){ DOCK.raf=0; return; }
+  const dt=DOCK.t0 ? Math.min(32, Math.max(4, now - DOCK.t0)) : 16.67;
+  DOCK.t0=now;
+  const f=dt/16.667;
+  const k=DOCK.drag ? .34 : .20;
+  const d=DOCK.drag ? .62 : .68;
+  DOCK.vx=(DOCK.vx + (DOCK.tx - DOCK.x)*k*f)*Math.pow(d, f);
+  DOCK.x+=DOCK.vx*f;
+  DOCK.w+=(DOCK.tw - DOCK.w)*Math.min(1, .28*f);
+  DOCK.s+=(DOCK.ts - DOCK.s)*Math.min(1, .22*f);
+  const lensOn=DOCK.drag || DOCK.s>.16 || Math.abs(DOCK.vx)>3.2;
+  dockPaint(nav, pill, lensOn);
+  if(!DOCK.drag && Math.abs(DOCK.tx-DOCK.x)<.15 && Math.abs(DOCK.vx)<.08 && Math.abs(DOCK.tw-DOCK.w)<.15 && Math.abs(DOCK.ts-DOCK.s)<.01){
+    DOCK.x=DOCK.tx; DOCK.w=DOCK.tw; DOCK.vx=0; DOCK.s=DOCK.ts;
+    pill.style.width=DOCK.w.toFixed(2)+'px';
+    pill.style.transform='translate3d('+DOCK.x.toFixed(2)+'px,0,0)';
+    pill.classList.remove('lens');
+    DOCK.raf=0; DOCK.t0=0; return;
+  }
+  DOCK.raf=requestAnimationFrame(dockStep);
+}
+function dockStart(){ if(!DOCK.raf){ DOCK.t0=0; DOCK.raf=requestAnimationFrame(dockStep); } }
+function movePill(instant){
+  const nav=$('#tabs'), pill=nav && nav.querySelector('.pill'); if(!pill) return;
+  const on=dockTabs().find(b=>b.classList.contains('on')||b.classList.contains('on-sub'));
+  if(!on || getComputedStyle(pill).display==='none'){ pill.classList.add('off'); return; }
+  const nx=on.offsetLeft, nw=on.offsetWidth;
+  const reduced=window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
+  DOCK.tx=nx; DOCK.tw=nw; DOCK.ts=0;
+  pill.classList.remove('off');
+  if(!DOCK.placed || instant || reduced){
+    DOCK.placed=true; DOCK.x=nx; DOCK.w=nw; DOCK.vx=0; DOCK.s=0;
+    if(DOCK.raf){ cancelAnimationFrame(DOCK.raf); DOCK.raf=0; DOCK.t0=0; }
+    dockPaint(nav, pill, false);
+    pill.style.transform='translate3d('+nx.toFixed(2)+'px,0,0)';
+    return;
+  }
+  if(Math.abs(nx - DOCK.x) > 4) DOCK.s=Math.max(DOCK.s, .58);
+  dockStart();
+}
+function activateTab(b){
   const v=b.dataset.v;
   MINE.userNav=true;
   vResolveDraft(()=>{
@@ -1609,6 +1695,72 @@ $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
     if(v==='gen' && !genKeep()){ const L=latestSchedDate(); $('#gDate').value = L? addDays(L,1) : todayStr(); refreshGenSelectors(); }
     showView(v);
   });
+}
+(function initLiquidDock(){
+  const nav=$('#tabs'), pill=nav && nav.querySelector('.pill'); if(!nav||!pill) return;
+  const updateScrub=(cx, haptic)=>{
+    const tabs=dockTabs(); if(!tabs.length) return;
+    const r=nav.getBoundingClientRect();
+    const lx=(cx - r.left)*(nav.clientWidth/Math.max(1, r.width));
+    let best=tabs[0], bestD=Infinity;
+    tabs.forEach(b=>{ const d=Math.abs(lx - (b.offsetLeft + b.offsetWidth/2)); if(d<bestD){ bestD=d; best=b; } });
+    const minX=tabs[0].offsetLeft, maxX=tabs[tabs.length-1].offsetLeft;
+    const raw=lx - best.offsetWidth/2;
+    DOCK.tx = raw<minX ? minX - Math.atan((minX-raw)/28)*10 : raw>maxX ? maxX + Math.atan((raw-maxX)/28)*10 : raw;
+    DOCK.tw = best.offsetWidth;
+    if(best !== DOCK.hBtn){
+      if(DOCK.hBtn) DOCK.hBtn.classList.remove('scrub-hi');
+      best.classList.add('scrub-hi');
+      if(haptic && DOCK.hBtn){ try{ navigator.vibrate && navigator.vibrate(6); }catch(_){} }
+      DOCK.hBtn=best;
+    }
+    dockStart();
+  };
+  const beginScrub=(cx)=>{
+    if(DOCK.drag) return;
+    clearTimeout(DOCK.holdT);
+    DOCK.drag=true; DOCK.ts=1;
+    nav.classList.add('scrubbing');
+    try{ nav.setPointerCapture(DOCK.pid); }catch(_){}
+    updateScrub(cx, false);
+  };
+  nav.addEventListener('pointerdown', e=>{
+    if(e.button>0 || getComputedStyle(pill).display==='none') return;
+    DOCK.down=true; DOCK.drag=false; DOCK.pid=e.pointerId; DOCK.sx=e.clientX; DOCK.sy=e.clientY; DOCK.hBtn=null;
+    clearTimeout(DOCK.holdT);
+    DOCK.holdT=setTimeout(()=>{ if(DOCK.down && !DOCK.drag) beginScrub(DOCK.sx); }, 140);
+  });
+  nav.addEventListener('pointermove', e=>{
+    if(!DOCK.down || e.pointerId!==DOCK.pid) return;
+    if(!DOCK.drag && Math.hypot(e.clientX-DOCK.sx, e.clientY-DOCK.sy)>=5) beginScrub(e.clientX);
+    if(DOCK.drag) updateScrub(e.clientX, true);
+  });
+  const endScrub=e=>{
+    clearTimeout(DOCK.holdT);
+    if(!DOCK.down || e.pointerId!==DOCK.pid) return;
+    DOCK.down=false;
+    if(!DOCK.drag) return;
+    DOCK.drag=false; DOCK.ts=0;
+    nav.classList.remove('scrubbing');
+    try{ nav.releasePointerCapture(DOCK.pid); }catch(_){}
+    const target=DOCK.hBtn; DOCK.hBtn=null;
+    dockTabs().forEach(b=>b.classList.remove('scrub-hi'));
+    DOCK.suppressClick=Date.now()+340;
+    if(e.type==='pointerup' && target){
+      try{ navigator.vibrate && navigator.vibrate(8); }catch(_){}
+      activateTab(target);
+    }else movePill();
+  };
+  nav.addEventListener('pointerup', endScrub);
+  nav.addEventListener('pointercancel', endScrub);
+})();
+window.addEventListener('resize', ()=>movePill(true));
+// 관리자·구성원·게스트 전환으로 보이는 탭 수가 바뀌면 다시 맞춘다
+new MutationObserver(()=>requestAnimationFrame(()=>{ if(!DOCK.drag) movePill(true); })).observe(document.body, {attributes:true, attributeFilter:['class']});
+$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{
+  if(Date.now()<DOCK.suppressClick) return;
+  try{ navigator.vibrate && navigator.vibrate(6); }catch(_){}
+  activateTab(b);
 }));
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>{ MINE.userNav=true; vResolveDraft(()=>showView(b.dataset.go)); }));
 $('#mOfficers').addEventListener('click',()=>{ MINE.userNav=true; showView('people'); const p=$('#ofAdmin'); if(p) p.parentElement.scrollIntoView({block:'start'}); });
@@ -5385,11 +5537,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.2.2"></script>
+<script src="firebase-config.js?v=9.3.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.2.2"></script>
+<script src="sync.js?v=9.3.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

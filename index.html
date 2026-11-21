@@ -244,60 +244,87 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .tipline b{color:var(--ink)}
 
 /* ---------- ① 근무표 확인 ---------- */
-.datebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.datebar input[type=date]{font-family:var(--mono);font-size:var(--fs-lg);font-weight:700;padding:6px 10px;min-width:160px;border-color:var(--card-bd);box-shadow:var(--card-sh)}
-.datebar .ib{width:36px;height:36px;padding:0;display:grid;place-items:center}
-.datebar .spacer{flex:1}
+.datebar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:8px}
+.dnav{flex:1;min-width:0;display:flex;align-items:center;background:var(--panel);border:1px solid var(--card-bd);border-radius:13px;padding:3px;box-shadow:var(--card-sh)}
+.dnav .darr{width:34px;height:34px;border:0;background:none;color:var(--ink);border-radius:10px;display:grid;place-items:center;cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent;transition:background-color .15s,transform .12s}
+.dnav .darr:hover{background:var(--panel2)}
+.dnav .darr:active{transform:scale(.9)}
+.dpick{position:relative;flex:1;min-width:0;min-height:34px;display:inline-flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:0 4px}
+.dpick .dt{font-size:15.5px;font-weight:800;letter-spacing:-.025em;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.dpick .dt .dow{font-size:var(--fs-sm);font-weight:700;color:var(--ink-dim)}
+.dpick .dchv{color:var(--ink-faint);flex:none}
+.dpick input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0;border:0;min-width:0}
 /* 근무표 확인: 스크롤해도 날짜·보기/편집 전환이 보이게 (헤더 바로 아래 고정) */
-#view .datebar{position:sticky;top:var(--hdr-h,58px);z-index:20;margin:-8px -18px 4px;padding:8px 18px;
+#view .datebar{position:sticky;top:var(--hdr-h,58px);z-index:20;margin:-8px -18px 6px;padding:8px 18px;
   background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%)}
-.meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.status{display:flex;align-items:center;gap:8px;border-radius:var(--r-ctl);padding:9px 12px;font-size:var(--fs-sm);font-weight:700;margin-bottom:10px}
-.status.ok{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok);margin:0 0 10px}
-.status.warn{background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn);margin:0 0 10px;cursor:pointer}
-.status .sp{flex:1}
-.status small{font-weight:500;color:var(--ink-dim)}
-.status-list{margin:-4px 0 10px;font-size:var(--fs-sm);color:var(--ink);background:var(--panel2);border-radius:var(--r-ctl);padding:8px 12px}
-.status-list div{padding:3px 0}
-.who{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:var(--fs-sm);color:var(--ink-dim)}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.meta:empty{display:none}
+/* 접이식 점검 상태 카드 */
+.st-card{border-radius:var(--r-card);overflow:hidden;margin-bottom:10px;border:1px solid color-mix(in srgb,var(--warn) 26%,var(--card-bd));background:color-mix(in srgb,var(--warn) 9%,var(--panel));box-shadow:var(--card-sh)}
+.st-card.ok{border-color:color-mix(in srgb,var(--ok) 24%,var(--card-bd));background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.st-hd{width:100%;border:0;background:none;padding:10px 13px;display:flex;align-items:center;gap:7px;font:inherit;font-size:var(--fs-sm);font-weight:700;color:var(--warn);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.st-card.ok .st-hd{color:var(--ok);cursor:default}
+.st-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.st-hd .cnt{font-size:var(--fs-xs);font-weight:800;padding:1.5px 8px;border-radius:999px;background:color-mix(in srgb,currentColor 14%,transparent);font-variant-numeric:tabular-nums}
+.st-hd .chv{margin-left:auto;transition:transform .2s ease;opacity:.8;flex:none}
+.st-card.open .st-hd .chv{transform:rotate(180deg)}
+.st-body{display:none;background:var(--panel);border-top:1px solid color-mix(in srgb,var(--warn) 20%,var(--line))}
+.st-card.open .st-body{display:block}
+.st-it{padding:8px 13px;font-size:var(--fs-sm);color:var(--ink);line-height:1.45;border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent)}
+.st-it:last-child{border-bottom:0}
+.who{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:var(--fs-sm);color:var(--ink-dim)}
 .who select{flex:1;max-width:260px}
-.roles3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:12px}
-.roles3>div{background:var(--panel);border:1px solid var(--card-bd);border-radius:var(--r-ctl);padding:8px 11px;min-width:0;box-shadow:var(--card-sh)}
+.rk-t{font-size:var(--fs-xs);font-weight:600;color:var(--ink-faint);margin-right:2.5px}
+/* 통합 역할 카드 — 모든 역할(다음날 밥교대·추가배식 포함) 독립 셀 + 1px 헤어라인 격자 */
+.roles3{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--card-bd);border-radius:var(--r-card);overflow:hidden;box-shadow:var(--card-sh);margin-bottom:10px}
+.roles3.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.roles3.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.roles3.c6{grid-template-columns:repeat(3,minmax(0,1fr))}
+.roles3>div{background:var(--panel);padding:9px 12px;min-width:0;display:flex;flex-direction:column;gap:2px;transition:background-color .14s}
+.roles3>div.why:hover,.roles3>div.ed:hover{background:var(--panel2)}
 .roles3 .rl{font-size:var(--fs-xs);color:var(--ink-faint);font-weight:600;display:flex;align-items:center;gap:5px}
-.roles3 .rl i{width:6px;height:6px;border-radius:50%}
-.roles3 b{display:block;font-size:var(--fs-md);word-break:keep-all;overflow-wrap:anywhere}
-.tl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
-/* 명령서식 좌우 2열 — 폰에서도 나란히(한 칸 약 170px) */
-.tl.tl2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.tl2 .r1{gap:6px;padding:0 8px;min-height:40px}
-.tl2 .r1 .t{width:38px;font-size:var(--fs-sm)}
-.tl2 .r1 .n{gap:4px;font-size:var(--fs-md)}
-.tl2 .r1 .tag{font-size:var(--fs-xs);padding:0 4px}
-.tl2 .r1 .bn{font-size:var(--fs-xs);padding:0 3px}
-.tl2 .r1 .chgb{padding:2px 7px}
-.evsep{height:0;border-top:2px solid var(--ink-dim)}
-.tlw .ptl{margin-top:10px}
-.tlw .ptl .r1{min-height:34px}
+.roles3 .rl i{width:6px;height:6px;border-radius:50%;flex:none}
+.roles3 b{display:block;font-size:var(--fs-md);font-weight:800;letter-spacing:-.02em;word-break:keep-all;overflow-wrap:anywhere}
+.roles3 .rl .chgl{font-size:10.5px;font-weight:700;color:var(--acc);background:color-mix(in srgb,var(--acc) 11%,transparent);padding:1px 6px;border-radius:999px}
+/* 명령서식 단일 카드 좌우 2열 시간표 */
+.tl-card{background:var(--panel);border:1px solid var(--card-bd);border-radius:var(--r-card);overflow:hidden;box-shadow:var(--card-sh)}
+.tl-head{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:color-mix(in srgb,var(--panel2) 72%,var(--panel));border-bottom:1px solid var(--line)}
+.tl-h{padding:8px 11px;display:flex;align-items:baseline;justify-content:space-between;gap:6px;font-size:var(--fs-sm);font-weight:800;color:var(--ink)}
+.tl-h:first-child{border-right:1px solid var(--line)}
+.tl-h small{font-size:var(--fs-xs);font-weight:600;color:var(--ink-faint)}
+.tl-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.tl-col:first-child{border-right:1px solid var(--line)}
+.evsep{height:2px;background:var(--line2)}
+.ptl-card{margin-top:10px}
+.ptl-hd{padding:8px 12px;display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:var(--fs-sm);font-weight:800;color:var(--ink);background:color-mix(in srgb,var(--panel2) 72%,var(--panel));border-bottom:1px solid var(--line)}
+.ptl-hd small{font-size:var(--fs-xs);font-weight:600;color:var(--ink-faint)}
 .r1.info{cursor:default}
-@media(max-width:520px){ .tl2 .r1 .h{display:none} }
+@media(max-width:520px){ .tl-body .r1 .h{display:none} }
 .band-h{display:flex;align-items:baseline;gap:8px;font-size:var(--fs-sm);font-weight:700;color:var(--ink-dim);padding:2px 2px 6px}
 .band-h .r{font-family:var(--mono);font-weight:500;color:var(--ink-faint)}
 .band-h .sp{flex:1}
 .band-h small{font-weight:500;color:var(--ink-faint)}
 .rows{background:var(--panel);border:1px solid var(--card-bd);border-radius:var(--r-card);overflow:hidden;box-shadow:var(--card-sh)}
-.r1{display:flex;align-items:center;gap:10px;padding:0 12px;min-height:40px;border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent)}
+.r1{display:flex;align-items:center;gap:7px;padding:7px 10px;min-height:40px;border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent);transition:background-color .14s}
 .r1:last-child{border-bottom:0}
-.r1 .t{font-family:var(--mono);font-size:var(--fs-sm);color:var(--ink-faint);width:44px;flex:none}
-.r1 .n{flex:1;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
-.r1 .n.empty{color:var(--err);font-weight:500;font-style:italic}
-.r1 .h{font-family:var(--mono);font-size:var(--fs-xs);color:var(--ink-faint)}
-.r1 .bn{font-family:var(--mono);font-size:var(--fs-xs);color:var(--ink-faint);border:1px solid var(--line);border-radius:4px;padding:0 4px}
-.r1.me{background:color-mix(in srgb,var(--acc) 10%,transparent);box-shadow:inset 3px 0 0 var(--acc)}
+.r1 .t{font-family:var(--mono);font-size:var(--fs-xs);font-weight:600;color:var(--ink-faint);width:36px;flex:none;font-variant-numeric:tabular-nums}
+.ptl-card .r1{gap:10px;padding:8px 12px;min-height:38px}
+.ptl-card .r1 .t{width:40px;font-size:var(--fs-sm)}
+.r1 .n{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.r1 .nm{font-weight:700;font-size:var(--fs-md);letter-spacing:-.02em;line-height:1.22;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
+.r1 .n.empty .nm{color:var(--err);font-weight:500;font-style:italic}
+.r1 .rsub{font-size:10.5px;font-weight:700;line-height:1.15;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.r1 .rsub .rs-duty{color:var(--duty)} .r1 .rsub .rs-sit{color:var(--sit)} .r1 .rsub .rs-meal{color:var(--meal)} .r1 .rsub .rs-patrol{color:var(--patrol)} .r1 .rsub .rs-relax{color:var(--warn)}
+.r1 .h{font-family:var(--mono);font-size:var(--fs-xs);color:var(--ink-faint);flex:none}
+.r1 .bn{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--ink-dim);background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 4.5px;flex:none}
+.r1.me{background:color-mix(in srgb,var(--acc) 10%,var(--panel));box-shadow:inset 3px 0 0 var(--acc)}
+.r1.me .t{color:var(--acc);font-weight:800}
 .r1.ed{cursor:pointer}
 .r1.chg,.roles3>div.chg{background:color-mix(in srgb,var(--warn) 9%,var(--panel))}
-.r1.chg{padding-top:5px;padding-bottom:5px}
-.r1 .was,.roles3 .was{flex-basis:100%;font-size:var(--fs-xs);font-weight:500;color:var(--ink-faint)}
-.r1 .chgb{font:inherit;font-size:var(--fs-sm);font-weight:600;color:var(--acc);background:none;border:1px solid var(--line2);border-radius:var(--r-ctl);padding:4px 10px;cursor:pointer;flex:none}
+.r1 .was,.roles3 .was{font-size:var(--fs-xs);font-weight:500;color:var(--ink-faint)}
+.r1 .chgb{font:inherit;font-size:11px;font-weight:700;color:var(--acc);background:color-mix(in srgb,var(--acc) 11%,transparent);border:0;border-radius:6px;padding:3px 7px;cursor:pointer;flex:none}
+.ptl-lbl{font-size:var(--fs-xs);font-weight:600;color:var(--ink-faint);flex:none}
+.ptl-lbl.pat{color:var(--patrol);background:color-mix(in srgb,var(--patrol) 12%,transparent);padding:2px 7px;border-radius:6px;font-weight:700}
 .load{margin:14px 0 4px}
 .load-box{background:var(--panel);border:1px solid var(--card-bd);border-radius:var(--r-card);padding:4px 12px;box-shadow:var(--card-sh)}
 .load-ln{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line)}
@@ -663,14 +690,15 @@ details.adv[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px
 .mlog-msg{margin-top:10px}
 .mlog-foot{margin-top:12px}
 /* 당직사관·당직사령 (구성원 기록) */
-.ofl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 10px}
-.ofl .of{font:inherit;color:inherit;text-align:left;display:flex;flex-direction:column;gap:1px;min-width:0;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--panel2)}
+.ofl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--card-bd);border-radius:var(--r-card);overflow:hidden;box-shadow:var(--card-sh);margin:0 0 10px}
+.ofl .of{font:inherit;color:inherit;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;min-height:44px;padding:9px 12px;border:0;border-radius:0;background:var(--panel);transition:background-color .14s}
 button.of{cursor:pointer}
-button.of:hover{border-color:var(--line2)}
-.ofl .of small{font-size:var(--fs-xs);font-weight:700;color:var(--ink-dim)}
-.ofl .of b{font-size:var(--fs-md);overflow-wrap:anywhere}
+button.of:hover{background:var(--panel2)}
+.ofl .of small{font-size:var(--fs-xs);font-weight:700;color:var(--ink-faint);white-space:nowrap}
+.ofl .of b{font-size:var(--fs-sm);font-weight:700;overflow-wrap:anywhere;text-align:right}
 .ofl .of b.none{color:var(--ink-faint);font-weight:500}
-.ofl .by{grid-column:1/-1;font-size:var(--fs-xs);color:var(--ink-faint)}
+.ofl .of b.add{font-size:var(--fs-xs);font-weight:700;color:var(--acc);background:color-mix(in srgb,var(--acc) 11%,transparent);padding:2.5px 9px;border-radius:999px;white-space:nowrap}
+.ofl .by{grid-column:1/-1;font-size:var(--fs-xs);color:var(--ink-faint);background:var(--panel2);padding:5px 12px}
 .oflist{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
 .oflist .r{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--panel2)}
 .oflist .r b{flex:1;min-width:0}
@@ -835,7 +863,8 @@ details.arch[open] summary{margin-bottom:8px}
   .tbl-wrap th,.tbl-wrap td{padding:8px 7px}
   #pbTable .tag::before{display:none}
   .datebar .seg button{padding:6px 9px}
-  .roles3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .roles3,.roles3.c5,.roles3.c6{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .roles3.c5>:last-child{grid-column:1/-1}
   .step{padding:13px}
   .matrix{border-spacing:3px;margin:-3px}
   .matrix th.rh{width:46px}
@@ -862,7 +891,9 @@ details.arch[open] summary{margin-bottom:8px}
 @media print{
   body{background:#fff;color:#000}
   header.top,nav.tabs,.no-print,.sheet,.sheet-bg{display:none!important}
-  .panel,.rows,.roles3>div,.load-box,.rank,.kpi .c,.cday,.mcard{border:1px solid #ccc;break-inside:avoid;background:#fff;box-shadow:none!important}
+  .dnav{border:0;box-shadow:none;background:none;padding:0}
+  .panel,.rows,.tl-card,.roles3,.ofl,.st-card,.load-box,.rank,.kpi .c,.cday,.mcard{border:1px solid #ccc;break-inside:avoid;background:#fff;box-shadow:none!important}
+  .roles3,.ofl{background:#ccc}
   .view{display:none!important}.view.on{display:block!important}
   .tag{border:1px solid #999;color:#000!important;background:#eee!important}
   .r1.me{box-shadow:none;background:#eee}
@@ -896,7 +927,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.1.0</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.2.0</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -915,10 +946,15 @@ body.ro .no-ro{display:none!important}
   <!-- ① 근무표 확인 -->
   <section class="view on" id="view">
     <div class="datebar">
-      <button class="btn ghost ib" id="vPrev" title="전날">◀</button>
-      <input type="date" id="vDate">
-      <button class="btn ghost ib" id="vNext" title="다음날">▶</button>
-      <div class="spacer"></div>
+      <div class="dnav">
+        <button class="darr no-print" id="vPrev" type="button" title="전날" aria-label="전날"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="dpick">
+          <span class="dt" id="vDateLbl">—</span>
+          <svg class="dchv no-print" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          <input type="date" id="vDate" aria-label="근무표 날짜">
+        </div>
+        <button class="darr no-print" id="vNext" type="button" title="다음날" aria-label="다음날"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      </div>
       <div class="seg no-ro no-print" id="vMode"><button data-m="view" class="on">보기</button><button data-m="edit">편집</button></div>
     </div>
     <div id="vBody"></div>
@@ -1490,7 +1526,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.1.0"></script>
+<script src="engine.js?v=9.2.0"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2342,85 +2378,110 @@ function openWhy(s, key){
    06:30부터 05:30까지 시간순. ed를 넘기면 편집 상태: 각 행에 [변경] 버튼, 바뀐 행은 은은한 배경과 ‘기존: 이름’.
    ed = {orig, changed:Set(칸 키), onPick(key)} */
 const TIER_KR={1:'정상 배정 (하드/소프트 규칙 완비)',2:'동일 일자 중복 투입 허용',3:'2일 연속 야간 허용',4:'3일 연속 야간 허용',5:'일부 슬롯 미배정 (공석)'};
+/* 계급 + 이름 분리 표시 (좁은 2열에서도 이름이 선명하게) */
+function fmtRankName(id, empty){
+  if(!id) return esc(empty||'—');
+  const n=nameOf(id), m=String(n).match(/^(이병|일병|상병|병장)\s+(.+)$/);
+  return m ? '<small class="rk-t">'+esc(m[1])+'</small>'+esc(m[2]) : esc(n);
+}
 function renderSchedTimeline(s, who, ed){
   const tagEl=(cls,txt)=>el('span','tag '+cls, esc(txt));
-  const row=(key, t, id, tags, h, emptyText)=>{
+  const row=(key, t, id, opt)=>{
+    opt=opt||{};
     const chg = ed && ed.changed.has(key);
     const r=el('div','r1'+(who&&id===who?' me':'')+(ed?' ed':'')+(chg?' chg':''));
     r.dataset.k=key;
     r.appendChild(el('div','t', esc(t)));
-    const n=el('div','n'+(id||emptyText?'':' empty'), id?esc(nameOf(id)):(emptyText||'미배정'));
-    if(!id && emptyText) n.classList.add('muted');
-    (tags||[]).forEach(x=> x && n.appendChild(x));
+    const n=el('div','n'+(id||opt.emptyText?'':' empty'));
+    const nm=el('div','nm', id?fmtRankName(id):esc(opt.emptyText||'미배정'));
+    if(!id && opt.emptyText) nm.classList.add('muted');
+    (opt.inline||[]).forEach(x=> x && nm.appendChild(x));
+    if(chg) nm.appendChild(tagEl('chgd','변경됨'));
+    n.appendChild(nm);
+    if(opt.subs && opt.subs.length){
+      const sb=el('div','rsub');
+      opt.subs.forEach(([cls,txt])=> sb.appendChild(el('span','rs-'+cls, esc(txt))));
+      n.appendChild(sb);
+    }
     if(chg){
-      n.appendChild(tagEl('chgd','변경됨'));
       const was=schedKeyGet(ed.orig,key);
       n.appendChild(el('div','was','기존: '+(was?esc(nameOf(was)):'미배정')));
     }
     r.appendChild(n);
+    if(opt.right) r.appendChild(opt.right);
     if(ed){
-      const b=el('button','chgb','✎'); b.setAttribute('aria-label','변경');
+      const b=el('button','chgb','변경'); b.type='button'; b.setAttribute('aria-label','변경');
       r.appendChild(b);
       r.addEventListener('click',()=>ed.onPick(key));
     }else{
-      r.appendChild(el('div','h', h||''));
+      if(opt.h) r.appendChild(el('div','h', opt.h));
       r.classList.add('why'); r.title='배정 사유 확인';
       r.addEventListener('click',()=>openWhy(s, key));
     }
     return r;
   };
-  const band=(title, range, right, rows)=>{
-    const b=el('div','band');
-    b.appendChild(el('div','band-h', esc(title)+(range?'<span class="r">'+esc(range)+'</span>':'')+'<span class="sp"></span><small>'+esc(right||'')+'</small>'));
-    const box=el('div','rows'); rows.forEach(r=>box.appendChild(r)); b.appendChild(box);
-    return b;
-  };
-  // 명령서처럼 좌우 2열 — 왼쪽 주간 CCTV(06:30~17:30), 오른쪽 야간 CCTV(18:30~21:30 역할 고정 → 22:30~05:30 번초). 순찰은 아래 따로
+  // 명령서식 단일 카드 좌우 2열 — 왼쪽 주간 CCTV(06:30~17:30), 오른쪽 야간 CCTV(18:30~21:30 고정 → 22:30~05:30 번초). 순찰은 아래 3행 카드
   const wrap=el('div','tlw');
-  const tl=el('div','tl tl2');
+  const card=el('div','tl-card');
+  const head=el('div','tl-head');
+  head.appendChild(el('div','tl-h','<span>주간 CCTV</span><small>'+esc(DAYGROUP_KR[dayGroup(s.date,s.workHoliday)])+'</small>'));
+  head.appendChild(el('div','tl-h','<span>야간 CCTV</span><small>'+(nightGroup(s.date,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')+'</small>'));
+  card.appendChild(head);
+  const body=el('div','tl-body');
+  const colL=el('div','tl-col'), colR=el('div','tl-col');
   const v2=!!s.v2, pm=v2?pHoursMap(s.date,s.workHoliday):{}, gIds=v2?Object.values(s.gate||{}).filter(Boolean):[];
-  const left=DAY_SLOTS.map(slot=>{
+  DAY_SLOTS.forEach(slot=>{
     const fixedHere = s.fixed && s.fixed[slot];
     const id = (s.assign&&s.assign[slot]) || fixedHere || null;
-    const tags=[];
-    if((slot==='14:30'||slot==='13:30') && (fixedHere || (ed && ed.orig.fixed && ed.orig.fixed[slot]))) tags.push(tagEl('sit','상황'));
-    if(s.relaxed&&s.relaxed[slot]) tags.push(tagEl('relax', s.relaxed[slot]));
-    if(pm[slot]) tags.push(tagEl('patrol','개인정비'));
-    tags.push(id&&roleTag(id));
-    return row('D:'+slot, slot, id, tags, slotHours(slot).toFixed(1)+'h');
+    const subs=[];
+    if((slot==='14:30'||slot==='13:30') && (fixedHere || (ed && ed.orig.fixed && ed.orig.fixed[slot]))) subs.push(['sit','상황']);
+    if(s.relaxed&&s.relaxed[slot]) subs.push(['relax', s.relaxed[slot]]);
+    if(pm[slot]) subs.push(['patrol','개인정비']);
+    colL.appendChild(row('D:'+slot, slot, id, {subs, inline:[id&&roleTag(id)], h:slotHours(slot).toFixed(1)+'h'}));
   });
   const eveRow=slot=>{
     const id=s.fixed&&s.fixed[slot];
     const [cls]=EVENING_LABEL[slot];
-    const tags=[v2 ? (pm[slot]?tagEl('patrol','개인정비'):null) : tagEl(cls, EVENING_SHORT[slot])];
-    if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) tags.push(tagEl('relax','밥교대자와 다름'));
-    tags.push(id&&roleTag(id));
-    return row('E:'+slot, slot, id||null, tags, slot==='17:30'?(1+DB.settings.patrolBonus).toFixed(1)+'h':'1.0h', '—');
+    const subs=[];
+    if(v2){ if(pm[slot]) subs.push(['patrol','개인정비']); }
+    else subs.push([cls, EVENING_SHORT[slot]]);
+    if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) subs.push(['relax','밥교대자와 다름']);
+    return row('E:'+slot, slot, id||null, {subs, inline:[id&&roleTag(id)], h:slot==='17:30'?(1+DB.settings.patrolBonus).toFixed(1)+'h':'1.0h', emptyText:'—'});
   };
-  left.push(eveRow('17:30'));
-  tl.appendChild(band('주간 CCTV','', DAYGROUP_KR[dayGroup(s.date,s.workHoliday)], left));
-  const right=['18:30','19:30','20:30','21:30'].map(eveRow);
-  right.push(el('div','evsep'));
+  colL.appendChild(eveRow('17:30'));
+  ['18:30','19:30','20:30','21:30'].forEach(sl=>colR.appendChild(eveRow(sl)));
+  colR.appendChild(el('div','evsep'));
   // 야간 — 시각 순(22:30·23:30·00:30…), 번초마다 두 시간에 표시(편집도 번초 단위)
   const nights=[];
   NIGHT_BUNCHO.forEach(b=> b.slots.forEach(t=> nights.push({t,b})));
   nights.sort((x,y)=>SLOT_ORDER.indexOf(x.t)-SLOT_ORDER.indexOf(y.t));
   nights.forEach(({t,b})=>{
     const id=s.night&&s.night[b.id];
-    right.push(row('N:'+b.id, t, id||null, [el('span','bn', b.id+'번'), id&&s.mealId===id?tagEl('meal','밥'):(id&&gIds.includes(id)?tagEl('meal','위병'):null), id&&roleTag(id)], ''));
+    const subs=[];
+    if(id && s.mealId===id) subs.push(['meal','밥교대']);
+    else if(id && gIds.includes(id)) subs.push(['meal','위병']);
+    colR.appendChild(row('N:'+b.id, t, id||null, {subs, inline:[id&&roleTag(id)], right:el('span','bn', b.id+'번')}));
   });
-  tl.appendChild(band('야간 CCTV','', nightGroup(s.date,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야', right));
-  wrap.appendChild(tl);
-  // 순찰 — 07:00은 07:30 근무자, 17:00은 17:30 근무자 + 추가 순찰(엔진의 순찰 가중과 같은 기준)
-  const info=(t, id, lab)=>{ const r=el('div','r1 info'+(who&&id===who?' me':''));
+  body.appendChild(colL); body.appendChild(colR);
+  card.appendChild(body);
+  wrap.appendChild(card);
+  // 순찰 — 기존 3행 구조 유지 (07:00, 17:00, 17:00 추가 순찰 클릭·편집 가능)
+  const ptl=el('div','tl-card ptl-card');
+  ptl.appendChild(el('div','ptl-hd','<span>순찰</span><small>07:30·17:30 근무자 + 추가 순찰</small>'));
+  const info=(t, id, lab)=>{
+    const r=el('div','r1 info'+(who&&id===who?' me':''));
     r.appendChild(el('div','t', esc(t)));
-    const n=el('div','n'+(id?'':' empty'), id?esc(nameOf(id)):'미배정'); n.appendChild(tagEl('', lab)); if(id){ const rt=roleTag(id); if(rt) n.appendChild(rt); }
-    r.appendChild(n); return r; };
-  const pr=[info('07:00', (s.assign&&s.assign['07:30'])||null, '07:30 근무자'),
-            info('17:00', (s.fixed&&s.fixed['17:30'])||null, '17:30 근무자'),
-            row('P','17:00', s.patrolExtra||null, [tagEl('patrol','추가 순찰'), s.patrolExtra&&roleTag(s.patrolExtra)], DB.settings.patrolBonus.toFixed(1)+'h')];
-  const pb=band('순찰','', '07:30·17:30 근무자 + 추가 순찰', pr); pb.classList.add('ptl');
-  wrap.appendChild(pb);
+    const n=el('div','n'+(id?'':' empty'));
+    const nm=el('div','nm', id?fmtRankName(id):'미배정');
+    if(id){ const rt=roleTag(id); if(rt) nm.appendChild(rt); }
+    n.appendChild(nm); r.appendChild(n);
+    r.appendChild(el('span','ptl-lbl', esc(lab)));
+    return r;
+  };
+  ptl.appendChild(info('07:00', (s.assign&&s.assign['07:30'])||null, '07:30 근무자'));
+  ptl.appendChild(info('17:00', (s.fixed&&s.fixed['17:30'])||null, '17:30 근무자'));
+  ptl.appendChild(row('P','17:00', s.patrolExtra||null, {inline:[s.patrolExtra&&roleTag(s.patrolExtra)], right:el('span','ptl-lbl pat','추가 순찰'), h:DB.settings.patrolBonus.toFixed(1)+'h'}));
+  wrap.appendChild(ptl);
   return wrap;
 }
 const EVENING_SHORT={'17:30':'다음날 밥교대','18:30':'내일 상황','19:30':'내일 당직','20:30':'전날 상황','21:30':'전날 당직'};
@@ -2429,7 +2490,7 @@ const ROLE_CARDS=[['duty','당직','duty'],['sit','상황병','sit'],['meal','�
 const XMESS_CARDS=[['xmess','추가배식조','patrol'],['nextXmess','다음날 추가배식조','patrol']];
 /* 추가배식조 카드는 토글한 사람이 있거나 그 표에 기록이 있을 때만 */
 function xmessOn(s){ return !!(s && (s.xmessId || s.nextXmessId)) || DB.workers.some(w=>w.active && w.canXmess); }
-/* 역할 카드 — 보기·편집 공통. 편집 중에는 카드마다 [변경] */
+/* 역할 카드 — 보기·편집 공통. 모든 역할(다음날 밥교대·추가배식 포함) 독립 셀, 편집 중에는 셀마다 [변경] */
 function roleCards2(s){
   const kinds=hol=> (hol?['H']:['A','B','C']).map(k=>[k, GATE_KR[k]]);
   const hol=dayGroup(s.date,s.workHoliday)==='weekend', nhol=dayGroup(addDays(s.date,1),s.nextWorkHoliday)==='weekend';
@@ -2438,12 +2499,12 @@ function roleCards2(s){
 }
 function renderRoleCards(s, ed){
   const mk=cards=>{
-    const r3=el('div','roles3');
+    const r3=el('div','roles3 c'+cards.length);
     cards.forEach(([key,l,c])=>{
       const id=schedKeyGet(s,key), chg=ed && ed.changed.has(key);
       const d=el('div',(ed?'ed':'')+(chg?' chg':'')); d.dataset.k=key;
       d.appendChild(el('div','rl','<i style="background:var(--'+c+')"></i>'+esc(l)+(ed?'<span class="sp"></span><span class="chgl">변경</span>':'')));
-      d.appendChild(el('b',null, id?esc(nameOf(id)):'—'));
+      d.appendChild(el('b',null, id?fmtRankName(id):'—'));
       if(chg){ const was=schedKeyGet(ed.orig,key); d.appendChild(el('div','was','기존: '+(was?esc(nameOf(was)):'—'))); }
       if(ed) d.addEventListener('click',()=>ed.onPick(key));
       else if(id){ d.classList.add('why'); d.addEventListener('click',()=>openWhy(s, key)); }
@@ -2460,19 +2521,37 @@ function renderRoleCards(s, ed){
   const xCards = xmessOn(s) && (ed || document.body.classList.contains('ro'));
   return mk(ROLE_CARDS.concat(xCards?XMESS_CARDS:[]));
 }
-/* 상태 한 줄 — 판단에 필요한 말만(모두 배정됨 · 미배정 N곳 · 확인 필요 N건) */
+/* 상태 한 줄 — 보기 모드에서는 접힌 1줄 카드, 편집 모드에서는 자동 펼쳐 실시간 점검 */
 function schedEmptyCount(s){
   return DAY_SLOTS.filter(sl=>!((s.assign&&s.assign[sl])||(s.fixed&&s.fixed[sl]))).length
        + (s.v2 ? EVENING.filter(sl=>!(s.fixed&&s.fixed[sl])).length : 0)
        + NIGHT_BUNCHO.filter(b=>!(s.night&&s.night[b.id])).length;
 }
-function renderStatusLine(box, s, issues){
+function renderStatusLine(box, s, issues, openDefault){
   const empty=schedEmptyCount(s);
-  const txt=(empty?'미배정 '+empty+'슬롯':'전 슬롯 편성 완료')+' · '+(issues.length?'점검 사항 '+issues.length+'건':'특이사항 없음');
+  const headTxt=empty ? '미배정 '+empty+'슬롯' : '전 슬롯 편성 완료';
   if(issues.length || empty){
-    box.appendChild(el('div','status warn',(issues.length?'⚠ ':'')+esc(txt)));
-    if(issues.length){ const lst=el('div','status-list'); issues.forEach(w=>lst.appendChild(el('div',null,'· '+esc(w)))); box.appendChild(lst); }
-  }else box.appendChild(el('div','status ok','✓ '+esc(txt)));
+    const card=el('div','st-card'+(openDefault && issues.length?' open':''));
+    const hd=el(issues.length?'button':'div','st-hd');
+    if(issues.length){ hd.type='button'; hd.addEventListener('click',()=>card.classList.toggle('open')); }
+    hd.appendChild(el('span','st-dot'));
+    hd.appendChild(el('span',null,esc(headTxt)));
+    if(issues.length){
+      hd.appendChild(el('span','cnt','점검 '+issues.length+'건'));
+      hd.insertAdjacentHTML('beforeend','<svg class="chv" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>');
+    }
+    card.appendChild(hd);
+    if(issues.length){
+      const bd=el('div','st-body');
+      issues.forEach(w=>bd.appendChild(el('div','st-it',esc(w))));
+      card.appendChild(bd);
+    }
+    box.appendChild(card);
+  }else{
+    const card=el('div','st-card ok');
+    card.appendChild(el('div','st-hd','<span class="st-dot"></span><span>'+esc(headTxt)+'</span><span class="cnt">특이사항 없음</span>'));
+    box.appendChild(card);
+  }
 }
 
 let vMode='view';   // 보기 / 편집 (열람 전용 계정은 항상 보기)
@@ -2530,6 +2609,11 @@ $$('#vMode button').forEach(b=>b.addEventListener('click',()=>{
 
 function renderView(){
   const ds=$('#vDate').value||todayStr(); $('#vDate').value=ds;
+  const lbl=$('#vDateLbl');
+  if(lbl){
+    const y=ds.slice(0,4), m=Number(ds.slice(5,7)), d=Number(ds.slice(8)), cy=todayStr().slice(0,4);
+    lbl.innerHTML=(y!==cy?esc(y)+'년 ':'')+m+'월 '+d+'일 <span class="dow">('+DOW_KR[dow(ds)]+')</span>';
+  }
   const saved=DB.schedules[ds];
   if(vDraft && vDraft.date!==ds) vDraft=null;
   const editing = vMode==='edit' && !document.body.classList.contains('ro') && !!saved;
@@ -2537,23 +2621,21 @@ function renderView(){
   const s = editing ? vDraft.s : saved;
   $$('#vMode button').forEach(b=>b.classList.toggle('on', b.dataset.m===(editing?'edit':'view')));
   const body=$('#vBody'); body.innerHTML='';
+  // 특수일(공휴일·직장 휴무일·다음날 휴무)만 표시 — 요일과 주간/야간 그룹은 날짜바·시간표 헤더에 이미 표시됨
   const meta=el('div','meta');
-  meta.appendChild(el('span','pill', DOW_KR[dow(ds)]+'요일'));
   { const hn=holidayName(ds); if(hn) meta.appendChild(el('span','pill','휴무일 · '+esc(hn))); }
   if(s){
-    meta.appendChild(el('span','pill','주간 · '+DAYGROUP_KR[dayGroup(ds,s.workHoliday)]));
-    meta.appendChild(el('span','pill','야간 · '+(nightGroup(ds,s.nextWorkHoliday)==='holiday'?'휴일전야':'평일전야')));
     if(s.workHoliday) meta.appendChild(el('span','pill','직장 휴무일'));
     if(s.nextWorkHoliday) meta.appendChild(el('span','pill','다음날 휴무'));
   }
-  body.appendChild(meta);
+  if(meta.children.length) body.appendChild(meta);
   if(!s){ const ro=document.body.classList.contains('ro')||document.body.classList.contains('guest');
     body.appendChild(el('div','err', ro ? '이 날짜의 근무표가 아직 나오지 않았습니다. 관리자가 편성하면 바로 보입니다.' : '해당 일자의 근무표가 없습니다. [생성] 탭에서 먼저 생성하십시오.')); return; }
   const changed=vChangedKeys();
   const ed = editing ? {orig:vDraft.orig, changed, onPick:openEdPick} : null;
   if(editing) body.appendChild(el('div','edbanner','<b>근무표 편집</b><span>수정 대상 슬롯의 [변경]을 선택하십시오. 저장 전까지 데이터에 반영되지 않습니다.</span>'));
   const issues = editing ? validateSchedule(s) : validateScheduleCached(s);
-  renderStatusLine(body, s, issues);
+  renderStatusLine(body, s, issues, editing);
   body.appendChild(renderRoleCards(s, ed));
   if(!editing){
     // 관리자: 당직사관·사령 대신 추가배식조(당일·다음날) / 구성원: 종전대로 당직사관·사령
@@ -2759,6 +2841,7 @@ function schedToInput(s){
     mealId:s.mealId, dayEx:s.dayEx, nightEx:s.nightEx||[], bothEx:s.bothEx, slotEx:s.slotEx, nextWorkHoliday:s.nextWorkHoliday,
     prevDutyId:s.prevDutyId, prevSituationId:s.prevSituationId};
 }
+$('#vDate').addEventListener('click',()=>{ try{ if($('#vDate').showPicker) $('#vDate').showPicker(); }catch(e){} });
 $('#vDate').addEventListener('change',()=>{ const to=$('#vDate').value; if(vDraft) $('#vDate').value=vDraft.date; vResolveDraft(()=>{ $('#vDate').value=to; renderView(); }); });
 $('#vPrev').addEventListener('click',()=>{ vResolveDraft(()=>{ $('#vDate').value=addDays($('#vDate').value||todayStr(),-1); renderView(); }); });
 $('#vNext').addEventListener('click',()=>{ vResolveDraft(()=>{ $('#vDate').value=addDays($('#vDate').value||todayStr(),1); renderView(); }); });
@@ -3691,7 +3774,7 @@ function officerLine(ds){
     const c=el(can?'button':'div','of');
     if(can){ c.type='button'; c.addEventListener('click',()=>openOfficerPick(ds, role)); c.setAttribute('aria-label', label+' '+(name||'기록 없음')+' — 선택하여 기록'); }
     c.appendChild(el('small',null,esc(label)));
-    c.appendChild(el('b', name?null:'none', name ? esc(name) : (api.loaded() ? (can?'기록하기':'기록 없음') : '조회 중…')));
+    c.appendChild(el('b', name?null:(api.loaded()&&can?'none add':'none'), name ? esc(name) : (api.loaded() ? (can?'+ 기록':'기록 없음') : '조회 중…')));
     box.appendChild(c);
   });
   if(rec && rec.byName && (rec.sagwanName||rec.saryeongName)) box.appendChild(el('div','by','기록: '+esc(rec.byName)));
@@ -5299,11 +5382,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.1.0"></script>
+<script src="firebase-config.js?v=9.2.0"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.1.0"></script>
+<script src="sync.js?v=9.2.0"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

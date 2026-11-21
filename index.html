@@ -874,12 +874,12 @@ details.arch[open] summary{margin-bottom:8px}
     -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:3}
   nav.tabs::after{content:"";position:absolute;inset:1px 12px auto;height:44%;border-radius:999px;pointer-events:none;z-index:0;
     background:radial-gradient(ellipse 44% 95% at var(--lg-x,50%) 0%,var(--lg-sheen) 0%,transparent 72%);opacity:.78}
-  nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2.5px;font-size:11.5px;font-weight:600;letter-spacing:-.01em;padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-dim);transition:transform .22s cubic-bezier(.34,1.56,.64,1),color .18s ease}
+  nav.tabs button{position:relative;z-index:1;flex-direction:column;gap:2.5px;font-size:11.5px;font-weight:600;letter-spacing:-.01em;padding:7px 0 6px;border:0;background:none;justify-content:center;border-radius:999px;color:var(--ink-dim);transition:transform .3s cubic-bezier(.22,1,.36,1),color .28s ease}
   nav.tabs button:hover{background:none}
   nav.tabs,nav.tabs button{-webkit-tap-highlight-color:transparent;outline:none}
   nav.tabs button:focus,nav.tabs button:focus-visible{outline:none;box-shadow:none}
-  nav.tabs:not(.scrubbing) button:active{transform:scale(.91)}
-  nav.tabs button svg{width:21px;height:21px;transition:transform .28s cubic-bezier(.34,1.56,.64,1),stroke-width .18s ease}
+  nav.tabs:not(.scrubbing) button:active{transform:scale(.92)}
+  nav.tabs button svg{width:21px;height:21px;transition:transform .36s cubic-bezier(.22,1,.36,1),stroke-width .26s ease}
   nav.tabs button.on,nav.tabs button.on-sub,nav.tabs button.scrub-hi{color:var(--acc);font-weight:800;background:none;box-shadow:none;border-color:transparent}
   nav.tabs button.on svg,nav.tabs button.on-sub svg,nav.tabs button.scrub-hi svg{color:var(--acc);stroke-width:2.25;transform:translateY(-1px) scale(1.08)}
   nav.tabs.scrubbing button.on:not(.scrub-hi),nav.tabs.scrubbing button.on-sub:not(.scrub-hi){color:var(--ink-dim);font-weight:600}
@@ -973,7 +973,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.3.0</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.3.1</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1572,7 +1572,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.3.0"></script>
+<script src="engine.js?v=9.3.1"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1635,8 +1635,8 @@ const DOCK={x:0,vx:0,tx:0,w:68,tw:68,s:0,ts:0,raf:0,t0:0,placed:false,down:false
 function dockTabs(){ const nav=$('#tabs'); return nav?[...nav.querySelectorAll('button')].filter(b=>b.offsetParent!==null):[]; }
 function dockPaint(nav, pill, lensOn){
   const spd=Math.abs(DOCK.vx);
-  const str=Math.min(.22, spd*.011);
-  const sx=(1 + DOCK.s*.13)*(1 + str);
+  const str=Math.min(.26, spd*.022);
+  const sx=(1 + DOCK.s*.14)*(1 + str);
   const sy=(1 + DOCK.s*.10)/Math.sqrt(1 + str*.85);
   pill.style.width=DOCK.w.toFixed(2)+'px';
   pill.style.transform='translate3d('+DOCK.x.toFixed(2)+'px,0,0) scale('+sx.toFixed(4)+','+sy.toFixed(4)+')';
@@ -1650,16 +1650,18 @@ function dockStep(now){
   const dt=DOCK.t0 ? Math.min(32, Math.max(4, now - DOCK.t0)) : 16.67;
   DOCK.t0=now;
   const f=dt/16.667;
-  const k=DOCK.drag ? .34 : .20;
-  const d=DOCK.drag ? .62 : .68;
+  const k=DOCK.drag ? .24 : .048;
+  const d=DOCK.drag ? .64 : .74;
   DOCK.vx=(DOCK.vx + (DOCK.tx - DOCK.x)*k*f)*Math.pow(d, f);
   DOCK.x+=DOCK.vx*f;
-  DOCK.w+=(DOCK.tw - DOCK.w)*Math.min(1, .28*f);
-  DOCK.s+=(DOCK.ts - DOCK.s)*Math.min(1, .22*f);
-  const lensOn=DOCK.drag || DOCK.s>.16 || Math.abs(DOCK.vx)>3.2;
+  DOCK.w+=(DOCK.tw - DOCK.w)*Math.min(1, .16*f);
+  const dist=Math.abs(DOCK.tx - DOCK.x);
+  const targetS=DOCK.drag ? 1 : Math.min(.88, Math.abs(DOCK.vx)*.085 + (dist>10 ? .42 : 0));
+  DOCK.s+=(targetS - DOCK.s)*Math.min(1, (targetS>DOCK.s ? .24 : .12)*f);
+  const lensOn=DOCK.drag || DOCK.s>.18 || Math.abs(DOCK.vx)>1.6;
   dockPaint(nav, pill, lensOn);
-  if(!DOCK.drag && Math.abs(DOCK.tx-DOCK.x)<.15 && Math.abs(DOCK.vx)<.08 && Math.abs(DOCK.tw-DOCK.w)<.15 && Math.abs(DOCK.ts-DOCK.s)<.01){
-    DOCK.x=DOCK.tx; DOCK.w=DOCK.tw; DOCK.vx=0; DOCK.s=DOCK.ts;
+  if(!DOCK.drag && dist<.15 && Math.abs(DOCK.vx)<.06 && Math.abs(DOCK.tw-DOCK.w)<.15 && DOCK.s<.015){
+    DOCK.x=DOCK.tx; DOCK.w=DOCK.tw; DOCK.vx=0; DOCK.s=0;
     pill.style.width=DOCK.w.toFixed(2)+'px';
     pill.style.transform='translate3d('+DOCK.x.toFixed(2)+'px,0,0)';
     pill.classList.remove('lens');
@@ -1683,7 +1685,7 @@ function movePill(instant){
     pill.style.transform='translate3d('+nx.toFixed(2)+'px,0,0)';
     return;
   }
-  if(Math.abs(nx - DOCK.x) > 4) DOCK.s=Math.max(DOCK.s, .58);
+  if(Math.abs(nx - DOCK.x) > 4) DOCK.s=Math.max(DOCK.s, .36);
   dockStart();
 }
 function activateTab(b){
@@ -5537,11 +5539,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.3.0"></script>
+<script src="firebase-config.js?v=9.3.1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.3.0"></script>
+<script src="sync.js?v=9.3.1"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

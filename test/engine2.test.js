@@ -361,3 +361,29 @@ test('v2 주간·야간 상황병: 고정 CCTV(13:30·10:30), 면제, 근무일�
   const b2 = E.buildStats2(nn.date), a2 = E.buildStats2(E.addDays(nn.date, 2));
   assert.strictEqual(a2[nid].denom, b2[nid].denom); assert.strictEqual(a2[nid].slotNum['10:30'], b2[nid].slotNum['10:30']);
 });
+
+test('전환 전날: 구 방식으로 만들되 17:30·18:30·19:30은 일반 배정(새 체계 상황병 제외), 전환일 상황병은 야간 제외', () => {
+  const ws = []; for (let i = 0; i < 20; i++) ws.push(E.normWorker({ id: 'e' + i, name: 'e' + i, roleReady: true, roleType: i < 7 ? 'situation' : 'duty', canMeal: true, canXmess: true, active: true }, i));
+  const db = { version: 2, workers: ws, schedules: {}, prebook: [], holidays: {}, settings: JSON.parse(JSON.stringify(E.DEFAULT_SETTINGS)) };
+  E.setDB(db);
+  // 구 방식 3일
+  for (let i = 0; i < 3; i++) { const d = E.addDays('2027-03-01', i);
+    db.prebook.push(E.normPrebook({ kind: 'duty', wid: 'e' + (7 + i), start: d }), E.normPrebook({ kind: 'situation', wid: 'e' + i, start: d }));
+    db.schedules[d] = E.generateDay(E.autoInputFor(d)); E.invalidateStats(); }
+  const since = '2027-03-05', eve = '2027-03-04';
+  db.prebook.push(E.normPrebook({ kind: 'duty', wid: 'e10', start: eve }), E.normPrebook({ kind: 'situation', wid: 'e3', start: eve }));
+  E.switchToV2(since);
+  db.prebook = db.prebook.filter(p => !(p.kind === 'duty' && p.start >= since));
+  db.prebook.push(E.normPrebook({ kind: 'sitday', wid: 'e4', start: since }), E.normPrebook({ kind: 'situation', wid: 'e5', start: since }));
+  const s = E.generateTransitionEve(eve);
+  assert.ok(!s.v2 && s.transitionEve);
+  assert.strictEqual(s.dutyId, 'e10'); assert.strictEqual(s.situationId, 'e3');
+  assert.ok(!s.nextDutyId && !s.nextMealId && !s.nextSituationId);
+  ['17:30', '18:30', '19:30'].forEach(sl => { const id = s.fixed[sl]; assert.ok(id, sl); assert.ok(!E.isSituationW(E.W(id)), sl + ' 상황병 아님'); });
+  ['e4', 'e5'].forEach(id => assert.ok(!Object.values(s.night).includes(id), id + ' 전환일 상황병은 오늘 야간 제외'));
+  assert.ok(!E.validateSchedule(s).some(m => /인접|이중 야간|금지|열외인데/.test(m)), E.validateSchedule(s).join(' / '));
+  db.schedules[eve] = s; E.invalidateStats();
+  const t = E.generateDay2(E.autoInputFor(since));
+  assert.deepStrictEqual(E.validateSchedule2(t).hard, []);
+  assert.strictEqual(t.daySitId, 'e4'); assert.strictEqual(t.situationId, 'e5');
+});

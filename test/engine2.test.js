@@ -290,3 +290,31 @@ test('mealForecast: 실제 데이터는 그대로 두고, 예상 순번이 실�
   for (let i = 3; i < 10; i++) { const d = E.addDays('2027-03-01', i); db2.schedules[d] = E.generateDay2(E.autoInputFor(d)); E.invalidateStats(); }
   F2.forEach(x => assert.deepStrictEqual(x.list.map(e => e.k + e.id), Object.keys(db2.schedules[x.date].gate).filter(k => 'ABCH'.includes(k)).sort((a, b) => 'ABCH'.indexOf(a) - 'ABCH'.indexOf(b)).map(k => k + db2.schedules[x.date].gate[k]), x.date));
 });
+
+test('v2 운항병: 평일 주간은 고정칸만, 야간은 금·토 중 주 1회, 위병조장 없음, 배식조는 주말·휴일만', () => {
+  const db = setup();
+  const nav = db.workers.find(w => w.id === 'g5'); nav.isNavigator = true;
+  E.invalidateStats();
+  const all = runDays(db, '2027-03-01', 56);
+  let fixedDays = 0, eve = 0;
+  all.forEach(s => {
+    const wk = E.dayGroup(s.date, s.workHoliday) !== 'weekend', fx = E.navFixedDaySlots(s.date, s.workHoliday);
+    if (wk) E.DAY_SLOTS.forEach(sl => { if (s.assign[sl] === 'g5') assert.ok(fx.includes(sl), s.date + ' ' + sl); });
+    if (wk && fx.every(sl => s.assign[sl] === 'g5')) fixedDays++;
+    if (Object.values(s.night).includes('g5')) assert.ok([5, 6].includes(E.dow(s.date)), s.date + ' 야간');
+    assert.ok(!Object.values(s.gate).includes('g5') && !Object.values(s.nextGate).includes('g5'), s.date + ' 위병조장');
+    if (wk) assert.ok(!s.messIds.includes('g5'), s.date + ' 평일 배식조');
+    if (E.EVENING.some(sl => s.fixed[sl] === 'g5')) eve++;
+    assert.deepStrictEqual(E.validateSchedule2(s).hard, [], s.date);
+    assert.ok(!E.validateSchedule2(s).soft.some(m => /운항병인데/.test(m)), s.date);
+  });
+  // 주 단위로 금·토 야간 1회까지
+  for (let w = 0; w < 8; w++) { const fri = E.addDays('2027-03-05', 7 * w), sat = E.addDays(fri, 1);
+    assert.ok([fri, sat].filter(d => Object.values(db.schedules[d].night).includes('g5')).length <= 1, fri); }
+  assert.ok(fixedDays >= 20, 'fixed ' + fixedDays);
+  assert.ok(eve > 0, '저녁·개인정비 칸에도 들어간다');
+  // 배정 사유·야간 후보도 운항병 규칙으로 설명
+  const s0 = all.find(s => E.dayGroup(s.date, s.workHoliday) !== 'weekend' && s.assign['09:30'] === 'g5');
+  assert.strictEqual(E.explainAssignment(s0, 'D:09:30').kind, 'rule');
+  const P = E.nightPool(s0); if (!Object.values(s0.night).includes('g5')) assert.ok(P.blocked.some(b => b.id === 'g5'));
+});

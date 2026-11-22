@@ -2644,7 +2644,8 @@ function generateDay2(input){
     }
   }
   Object.entries(navDay).forEach(([sl,id])=>{ pre[sl]=id; occ[id]=(occ[id]||[]).concat(sl); });   // 운항병 고정칸(개인정비 칸 순번과는 무관)
-  if(wk){ const sf={}; if(ctx.situationId) sf['10:30']=ctx.situationId; if(daySit) sf['13:30']=daySit;   // 상황병 고정 CCTV(평일)
+  if(wk){ const sf={}, canFix=(id,sl)=> !ctx.dayEx.includes(id) && !ctx.bothEx.includes(id) && !slotExcluded(ctx,id,sl);   // 주간 열외(신검 등)·시간대 열외면 고정 CCTV를 넣지 않는다
+    if(ctx.situationId && canFix(ctx.situationId,'10:30')) sf['10:30']=ctx.situationId; if(daySit && canFix(daySit,'13:30')) sf['13:30']=daySit;   // 상황병 고정 CCTV(평일)
     Object.entries(sf).forEach(([sl,id])=>{ if(fuelDay[sl]) delete fuelDay[sl]; pre[sl]=id; occ[id]=(occ[id]||[]).concat(sl); }); }
   if(navNight) occ[navId]=(occ[navId]||[]).concat(NIGHT_BUNCHO.find(b=>b.id===navNight.bunchoId).slots);
   ctx._fixedSlotsByWorker = cloneSlotMap(occ);
@@ -2784,8 +2785,9 @@ function validateSchedule2(s){
     if(prevNight.has(id)) hard.push(nameOf(id)+': 전날 야간자인데 배식조');
     if(prev && prev.v2 && (prev.messIds||[]).includes(id)) soft.push(nameOf(id)+': 배식조 이틀 연속');
   });
-  if(wkd2 && s.situationId && assign['10:30']!==s.situationId) soft.push('야간 상황병('+nameOf(s.situationId)+') 10:30 고정 아님');
-  if(wkd2 && s.daySitId && assign['13:30']!==s.daySitId) soft.push('주간 상황병('+nameOf(s.daySitId)+') 13:30 고정 아님');
+  const noFix = id => (s.dayEx||[]).includes(id) || (s.bothEx||[]).includes(id);
+  if(wkd2 && s.situationId && !noFix(s.situationId) && !slotExcluded(s, s.situationId, '10:30') && assign['10:30']!==s.situationId) soft.push('야간 상황병('+nameOf(s.situationId)+') 10:30 고정 아님');
+  if(wkd2 && s.daySitId && !noFix(s.daySitId) && !slotExcluded(s, s.daySitId, '13:30') && assign['13:30']!==s.daySitId) soft.push('주간 상황병('+nameOf(s.daySitId)+') 13:30 고정 아님');
   if(s.patrolExtra && v2SitBarred(s.patrolExtra, s.date, s.workHoliday, 'P')) soft.push(nameOf(s.patrolExtra)+': 상황병인데 금요일 추가순찰 배정');
   { const nv=v2NavId(), wkd=dayGroup(s.date, s.workHoliday)!=='weekend';
     if(nv){

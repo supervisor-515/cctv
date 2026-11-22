@@ -2327,6 +2327,8 @@ function workHeatmap(wid, from, to, today){
 const GATE_HOURS = {A:3.5, B:4, C:4, H:2};
 const NIGHT_HOURS2 = 2;
 /* v2: 배식조 근무시간 — 토 2h, 그 외 요일 3h (평균 근무시간에 산입) */
+/* v2 주간 상황병 고정 CCTV — 월~목 14:30, 금 13:30 (운항병 고정 09:30·13:30 / 금 09:30·14:30과 겹치지 않게) */
+function v2DaySitSlot(ds){ return dow(ds)===5 ? '13:30' : '14:30'; }
 function v2MessHours(ds){ return dow(ds)===6 ? 2 : 3; }
 /* v2: 평일에 위병조장A·배식조를 서면 개인정비시간을 1시간 빼앗긴다 — 개인정비 CCTV 시간에 1h로 산입(그날도 대상일로 센다) */
 const PTIME_LOSS = {gateA:1, mess:1};   // v2: 야간 번초 1개 = 실제 근무 2시간
@@ -2439,7 +2441,7 @@ function _computeStats2(uptoDate, month, type){
     });
     AS.forEach(slot=>{
       const id = DAY_SLOTS.includes(slot) ? (s.assign||{})[slot] : (s.fixed||{})[slot];
-      const r = id && st[id]; if(!r || exempt.includes(id)) return;   // 야간 상황병의 고정 CCTV(10:30, 겸임 시 13:30)와 면제일(전날 야간 상황병이 다음날 주간 상황병인 경우 13:30)은 세지 않는다
+      const r = id && st[id]; if(!r || exempt.includes(id)) return;   // 야간 상황병의 고정 CCTV(10:30, 겸임 시 주간 고정칸)와 면제일(전날 야간 상황병이 다음날 주간 상황병인 경우 주간 고정칸)은 세지 않는다
       r.tieDay[slot]=ds;
       if(slot==='06:30') r.rotAllNum++;
       if(okReset[id]){ r.slotNum[slot]++; r.groupNum[g]++; r.slotGNum[g][slot]++; r.slotLast[slot]=ds; }
@@ -2585,7 +2587,7 @@ function generateDay2(input){
   const navId=v2NavId(), navWd=!!navId && dayGroup(ds,wh)!=='weekend';   // 운항병: 평일 주간은 고정칸만, 야간은 지정한 날만
   const fullOut = new Set([...exempt, ...ctx.bothEx, ...messIds]);
   const elig = baseEligible(ds).map(w=>w.id).filter(id=> !fullOut.has(id));
-  const daySit = ctx.daySitId;   // 주간 상황병: 13:30 고정 외 주간·저녁 제외, 21:30·야간은 가능
+  const daySit = ctx.daySitId;   // 주간 상황병: 고정칸(월~목 14:30, 금 13:30) 외 주간·저녁 제외, 21:30·야간은 가능
   const dayCand = elig.filter(id=> !gateIds.includes(id) && !ctx.dayEx.includes(id) && !(navWd && id===navId) && id!==daySit);
   const eveCand = elig.filter(id=> !gateIds.includes(id) && id!==daySit);
   const nightOut = new Set([ctx.nextSituationId, ctx.nextDaySitId, nextGate.A, nextGate.B, nextGate.H, ...nextMessIds, ...ctx.nightEx].filter(Boolean));
@@ -2645,7 +2647,7 @@ function generateDay2(input){
   }
   Object.entries(navDay).forEach(([sl,id])=>{ pre[sl]=id; occ[id]=(occ[id]||[]).concat(sl); });   // 운항병 고정칸(개인정비 칸 순번과는 무관)
   if(wk){ const sf={}, canFix=(id,sl)=> !ctx.dayEx.includes(id) && !ctx.bothEx.includes(id) && !slotExcluded(ctx,id,sl);   // 주간 열외(신검 등)·시간대 열외면 고정 CCTV를 넣지 않는다
-    if(ctx.situationId && canFix(ctx.situationId,'10:30')) sf['10:30']=ctx.situationId; if(daySit && canFix(daySit,'13:30')) sf['13:30']=daySit;   // 상황병 고정 CCTV(평일)
+    if(ctx.situationId && canFix(ctx.situationId,'10:30')) sf['10:30']=ctx.situationId; if(daySit && canFix(daySit,v2DaySitSlot(ds))) sf[v2DaySitSlot(ds)]=daySit;   // 상황병 고정 CCTV(평일)
     Object.entries(sf).forEach(([sl,id])=>{ if(fuelDay[sl]) delete fuelDay[sl]; pre[sl]=id; occ[id]=(occ[id]||[]).concat(sl); }); }
   if(navNight) occ[navId]=(occ[navId]||[]).concat(NIGHT_BUNCHO.find(b=>b.id===navNight.bunchoId).slots);
   ctx._fixedSlotsByWorker = cloneSlotMap(occ);
@@ -2749,9 +2751,9 @@ function validateSchedule2(s){
     if(occ[wid] && adjacent(occ[wid], slots)) hard.push(n+': 인접 슬롯 연속근무('+lab+')');
     if(isN && cells.some(c=> c[0]!==key && c[0][0]==='N' && c[2]===wid)) hard.push(n+': 이중 야간 금지');
     occ[wid] = (occ[wid]||[]).concat(slots);
-    const sitFix = wkd2 && ((wid===s.situationId && key==='D:10:30') || (wid===s.daySitId && key==='D:13:30'));   // 상황병 고정 CCTV(전날 야간 상황병이 다음날 주간 상황병이어도 13:30은 선다)
+    const sitFix = wkd2 && ((wid===s.situationId && key==='D:10:30') || (wid===s.daySitId && key==='D:'+v2DaySitSlot(s.date)));   // 상황병 고정 CCTV(전날 야간 상황병이 다음날 주간 상황병이어도 주간 고정칸은 선다)
     if(exempt.includes(wid) && !sitFix) hard.push(n+': 상황병 면제일인데 '+lab+' 배정');
-    if(wid===s.daySitId && wid!==s.situationId && !(key==='D:13:30' || key==='E:21:30' || isN)) hard.push(n+': 주간 상황병인데 '+lab+' 배정');
+    if(wid===s.daySitId && wid!==s.situationId && !(key==='D:'+v2DaySitSlot(s.date) || key==='E:21:30' || isN)) hard.push(n+': 주간 상황병인데 '+lab+' 배정');
     if((s.bothEx||[]).includes(wid) && !fuelOk) hard.push(n+': 전체열외인데 '+lab+' 배정');
     if(mess.includes(wid)) hard.push(n+': 배식조인데 '+lab+' 배정');
     if(!isN && gateIds.includes(wid)) hard.push(n+': 당일 위병조장인데 '+lab+' 배정');
@@ -2787,7 +2789,7 @@ function validateSchedule2(s){
   });
   const noFix = id => (s.dayEx||[]).includes(id) || (s.bothEx||[]).includes(id);
   if(wkd2 && s.situationId && !noFix(s.situationId) && !slotExcluded(s, s.situationId, '10:30') && assign['10:30']!==s.situationId) soft.push('야간 상황병('+nameOf(s.situationId)+') 10:30 고정 아님');
-  if(wkd2 && s.daySitId && !noFix(s.daySitId) && !slotExcluded(s, s.daySitId, '13:30') && assign['13:30']!==s.daySitId) soft.push('주간 상황병('+nameOf(s.daySitId)+') 13:30 고정 아님');
+  if(wkd2 && s.daySitId && !noFix(s.daySitId) && !slotExcluded(s, s.daySitId, v2DaySitSlot(s.date)) && assign[v2DaySitSlot(s.date)]!==s.daySitId) soft.push('주간 상황병('+nameOf(s.daySitId)+') '+v2DaySitSlot(s.date)+' 고정 아님');
   if(s.patrolExtra && v2SitBarred(s.patrolExtra, s.date, s.workHoliday, 'P')) soft.push(nameOf(s.patrolExtra)+': 상황병인데 금요일 추가순찰 배정');
   { const nv=v2NavId(), wkd=dayGroup(s.date, s.workHoliday)!=='weekend';
     if(nv){
@@ -2855,15 +2857,15 @@ function explainAssignment2(s, key){
     if(key==='sit' || key==='daySit'){
       o.kind='rule';
       if(key==='daySit'){ o.title='주간 상황병';
-        o.lines=['별도 순번(예약·직접 지정)으로 정합니다. 13:30이 고정 CCTV이고, 그 외 주간·저녁 칸은 빠집니다(21:30·야간은 들어갈 수 있음). 전날 야간이 면제됩니다. 근무일로 세고 그날 CCTV도 카운트합니다.'];
+        o.lines=['별도 순번(예약·직접 지정)으로 정합니다. 월~목 14:30, 금 13:30이 고정 CCTV이고, 그 외 주간·저녁 칸은 빠집니다(21:30·야간은 들어갈 수 있음). 전날 야간이 면제됩니다. 근무일로 세고 그날 CCTV도 카운트합니다.'];
         if(who && who===s.situationId) o.lines.push('같은 날 야간 상황병도 맡아 야간 상황병 규칙(당일·다음날 면제, 근무일·카운트 제외)을 따릅니다.');
       }else if(wkd){ o.title='야간(당직) 상황병';
-        o.lines=['별도 순번(예약·직접 지정)으로 정합니다. 10:30이 고정 CCTV이고(주간 상황병도 맡으면 13:30도), 전날 야간과 당일·다음날 CCTV가 면제됩니다. 당일·다음날은 근무일에서 빼고, 그날 고정 CCTV는 카운트하지 않습니다.']; }
+        o.lines=['별도 순번(예약·직접 지정)으로 정합니다. 10:30이 고정 CCTV이고(주간 상황병도 맡으면 주간 고정칸 월~목 14:30·금 13:30도), 전날 야간과 당일·다음날 CCTV가 면제됩니다. 당일·다음날은 근무일에서 빼고, 그날 고정 CCTV는 카운트하지 않습니다.']; }
       else { o.title='상황병 (주말·휴일)';
         o.lines=['주말·휴일은 한 명이 종일 맡습니다. 고정 CCTV 없이 전날 야간과 당일·다음날 CCTV가 면제되고, 당일·다음날은 근무일에서 뺍니다.']; }
       return o;
     }
-    if(wkd && who && ((key==='D:10:30' && who===s.situationId) || (key==='D:13:30' && who===s.daySitId))){
+    if(wkd && who && ((key==='D:10:30' && who===s.situationId) || (key==='D:'+v2DaySitSlot(ds) && who===s.daySitId))){
       o.kind='rule'; o.title=key.slice(2)+' (상황병 고정)';
       o.lines=[key==='D:10:30' ? '야간(당직) 상황병의 고정 CCTV입니다. 카운트·근무일에 넣지 않습니다.' : (who===s.situationId ? '주간·야간 상황병을 함께 맡은 날의 고정 CCTV입니다. 카운트·근무일에 넣지 않습니다.' : '주간 상황병의 고정 CCTV입니다. 근무일로 세고 카운트에도 넣습니다.')];
       return o;
@@ -2917,7 +2919,7 @@ function explainAssignment2(s, key){
     if(isDaySl && (s.dayEx||[]).includes(id)) return '주간 열외';
     if(slotExcluded(s, id, unit)) return (s.outing||[]).includes(id) && !isN ? '외출' : '시간대 열외';
     if(!isN && v2SitBarred(id, ds, wh, isP ? 'P' : slot)) return '상황병(개인정비 칸 제외)';
-    if(!isN && id===s.daySitId && slot!=='21:30') return '주간 상황병(13:30·21:30·야간만)';
+    if(!isN && id===s.daySitId && slot!=='21:30') return '주간 상황병(고정칸·21:30·야간만)';
     if(isP){
       if((s.outing||[]).includes(id)) return '외출';
       if(id===(s.assign||{})['16:30'] || id===(s.fixed||{})['17:30']) return '16:30·17:30 근무자';
@@ -3091,7 +3093,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, generateDay2, buildStats2, nightPool, v2NavId, mealForecast, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
+    generateDay, generateDay2, buildStats2, nightPool, v2DaySitSlot, v2NavId, mealForecast, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
     autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,

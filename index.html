@@ -1009,7 +1009,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.4.2</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.4.3</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1106,7 +1106,7 @@ body.ro .no-ro{display:none!important}
     <div class="field"><label>종류</label>
       <div class="kinds" id="pbKinds">
         <button data-k="vacation">휴가</button><button data-k="exday">주간 열외</button><button data-k="exboth">모두 열외</button><button data-k="duty" class="v1only">당직 예약</button>
-        <button data-k="situation">상황병 예약</button><button data-k="fueltruck">유조차 (정)</button><button data-k="fuelsub">유조차 (부)</button><button data-k="mess" class="v1only">배식조</button><button data-k="holiday">휴무일</button>
+        <button data-k="sitday" class="v2only">주간 상황병 예약</button><button data-k="situation"><span class="v1only">상황병 예약</span><span class="v2only">야간 상황병 예약</span></button><button data-k="fueltruck">유조차 (정)</button><button data-k="fuelsub">유조차 (부)</button><button data-k="mess" class="v1only">배식조</button><button data-k="holiday">휴무일</button>
       </div>
       <select id="pbKind" style="display:none">
         <option value="vacation">휴가 (복귀일은 주간만 열외)</option>
@@ -1114,6 +1114,7 @@ body.ro .no-ro{display:none!important}
         <option value="exboth">모두 열외 (분모 제외)</option>
         <option value="duty">당직 예약</option>
         <option value="situation">상황병 예약</option>
+        <option value="sitday">주간 상황병 예약</option>
         <option value="fueltruck">유조차 운전병 (주간 월~일)</option>
         <option value="fuelsub">유조차 대체 (부)</option>
         <option value="mess">배식조 (주간 월~일)</option>
@@ -1239,10 +1240,14 @@ body.ro .no-ro{display:none!important}
           <table class="matrix v2only" id="gMx2">
             <thead><tr><th class="rh"></th><th>전날<small>당일 전체 면제</small></th><th>당일</th><th>다음날<small>오늘 야간 제외</small></th></tr></thead>
             <tbody>
-              <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>상황</span></th>
-                <td><select id="g2PrevSit" title="전날 상황병 (당일 CCTV 전체 면제)"></select></td>
-                <td><select id="g2Sit" title="당일 상황병 (CCTV 전체 면제)"></select></td>
-                <td><select id="g2NextSit" title="다음날 상황병 (오늘 야간 면제)"></select></td></tr>
+              <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>주간상황</span></th>
+                <td class="na"></td>
+                <td><select id="g2DaySit" title="당일 주간 상황병 (13:30 고정, 21:30·야간만 추가 가능) — 휴일은 없음"></select></td>
+                <td><select id="g2NextDaySit" title="다음날 주간 상황병 (오늘 야간 제외)"></select></td></tr>
+              <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>야간상황<small>·휴일</small></span></th>
+                <td><select id="g2PrevSit" title="전날 야간 상황병 (당일 CCTV 전체 면제)"></select></td>
+                <td><select id="g2Sit" title="당일 야간(당직) 상황병 (10:30 고정, 그 외 면제) — 휴일은 종일 상황병 1명"></select></td>
+                <td><select id="g2NextSit" title="다음날 야간 상황병 (오늘 야간 제외) — 휴일은 종일 상황병 1명"></select></td></tr>
               <tr><th class="rh"><span class="rl"><i style="background:var(--meal)"></i>위병A<small>·휴일</small></span></th>
                 <td class="na"></td>
                 <td><select id="g2GA" title="당일 위병조장A (휴일이면 위병조장 1명)"></select></td>
@@ -1593,7 +1598,7 @@ body.ro .no-ro{display:none!important}
     <div class="panel">
       <p class="smallnote v2only" style="font-size:var(--fs-sm)">
         1일 기준: 당일 06:30~익일 05:30 (1시간 단위 24개 슬롯). 주간 06:30~16:30 (11칸), 저녁 17:30~21:30 (5칸), 야간 4개 번초(1번초 22:30+02:30, 2번초 23:30+03:30, 3번초 00:30+04:30, 4번초 01:30+05:30).<br>
-        <b>상황병</b>: 예약·직접 지정. 전날 야간과 당일·다음날 CCTV 전체 면제(당일·다음날은 분모 제외). 위병조장 불가, 배식조는 전날만 가능.<br>
+        <b>상황병</b>(예약·직접 지정, 위병조장 불가): 평일은 <b>주간 상황병</b>과 <b>야간(당직) 상황병</b>으로 나뉩니다. 주간 상황병은 13:30 고정 CCTV, 그 외 주간·저녁 칸은 빠지고 21:30·야간은 들어갈 수 있으며 전날 야간이 면제됩니다(근무일로 세고 그날 CCTV도 카운트). 야간 상황병은 10:30 고정 CCTV, 전날 야간·당일·다음날 면제(당일·다음날 근무일 제외, 고정 CCTV 카운트 안 함). 같은 사람이 둘 다 맡으면 10:30·13:30 고정, 야간 상황병 규칙을 따릅니다. 주말·휴일은 상황병 1명이 종일, 고정 CCTV 없이 야간 상황병과 같은 규칙. 배식조는 근무 전날만 가능(주간 상황병은 당일만 불가), 전날 야간자는 배식조 불가.<br>
         <b>위병조장</b>: 평일(월~금) A·B·C 3명, 주말·휴일 1명(일반병만). A는 배정률 낮은 순 → 오래 안 선 순, B·C는 합산 배정률, 주말·휴일은 따로 셉니다. A·B·주말은 전날 야간자 제외(C는 가능). 당일 주간·저녁 CCTV는 안 서고, 야간은 후보 부족 시 B·C·주말만 투입합니다. 위병조장 시간(A 3.5h, B·C 4h, 주말·휴일 2h)은 평균 근무시간에 포함합니다.<br>
         <b>배식조</b>: [배식조 가능] 인원 중 매일 2명. 평일 / 토 / 일·휴일을 따로 셉니다. 당일 CCTV 전체 열외·전날 야간 제외·이틀 연속 금지·위병조장 중복 금지. 근무시간(토 2h, 그 외 3h)은 평균 근무시간에 들어갑니다.<br>
         <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. <b>상황병은 이 칸들과 금요일 추가순찰에서 빠집니다</b>(30분만 겹치는 20:30·금 15:30은 일반 배정). 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 평일 위병조장A·배식조 날은 1시간 침해로 셉니다. 주말·휴일 제외.<br>
@@ -1613,7 +1618,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.4.2"></script>
+<script src="engine.js?v=9.4.3"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2474,7 +2479,7 @@ function renderCtrlNotice(){
   if(t.length) box.appendChild(el('div','hint','관제병 '+names+': '+t.join(' · ')+' — 근무표 생성 시 자동 반영됩니다.'));
 }
 ['#gDate','#gHoliday','#gNextHoliday','#gDuty','#gSit','#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gMeal','#gXmess','#gNextXmess','#gPrevDuty','#gPrevSit',
- '#g2PrevSit','#g2Sit','#g2NextSit','#g2GA','#g2GB','#g2GC','#g2NGA','#g2NGB','#g2NGC','#g2M0','#g2M1','#g2NM0','#g2NM1']
+ '#g2PrevSit','#g2Sit','#g2NextSit','#g2DaySit','#g2NextDaySit','#g2GA','#g2GB','#g2GC','#g2NGA','#g2NGB','#g2NGC','#g2M0','#g2M1','#g2NM0','#g2NM1']
   .forEach(id=> $(id).addEventListener('change', previewGen));
 
 $('#gReload').addEventListener('click', refreshGenSelectors);
@@ -2711,6 +2716,7 @@ function renderSchedTimeline(s, who, ed){
     const id = (s.assign&&s.assign[slot]) || fixedHere || null;
     const subs=[];
     if((slot==='14:30'||slot==='13:30') && (fixedHere || (ed && ed.orig.fixed && ed.orig.fixed[slot]))) subs.push(['sit','상황']);
+    if(v2 && id && dayGroup(s.date,s.workHoliday)!=='weekend' && ((slot==='10:30' && id===s.situationId) || (slot==='13:30' && id===s.daySitId))) subs.push(['sit', slot==='10:30' ? '야간상황 고정' : '주간상황 고정']);
     if(s.relaxed&&s.relaxed[slot]) subs.push(['relax', s.relaxed[slot]]);
     if(pm[slot]) subs.push(['patrol','개인정비']);
     colL.appendChild(row('D:'+slot, slot, id, {subs, inline:[id&&roleTag(id)], h:slotHours(slot).toFixed(1)+'h'}));
@@ -2770,7 +2776,7 @@ function xmessOn(s){ return !!(s && (s.xmessId || s.nextXmessId)) || DB.workers.
 function roleCards2(s){
   const kinds=hol=> (hol?['H']:['A','B','C']).map(k=>[k, GATE_KR[k]]);
   const hol=dayGroup(s.date,s.workHoliday)==='weekend', nhol=dayGroup(addDays(s.date,1),s.nextWorkHoliday)==='weekend';
-  return {today:[['sit','상황병','sit']].concat(kinds(hol).map(([k,l])=>['gate'+k,l,'meal']), [['mess0','배식조','patrol'],['mess1','배식조','patrol']]),
+  return {today:(hol ? [['sit','상황병','sit']] : [['daySit','주간 상황병','sit'],['sit','야간 상황병','sit']]).concat(kinds(hol).map(([k,l])=>['gate'+k,l,'meal']), [['mess0','배식조','patrol'],['mess1','배식조','patrol']]),
           next: kinds(nhol).map(([k,l])=>['nextGate'+k,l,'meal']).concat([['nextMess0','배식조','patrol'],['nextMess1','배식조','patrol']])};
 }
 function renderRoleCards(s, ed){
@@ -3046,7 +3052,8 @@ function edKeyInfo(s, key){
   if(key==='xmess') return {title:'추가배식조 변경', sub:md(s.date), note:'해당 일자의 추가배식조만 변경됩니다 (당일 CCTV 전체 열외 및 분모 제외). 과거 일자에 입력 시 누적 기록에 소급 반영됩니다. 기존 배정 슬롯과의 충돌 여부는 점검 목록을 확인하여 수동 조정하십시오.'};
   if(key==='nextXmess') return {title:'다음날 추가배식조 변경', sub:md(addDays(s.date,1)), note:'익일 추가배식조만 변경됩니다. 대상자는 당일 야간 배정에서 제외되어야 합니다 (기 배정 시 점검 목록 표시). 익일 근무표 생성 시 해당 인원이 추가배식조로 지정됩니다.'};
   if(key==='duty') return {title:'당직 변경', sub:md(s.date), note:'당직 지정만 변경되며 배정 슬롯은 유지됩니다.'};
-  if(key==='sit') return {title:'상황병 변경', sub:md(s.date), note:'상황병 지정만 변경되며 배정 슬롯은 유지됩니다.'};
+  if(key==='sit') return {title:(s.v2 && dayGroup(s.date,s.workHoliday)!=='weekend' ? '야간 상황병' : '상황병')+' 변경', sub:md(s.date), note:'지정만 바뀌고 배정 칸은 그대로입니다.'+(s.v2?' 고정 CCTV(10:30) 칸도 함께 바꾸십시오.':'')};
+  if(key==='daySit') return {title:'주간 상황병 변경', sub:md(s.date), note:'지정만 바뀌고 배정 칸은 그대로입니다. 고정 CCTV(13:30) 칸도 함께 바꾸십시오.'};
   return {title:(key==='meal'?'밥교대':'다음날 밥교대')+' 변경', sub:md(s.date),
     note:'밥교대 담당자 변경 시 제약 충돌이 발생하는 슬롯만 대체 인원으로 자동 재조정합니다. 선택 시 연동 변경 슬롯이 사전 표시됩니다.'};
 }
@@ -3129,7 +3136,7 @@ $('#vCsv').addEventListener('click',()=>{
   EVENING.forEach(sl=>rows.push([sl, nameOf(s.fixed&&s.fixed[sl]), s.v2?'저녁':'고정']));
   rows.push(['17:00(추가순찰)', nameOf(s.patrolExtra),'순찰']);
   NIGHT_BUNCHO.forEach(b=>rows.push([b.slots.join('+')+' ('+b.id+'번초)', nameOf(s.night&&s.night[b.id]),'야간']));
-  if(s.v2){ rows.push(['상황병', nameOf(s.situationId), '역할']); gateList(s.gate).forEach(([k,l,id])=>rows.push([l, nameOf(id), '역할'])); (s.messIds||[]).forEach(id=>rows.push(['배식조', nameOf(id), '역할'])); }
+  if(s.v2){ if(s.daySitId) rows.push(['주간 상황병', nameOf(s.daySitId), '역할']); rows.push([s.daySitId||dayGroup(s.date,s.workHoliday)!=='weekend'?'야간 상황병':'상황병', nameOf(s.situationId), '역할']); gateList(s.gate).forEach(([k,l,id])=>rows.push([l, nameOf(id), '역할'])); (s.messIds||[]).forEach(id=>rows.push(['배식조', nameOf(id), '역할'])); }
   downloadCsv('근무표_'+ds+'.csv', rows);
 });
 
@@ -3151,7 +3158,7 @@ function calInitYM(){
 function ymTitle(ym){ const [y,m]=ym.split('-'); return y+'년 '+Number(m)+'월'; }
 function ymShift(ym,n){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-1+n,1); return d.getFullYear()+'-'+pad(d.getMonth()+1); }
 const calMd=d=>Number(d.slice(5,7))+'/'+Number(d.slice(8));
-const PREBOOK_TAGCLS={vacation:'ex', exday:'ex', exboth:'ex', duty:'duty', situation:'sit',
+const PREBOOK_TAGCLS={vacation:'ex', exday:'ex', exboth:'ex', duty:'duty', situation:'sit', sitday:'sit',
                       fueltruck:'patrol', fuelsub:'patrol', mess:'patrol'};
 
 /* 그날 그 일정이 실제로 뜻하는 것 — 엔진(autoInputFor·applyFuelTruckEx)과 같은 규칙.
@@ -3172,6 +3179,8 @@ function pbDayInfo(p, ds){
     return {word:'유조차', cls:'cw-fuel', label:'유조차 (정)', cond:cond+' (분모 제외)'};
   }
   if(p.kind==='duty') return {word:'당직예약', cls:'cw-duty', label:'당직 예약', cond:'당직 지정'};
+  if(p.kind==='sitday') return {word:'주간상황', cls:'cw-sit', label:'주간 상황병 예약', cond:'주간 상황병 지정 (13:30 고정, 21:30·야간만 추가 가능)'};
+  if(V2()) return {word:'야간상황', cls:'cw-sit', label:'야간 상황병 예약', cond:'야간(당직) 상황병 지정 — 주말·휴일은 종일 상황병'};
   return {word:'상황예약', cls:'cw-sit', label:'상황병 예약', cond:'상황병 지정'};
 }
 
@@ -3179,7 +3188,8 @@ function pbDayInfo(p, ds){
 function workerDayMarks(s,wid){
   const roles=[];
   if(s.dutyId===wid) roles.push('당직');
-  if(s.situationId===wid) roles.push('상황병');
+  if(s.v2 && s.daySitId===wid) roles.push('주간 상황병');
+  if(s.situationId===wid) roles.push(s.v2 && dayGroup(s.date,s.workHoliday)!=='weekend' ? '야간 상황병' : '상황병');
   if(s.mealId===wid) roles.push('밥교대');
   if(s.xmessId===wid) roles.push('추가배식조');
   if(s.v2){ gateList(s.gate).forEach(([k,l,id])=>{ if(id===wid) roles.push(l); }); if((s.messIds||[]).includes(wid)) roles.push('배식조'); }
@@ -3322,7 +3332,7 @@ function renderCalDetail(who){
     wrap.appendChild(el('div','cday-none','<b>근무표 미편성</b> — 해당 일자의 근무표가 생성되지 않았습니다.'));
   }else{
     const roles=el('div','cday-roles');
-    (s.v2 ? [['상황병','sit',s.situationId]].concat(gateList(s.gate).map(([k,l,id])=>[l,'meal',id]), (s.messIds||[]).map(id=>['배식조','patrol',id]))
+    (s.v2 ? (dayGroup(ds,s.workHoliday)==='weekend' ? [['상황병','sit',s.situationId]] : [['주간 상황병','sit',s.daySitId],['야간 상황병','sit',s.situationId]]).concat(gateList(s.gate).map(([k,l,id])=>[l,'meal',id]), (s.messIds||[]).map(id=>['배식조','patrol',id]))
           : [['당직','duty',s.dutyId],['상황병','sit',s.situationId],['밥교대','meal',s.mealId]].concat(s.xmessId?[['추가배식조','patrol',s.xmessId]]:[])).forEach(([l,c,id])=>{
       roles.appendChild(el('div',null,'<small style="color:var(--'+c+')">'+l+'</small><b>'+(id?esc(nameOf(id)):'<span class="muted">—</span>')+'</b>'));
     });
@@ -3494,11 +3504,11 @@ $('#hdAdd').addEventListener('click',()=>{
 /* ----- 일정 사전 등록 ----- */
 function renderPrebookForm(){
   const kind=$('#pbKind').value;
-  const list = kind==='duty'? dutyList() : kind==='situation'? sitList() : activeWorkers();
+  const list = kind==='duty'? dutyList() : (kind==='situation'||kind==='sitday')? sitList() : activeWorkers();
   const keep=$('#pbWho').value;
   fillSelect($('#pbWho'), list, {blank:'— 선택 —', selected:keep||null});
   // 당직/상황 예약은 하루, 유조차 운전병·배식조는 주 단위(자동 월~일)라 종료일 입력 숨김
-  $('#pbEndField').style.display = (kind==='duty'||kind==='situation'||kind==='fueltruck'||kind==='mess') ? 'none' : '';
+  $('#pbEndField').style.display = (kind==='duty'||kind==='situation'||kind==='sitday'||kind==='fueltruck'||kind==='mess') ? 'none' : '';
   if(!$('#pbStart').value) $('#pbStart').value=todayStr();
   const st=$('#pbKindNote');
   if(kind==='fueltruck') st.innerHTML='<div class="hint">유조차 운전병: 선택 일자가 포함된 주(월~일) 전체로 등록되며 CCTV 근무에서 전체 열외(분모 제외)됩니다. 단, 당직/상황병 편성 일자는 부 운전병이 유조차를 운행하므로 해당 역할 근무는 정상 투입됩니다.</div>';
@@ -3573,7 +3583,7 @@ $('#pbAdd').addEventListener('click',()=>{
   }
   // 수정: 원래 일정을 빼고 같은 id로 다시 넣는다
   if(pbEditId) DB.prebook=DB.prebook.filter(x=>x.id!==pbEditId);
-  if(kind==='duty'||kind==='situation'){
+  if(kind==='duty'||kind==='situation'||kind==='sitday'){
     end=start;
     // 당직/상황병 예약은 날짜당 1명 — 같은 날짜 기존 예약은 교체
     DB.prebook=DB.prebook.filter(p=>!(p.kind===kind && p.start<=start && start<=p.end));
@@ -4420,7 +4430,7 @@ function itemLabel(it, s){
   if((it.t==='14:30'||it.t==='13:30') && s && s.fixed && s.fixed[it.t] && s.situationId===s.fixed[it.t]) return '주간 · 당일 상황 고정';
   return '주간';
 }
-const ROLE_KR={'R:duty':'당직','R:sit':'상황병','R:meal':'밥교대','R:xmess':'추가배식조','R:gateA':'위병조장A','R:gateB':'위병조장B','R:gateC':'위병조장C','R:gateH':'위병조장','R:mess':'배식조'};
+const ROLE_KR={'R:duty':'당직','R:sit':'상황병','R:daySit':'주간 상황병','R:meal':'밥교대','R:xmess':'추가배식조','R:gateA':'위병조장A','R:gateB':'위병조장B','R:gateC':'위병조장C','R:gateH':'위병조장','R:mess':'배식조'};
 const ROLE_CLS={'R:duty':'duty','R:sit':'sit','R:meal':'meal','R:xmess':'patrol','R:gateA':'meal','R:gateB':'meal','R:gateC':'meal','R:gateH':'meal','R:mess':'patrol'};
 /* 개인 역할 키 → 근무표 칸 키(배정 이유용) */
 function roleSchedKey(s, k, wid){ return k==='R:mess' ? 'mess'+Math.max(0,(s.messIds||[]).indexOf(wid)) : k==='R:meal' ? 'meal' : k.slice(2); }
@@ -4792,7 +4802,7 @@ function mineRoleChips(s, wid){
   const r=personalKeys(s, wid).filter(k=>ROLE_KR[k]);
   if(!r.length) return null;
   const d=el('div','mroles'); d.appendChild(el('span','l','역할'));
-  r.forEach(k=>{ const b=el('button','tag '+ROLE_CLS[k], esc(ROLE_KR[k])); b.type='button'; b.addEventListener('click',()=>openWhy(s, roleSchedKey(s, k, wid))); d.appendChild(b); });
+  r.forEach(k=>{ const b=el('button','tag '+(ROLE_CLS[k]||'sit'), esc(k==='R:sit' && s.v2 && dayGroup(s.date,s.workHoliday)!=='weekend' ? '야간 상황병' : ROLE_KR[k])); b.type='button'; b.addEventListener('click',()=>openWhy(s, roleSchedKey(s, k, wid))); d.appendChild(b); });
   return d;
 }
 function minePbLines(wid, ds){
@@ -5291,6 +5301,9 @@ function refreshGenSelectors2(){
   fillSelect($('#g2Sit'), sitList(), {selected: ex?ex.situationId:(sitOf(pb)||(prev?prev.nextSituationId:null))});
   fillSelect($('#g2NextSit'), sitList(), {selected: ex?ex.nextSituationId:sitOf(prebookOn(nds))});
   fillPrevSelect($('#g2PrevSit'), sitList(), prev?prev.situationId:(ex?ex.prevSituationId:null), !prev);
+  { const dOf=arr=>{ const e=arr.find(p=>p.kind==='sitday'); return e?e.wid:null; };
+    fillSelect($('#g2DaySit'), sitList(), {selected: ex?ex.daySitId:(dOf(pb)||(prev&&prev.v2?prev.nextDaySitId:null))});
+    fillSelect($('#g2NextDaySit'), sitList(), {selected: ex?ex.nextDaySitId:dOf(prebookOn(nds))}); }
   // 휴무일 체크를 먼저 — 위병조장 칸(평일 3명 / 휴일 1명)과 유조차 열외가 이 값을 따른다
   $('#gHoliday').checked = ex?ex.workHoliday : (prev&&prev.nextWorkHoliday) || dayGroup(ds,false)==='weekend' || isHolidayDate(ds);
   $('#gNextHoliday').checked = ex?!!ex.nextWorkHoliday : dayGroup(nds,false)==='weekend' || isHolidayDate(nds);
@@ -5312,7 +5325,7 @@ function refreshGenSelectors2(){
   // 저장된 표의 외출 칸은 시간대 열외에 합쳐져 있다 — 외출 체크로 되돌려 보여 준다
   genOut.forEach(id=>{ const set=genEx.units[id]; if(set && !genEx.omit.has(id)){ outingSlots(ds).forEach(u=>set.delete(u)); if(!set.size) delete genEx.units[id]; } });
   if(!ex){
-    const role=new Set([$('#g2Sit').value, $('#g2NextSit').value, prev?prev.situationId:$('#g2PrevSit').value].filter(Boolean));
+    const role=new Set([$('#g2Sit').value, $('#g2NextSit').value, $('#g2DaySit').value, prev?prev.situationId:$('#g2PrevSit').value].filter(Boolean));
     pb.filter(p=> p.kind==='fueltruck'||p.kind==='fuelsub').forEach(p=>{
       if(role.has(p.wid)) return;
       const fi = p.kind==='fueltruck' ? fuelExInfo(ds) : null;
@@ -5340,7 +5353,7 @@ function renderOutChips(){
 /* 휴일이면 위병조장은 1명(A 칸) — B·C 칸은 잠근다 */
 function syncGateCells(){
   const h=$('#gHoliday').checked, nh=$('#gNextHoliday').checked;
-  [['#g2GB',h],['#g2GC',h],['#g2NGB',nh],['#g2NGC',nh]].forEach(([id,off])=>{ const x=$(id); x.disabled=off; if(off) x.value=''; });
+  [['#g2GB',h],['#g2GC',h],['#g2NGB',nh],['#g2NGC',nh],['#g2DaySit',h],['#g2NextDaySit',nh]].forEach(([id,off])=>{ const x=$(id); x.disabled=off; if(off) x.value=''; });   // 휴일: 주간 상황병 없음
 }
 function gen2Input(){
   const ds=$('#gDate').value, hol=$('#gHoliday').checked, nh=$('#gNextHoliday').checked;
@@ -5349,12 +5362,13 @@ function gen2Input(){
   if(nh) put(nextGate,'H','#g2NGA'); else { put(nextGate,'A','#g2NGA'); put(nextGate,'B','#g2NGB'); put(nextGate,'C','#g2NGC'); }
   return {date:ds, workHoliday:hol, nextWorkHoliday:nh,
     situationId:$('#g2Sit').value||null, nextSituationId:$('#g2NextSit').value||null, prevSituationId:$('#g2PrevSit').value||null,
+    daySitId: hol ? null : ($('#g2DaySit').value||null), nextDaySitId: nh ? null : ($('#g2NextDaySit').value||null),
     gate, nextGate, messIds:[$('#g2M0').value, $('#g2M1').value].filter(Boolean), nextMessIds:[$('#g2NM0').value, $('#g2NM1').value].filter(Boolean),
     outing: hol ? [] : [...genOut], ...genExPayload()};
 }
 function previewGen2(){
   syncGateCells(); syncMatrixCells();
-  ['#g2GB','#g2GC','#g2NGB','#g2NGC'].forEach(id=>{ const x=$(id), b=x.nextElementSibling; if(x.disabled && b){ b.textContent='—'; b.classList.add('none'); b.classList.remove('auto'); } });
+  ['#g2GB','#g2GC','#g2NGB','#g2NGC','#g2DaySit','#g2NextDaySit'].forEach(id=>{ const x=$(id), b=x.nextElementSibling; if(x.disabled && b){ b.textContent='—'; b.classList.add('none'); b.classList.remove('auto'); } });
   renderOutChips();
   const box=$('#gPreview'); if(!box) return;
   const ds=$('#gDate').value; if(!ds){ box.innerHTML=''; return; }
@@ -5564,7 +5578,7 @@ $('#v2SetupNext').addEventListener('click',()=>{
 $('#v2SetupBtn').addEventListener('click', openV2Setup);
 
 syncHdrH();
-function refreshAll(){ document.body.classList.toggle('v2', V2()); renderPeople(); renderSettings(); refreshGenSafe(); renderView(); renderCal(); renderBackupInfo(); renderMore(); renderMine(); if($('#svc').classList.contains('on')) renderSvc(); }
+function refreshAll(){ document.body.classList.toggle('v2', V2()); PREBOOK_KR.situation = V2() ? '야간 상황병 예약' : '상황병 예약'; renderPeople(); renderSettings(); refreshGenSafe(); renderView(); renderCal(); renderBackupInfo(); renderMore(); renderMine(); if($('#svc').classList.contains('on')) renderSvc(); }
 function init(){
   load();
   const L=latestSchedDate();
@@ -5665,11 +5679,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.4.2"></script>
+<script src="firebase-config.js?v=9.4.3"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.4.2"></script>
+<script src="sync.js?v=9.4.3"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

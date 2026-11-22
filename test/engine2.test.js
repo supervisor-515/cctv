@@ -60,7 +60,8 @@ test('v2: 상황병은 전날 야간·당일·다음날 전부 면제, 위병조
   const all = runDays(db, '2027-03-01', 21);
   all.forEach((s, i) => {
     const h = holders(s);
-    assert.ok(!h.includes(s.situationId), s.date + ' 당일 상황병');
+    const wk = E.dayGroup(s.date, s.workHoliday) !== 'weekend';
+    assert.ok(!h.filter((id, k) => !(wk && s.assign['10:30'] === id && k === E.DAY_SLOTS.indexOf('10:30'))).includes(s.situationId), s.date + ' 당일 상황병(10:30 고정 외)');
     if (i > 0) assert.ok(!h.includes(all[i - 1].situationId), s.date + ' 전날 상황병');
     assert.ok(!Object.values(s.night).includes(s.nextSituationId), s.date + ' 다음날 상황병 야간');
     const de = [...Object.values(s.assign), ...Object.values(s.fixed)];
@@ -115,7 +116,8 @@ test('v2: 전환 당일 — 전날(구 방식) 표의 야간자 아침 금지·�
   const s = E.generateDay2({ date: '2027-03-02', nextSituationId: 's1' });
   assert.strictEqual(s.situationId, 's0');
   const h = holders(s);
-  ['g0', 's6', 's0'].forEach(id => assert.ok(!h.includes(id), id));
+  ['g0', 's6'].forEach(id => assert.ok(!h.includes(id), id));
+  assert.deepStrictEqual(h.filter(id => id === 's0').length, s.assign['10:30'] === 's0' ? 1 : 0);   // 당일 야간 상황병은 10:30 고정만
   ['06:30', '07:30', '08:30'].forEach(sl => assert.ok(!['g1', 'g2', 'g3', 'g4'].includes(s.assign[sl])));
   ['A', 'B'].forEach(k => assert.ok(!['g1', 'g2', 'g3', 'g4'].includes(s.gate[k])));
   assert.deepStrictEqual(E.validateSchedule2(s).hard, []);
@@ -317,4 +319,45 @@ test('v2 운항병: 평일 주간은 고정칸만, 야간은 금·토 중 주 1�
   const s0 = all.find(s => E.dayGroup(s.date, s.workHoliday) !== 'weekend' && s.assign['09:30'] === 'g5');
   assert.strictEqual(E.explainAssignment(s0, 'D:09:30').kind, 'rule');
   const P = E.nightPool(s0); if (!Object.values(s0.night).includes('g5')) assert.ok(P.blocked.some(b => b.id === 'g5'));
+});
+
+test('v2 주간·야간 상황병: 고정 CCTV(13:30·10:30), 면제, 근무일·카운트 처리', () => {
+  const db = setup();
+  const sit = k => 's' + (((k % 7) + 7) % 7);
+  const plan = i => { const ds = E.addDays('2027-03-01', i), wk = !isHol(ds);
+    // 평일: 주간 = sit(i+3), 야간 = sit(i) (5일마다 같은 사람이 둘 다) / 주말·휴일: 한 명
+    return { night: sit(i), day: wk ? (i % 5 === 0 ? sit(i) : sit(i + 3)) : null }; };
+  const all = [];
+  for (let i = 0; i < 35; i++) {
+    const ds = E.addDays('2027-03-01', i), nds = E.addDays(ds, 1), p = plan(i), q = plan(i + 1);
+    const s = E.generateDay2({ date: ds, workHoliday: isHol(ds), nextWorkHoliday: isHol(nds),
+      situationId: p.night, nextSituationId: q.night, daySitId: p.day, nextDaySitId: q.day });
+    db.schedules[ds] = s; E.invalidateStats(); all.push(s);
+  }
+  all.forEach((s, i) => {
+    const wk = !isHol(s.date), cells = [...E.DAY_SLOTS.map(sl => ['D:' + sl, s.assign[sl]]), ...E.EVENING.map(sl => ['E:' + sl, s.fixed[sl]]), ...Object.entries(s.night).map(([b, id]) => ['N:' + b, id])];
+    const of = id => cells.filter(c => c[1] === id).map(c => c[0]);
+    assert.deepStrictEqual(E.validateSchedule2(s).hard, [], s.date);
+    if (wk) {
+      assert.strictEqual(s.assign['10:30'], s.situationId, s.date + ' 10:30');
+      assert.strictEqual(s.assign['13:30'], s.daySitId, s.date + ' 13:30');
+      assert.deepStrictEqual(of(s.situationId).filter(k => !['D:10:30', 'D:13:30'].includes(k)), [], s.date + ' 야간 상황병 다른 칸');
+      if (s.daySitId !== s.situationId) assert.ok(of(s.daySitId).every(k => ['D:13:30', 'E:21:30'].includes(k) || k[0] === 'N'), s.date + ' 주간 상황병 칸');
+    } else {
+      assert.strictEqual(s.daySitId, null); assert.deepStrictEqual(of(s.situationId), [], s.date + ' 주말 상황병 CCTV 없음');
+    }
+    if (i > 0) { const pv = all[i - 1];
+      assert.deepStrictEqual(of(pv.situationId), [], s.date + ' 전날 야간 상황병 다음날 면제');
+      assert.ok(!Object.values(pv.night).includes(s.daySitId) || !s.daySitId, s.date + ' 주간 상황병 전날 야간 면제');
+      assert.ok(!s.messIds.some(id => Object.values(pv.night).includes(id)), s.date + ' 배식조 전날 야간 불가'); }
+    assert.ok(!s.messIds.includes(s.daySitId));
+  });
+  // 근무일·카운트: 주간만 = 분모 O·카운트 O, 야간(겸임 포함) = 당일·다음날 분모 X·카운트 X
+  const one = all.find(s => !isHol(s.date) && s.daySitId && s.daySitId !== s.situationId), id = one.daySitId;
+  const before = E.buildStats2(one.date), after = E.buildStats2(E.addDays(one.date, 1));
+  assert.strictEqual(after[id].denom, before[id].denom + 1);
+  assert.ok(after[id].slotNum['13:30'] === before[id].slotNum['13:30'] + 1);
+  const nn = all.find(s => !isHol(s.date) && s.situationId), nid = nn.situationId;
+  const b2 = E.buildStats2(nn.date), a2 = E.buildStats2(E.addDays(nn.date, 2));
+  assert.strictEqual(a2[nid].denom, b2[nid].denom); assert.strictEqual(a2[nid].slotNum['10:30'], b2[nid].slotNum['10:30']);
 });

@@ -1467,12 +1467,15 @@ body.ro .no-ro{display:none!important}
       <div class="row" style="margin-top:12px">
         <label class="sw"><input type="checkbox" id="s1430"> 휴무일에도 14:30 당일 상황병 고정</label>
       </div>
+      </div>
+      <div>
       <div class="divider"></div>
       <label style="font-weight:700;font-size:var(--fs-md)">운항병 주간 고정 시간</label>
       <p class="smallnote" style="margin:4px 0 8px">운항병 주간 고정 슬롯을 설정합니다 (월~목 및 금요일 분리). 인접 슬롯 중복 선택 시 연속근무 경고가 발생합니다.</p>
       <div class="field"><label>월~목 고정 슬롯</label><div id="navWeekdaySlots" class="slotchks"></div></div>
       <div class="field" style="margin-top:8px"><label>금요일 고정 슬롯</label><div id="navFridaySlots" class="slotchks"></div></div>
-      <p class="desc" style="margin-top:12px">인접 슬롯 연속근무 및 전날 야간 근무자의 익일 아침 근무는 절대 금지됩니다(하드 제약). 운항병 야간(금·토 1회)은 균등 자동 배정됩니다.</p>
+      <p class="desc v1only" style="margin-top:12px">인접 슬롯 연속근무 및 전날 야간 근무자의 익일 아침 근무는 절대 금지됩니다(하드 제약). 운항병 야간(금·토 1회)은 균등 자동 배정됩니다.</p>
+      <p class="desc v2only" style="margin-top:12px">운항병은 [근무자 관리]에서 일반병 1명을 지정합니다. 평일 주간은 이 고정칸만, 야간은 금·토 중 주 1회, 위병조장 제외, 배식조는 주말·휴일만 섭니다.</p>
       </div>
       <details class="adv">
         <summary>공정성 점수 가중치 (낮을수록 우선 배정)</summary>
@@ -1597,6 +1600,7 @@ body.ro .no-ro{display:none!important}
         <b>외출</b>(평일): 월~목 17:30~20:30, 금 15:30~20:30 배정 제외, 위병조장A 제외.<br>
         <b>평일·주말 분리 집계</b>: 평일 표는 평일 기록만, 주말·휴일 표는 주말·휴일 기록만 비교합니다(평균 근무시간·시간대·야간·06:30 순번·순찰 모두). 야간 번초 1개는 2시간으로 계산합니다.<br>
         <b>나머지 칸</b>: 하루 1칸씩 먼저 돌리고 남으면 신병 우선. 06:30은 배정률 순번제. 인접 칸 연속근무·전날 야간자의 아침(06:30~08:30)·하루 두 번초는 절대 금지. 저녁 칸은 한 사람 하루 1칸 원칙(불가피할 때만 2칸).<br>
+        <b>운항병</b>(일반병 1명, [근무자 관리]에서 지정): 평일 주간은 고정칸만([기본 설정]의 운항병 고정 시간), 야간은 금·토 중 주 1회, 위병조장 제외, 배식조는 주말·휴일만. 개인정비 칸·저녁·주말·휴일 주간은 다른 사람과 같이 섭니다.<br>
         <b>유조차 운전병</b> 규칙은 그대로이며, 관제병 규칙은 적용하지 않습니다(보류).
       </p>
       <p class="smallnote v1only" style="font-size:var(--fs-sm)">
@@ -1987,7 +1991,8 @@ function roleTag(id){ const w=W(id); if(!w) return null;
 function applyRole(w, v, quiet){
   if(V2()){   // 신병 / 일반병(위병조장 대상) / 상황병 — 신병에서 전환할 때 카운트 초기화(기존 방식과 같음)
     const wasRecruit = isRecruit(w);
-    w.isNavigator=false; w.isVeteran=false;
+    if(v!=='duty') w.isNavigator=false;   // 운항병은 일반병만
+    w.isVeteran=false;
     if(v==='recruit') w.roleReady=false; else { w.roleReady=true; w.roleType = v==='situation'?'situation':'duty'; }
     if(wasRecruit && v!=='recruit' && DB.workers.includes(w)){   // 새로 추가하는 근무자는 기록이 없으므로 제외
       w.countResetAt=todayStr();
@@ -4127,7 +4132,7 @@ function renderPeople(){
     const c=el('button','pc'+(w.active?'':' off'));
     const left=el('div');
     const cls = v==='duty'?'duty' : v==='situation'?'sit' : 'kind';
-    left.appendChild(el('div','pn', esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'+(w.isController?' <span class="tag kind">관제병</span>':'')+(w.countResetAt?' <span class="pill">전환 '+esc(w.countResetAt)+'</span>':'')));
+    left.appendChild(el('div','pn', esc(w.name)+' <span class="tag '+cls+'">'+esc(roleLabel(w))+'</span>'+(w.isController?' <span class="tag kind">관제병</span>':'')+(V2()&&w.isNavigator&&isGeneralW(w)?' <span class="tag kind">운항병</span>':'')+(w.countResetAt?' <span class="pill">전환 '+esc(w.countResetAt)+'</span>':'')));
     const meta = V2() ? (w.canXmess?['배식조 가능']:[]) : [w.canMeal?'밥교대 가능':'밥교대 불가'];
     if(w.canXmess && !V2()) meta.push('추가배식조');
     const ip=(w.inactivePeriods||[]).length; if(ip) meta.push('비활성 기간 '+ip+'개');
@@ -4184,11 +4189,17 @@ function openWorkerSheet(id){
   row.appendChild(sw('밥교대 투입 가능', w.canMeal, v=>{w.canMeal=v;save();renderPeople();toast('저장됨');}));
   row.appendChild(sw('관제병', !!w.isController, v=>{w.isController=v;save();refreshAll();toast('저장됨');}));
   }
+  if(V2() && isGeneralW(w)) row.appendChild(sw('운항병', !!w.isNavigator, v=>{
+    const other=DB.workers.find(x=>x.id!==w.id && x.isNavigator && x.active);
+    if(v && other && !confirm('운항병은 1명만 지정할 수 있습니다. '+other.name+'의 운항병 지정을 풀고 '+w.name+'(으)로 바꿀까요?')){ openWorkerSheet(w.id); return; }
+    if(v && other) other.isNavigator=false;
+    w.isNavigator=v; save(); refreshAll(); toast('저장됨'); }));
   row.appendChild(sw(V2()?'배식조 가능':'추가배식조 가능', !!w.canXmess, v=>{ w.canXmess=v; if(v && !w.xmessSince) w.xmessSince=todayStr(); save(); refreshAll(); toast('저장됨'); }));   // 켠 날부터 순번 분모를 센다
   f.appendChild(row);
   if(V2()){
     f.appendChild(el('div','hint','배식조: 켠 사람 중 매일 2명(평일 / 토 / 일·휴일 분리 집계). 당일 CCTV 전체 열외·전날 야간 제외, 근무시간(토 2h, 그 외 3h)은 평균에 포함. 상황병은 근무 당일·다음날 배식조에서 빠집니다.'));
     f.appendChild(el('div','hint','일반병은 자동으로 위병조장 대상입니다(신병·상황병 제외).'));
+    if(isGeneralW(w)) f.appendChild(el('div','hint','운항병(1명): 평일 주간은 고정칸만([기본 설정]의 운항병 고정 시간), 야간은 금·토 중 주 1회, 위병조장 제외, 배식조는 주말·휴일만. 개인정비 칸·저녁·주말·휴일 주간은 다른 사람과 같이 섭니다.'));
   }else{
   f.appendChild(el('div','hint','추가배식조: 설정 인원 중 평일 1명 순번 배정(배정률 낮은 순 → 장기 미편성 순). 당일 CCTV 전 시간대 및 전일 야간 열외, 근무일수 산정 제외.'));
   f.appendChild(el('div','hint','관제병: 매주 토요일(공휴일 포함) 07:30~14:30 및 당일 밥교대 열외. 운항병 상황병 근무 시 전일 및 당일 야간 열외.'));

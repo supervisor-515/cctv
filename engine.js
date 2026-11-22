@@ -394,8 +394,9 @@ let _stats2Cache = new Map();   // 새 시스템(v2) 통계
 function invalidateStats(){ _statsCache.clear(); _validCache.clear(); _stats2Cache.clear(); }
 /* ignoreReset: 카운트 화면 표시용 — 신병→역할 전환(countResetAt) 이전 기록도 포함해 센다.
    배정(generateDay 등)은 항상 기본값(false)으로 호출하므로 배정 로직은 그대로다. */
+let _forceV1 = false;   // 전환 전날 근무표를 구 방식으로 만들 때만 잠깐 켠다(통계·입력도 구 방식)
 function buildStats(uptoDate, month, ignoreReset){
-  if(isV2()) return buildStats2(uptoDate, month);   // 전환 후: 전환일 이후 v2 표만 센다(카운트 초기화)
+  if(isV2() && !_forceV1) return buildStats2(uptoDate, month);   // 전환 후: 전환일 이후 v2 표만 센다(카운트 초기화)
   const mk = month && typeof month==='object' ? month.from+'~'+month.to : (month||'');
   const key = mk + '\u0001' + ((uptoDate==null) ? '\u0000ALL' : uptoDate) + (ignoreReset?'\u0001R':'');
   const hit = _statsCache.get(key);
@@ -1403,6 +1404,8 @@ function generateDay(input){
   const occDay = new Set([...Object.keys(navDay), ...Object.keys(fuelDay)]);
   DAY_SLOTS.forEach(s=>{ if(fixed[s]) occDay.add(s); });   // 13:30/14:30 당일상황 고정칸
   const dayVars = DAY_SLOTS.filter(s=>!occDay.has(s)).map(key=>({type:'day',key}));
+  // 전환 전날: 17:30·18:30·19:30은 역할 고정 대신 새 체계처럼 일반 배정(새 체계 상황병 제외)
+  const eveVars = input.transitionEve ? ['17:30','18:30','19:30'].filter(sl=>!fixed[sl]).map(key=>({type:'day',key})) : [];
   // (예전엔 주간 칸 처리 순서를 무작위로 섞었지만, 06:30 순번제·시간대 환산 비교가 이른 칸 쏠림을
   //  이미 막고 있어 순서를 고정한다 — 같은 입력이면 항상 같은 근무표)
   const nightVars = NIGHT_BUNCHO.filter(b=> !(navNight && navNight.bunchoId===b.id) && !(fuelNight && fuelNight.bunchoId===b.id)).map(b=>({type:'night',bunchoId:b.id}));
@@ -1423,13 +1426,14 @@ function generateDay(input){
   const dayCand = dayCandidates(ds, ctx).map(w=>w.id);
   const nightCand = nightCandidates(ds, ctx).map(w=>w.id)
     .filter(id=> id!==ctx.mealId); // 밥교대는 기본 야간 제외 (부족 시에만 폴백 투입)
-  const vars = dayVars.concat(nightVars);
+  const vars = dayVars.concat(eveVars, nightVars);
+  const eveCand = dayCand.filter(id=>{ const w=W(id); return !(w && isSituationW(w)); });
   // 시간대 열외는 칸마다 다르므로 도메인을 변수별로 거른다.
   // solve()·1-opt는 domains[i]를 그대로 돌고 2-opt도 domains 포함 여부를 검사한다.
   // 도메인은 반드시 이 함수로만 만든다 — 폴백(밥교대 야간 투입) 재시도에서도 같은 필터가 적용돼야 한다.
   const buildDomains = (nightExtra=[]) => vars.map(v=>{
     const unit = exUnitOf(v);
-    return (v.type==='day'? dayCand : nightCand.concat(nightExtra)).filter(id=> !slotExcluded(ctx, id, unit));
+    return (v.type==='day'? (EVENING.includes(v.key) ? eveCand : dayCand) : nightCand.concat(nightExtra)).filter(id=> !slotExcluded(ctx, id, unit));
   });
   const domains = buildDomains();
 
@@ -1499,7 +1503,8 @@ function generateDay(input){
   // (13:30/14:30 당일상황이 고정이면 s.fixed에만 두고 assign에는 넣지 않음 — buildStats 이중 집계 방지)
   vars.forEach(v=>{
     const key=v.type==='day'?'D'+v.key:'N'+v.bunchoId;
-    if(v.type==='day') assign[v.key]=result[key]||null;
+    if(v.type==='day' && EVENING.includes(v.key)) fixed[v.key]=result[key]||null;   // 전환 전날 저녁 칸
+    else if(v.type==='day') assign[v.key]=result[key]||null;
     else night[v.bunchoId]=result[key]||null;
   });
   // 운항병 사전배정 병합 (주간 고정슬롯은 일반 근무이므로 assign에, 야간은 night에)
@@ -1511,13 +1516,14 @@ function generateDay(input){
 
   // 미배정 경고
   DAY_SLOTS.forEach(s=>{ if(!assign[s] && !fixed[s]) warnings.push('주간 '+s+' 미배정'); });
+  eveVars.forEach(v=>{ if(!fixed[v.key]) warnings.push('저녁 '+v.key+' 미배정'); });
   [1,2,3,4].forEach(b=>{ if(!night[b]) warnings.push('야간 '+b+'번초 미배정'); });
 
   /* 9) 순찰(17:30 추가) */
   const patrolExtra = assignPatrol(ds, ctx, assign, fixed);
 
   const sched = {
-    date:ds, workHoliday:ctx.workHoliday,
+    date:ds, workHoliday:ctx.workHoliday, transitionEve: !!input.transitionEve,
     dutyId:ctx.dutyId, situationId:ctx.situationId,
     nextDutyId:ctx.nextDutyId, nextSituationId:ctx.nextSituationId, nextMealId:ctx.nextMealId,
     next2DutyId:ctx.next2DutyId, next2SituationId:ctx.next2SituationId,
@@ -2236,7 +2242,7 @@ function validateScheduleCached(s){
 /* ---------- 일괄 생성용 입력 빌더 ----------
    [근무표 생성] 탭이 화면에서 채우는 값(사전등록·휴무일·전날 이전)을 헤드리스로 동일하게 구성 */
 function autoInputFor(ds){
-  if(isV2()) return autoInputFor2(ds);
+  if(isV2() && !_forceV1) return autoInputFor2(ds);
   const prev=DB.schedules[addDays(ds,-1)];
   const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1)), pbNext2=prebookOn(addDays(ds,2));
   const pbPick=(arr,kind)=>{ const e=arr.find(p=>p.kind===kind); return e?e.wid:null; };
@@ -3072,6 +3078,23 @@ function mealForecast(from, n){
   return out;
 }
 
+
+/* ---------- 전환 전날 근무표 ----------
+   전환일 전날은 구 방식(당직하사·상황병·밥교대 등)으로 만들되, 17:30·18:30·19:30은 다음날 밥교대·상황병·당직 고정 대신
+   새 체계처럼 일반 배정한다(새 체계 상황병 제외). 다음날(전환일)의 주간·야간 상황병은 오늘 야간에서 뺀다.
+   역할·열외는 전날 표와 일정에서 자동으로 가져온다(구 방식 통계 사용). */
+function generateTransitionEve(ds){
+  const nds=addDays(ds,1);
+  _forceV1=true; invalidateStats();
+  try{
+    const inp=autoInputFor(ds);
+    const sits=prebookOn(nds).filter(p=>p.kind==='situation'||p.kind==='sitday').map(p=>p.wid);
+    Object.assign(inp, {transitionEve:true, nextDutyId:null, nextSituationId:null, next2DutyId:null, next2SituationId:null,
+      nextMealId:'__none__', nextXmessId:'__none__', nightEx:[...new Set([...(inp.nightEx||[]), ...sits])]});
+    return generateDay(inp);
+  } finally { _forceV1=false; invalidateStats(); }
+}
+
 /* ---------- Node(테스트) 내보내기 ---------- */
 if(typeof module!=='undefined' && module.exports){
   module.exports = {
@@ -3093,7 +3116,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, generateDay2, buildStats2, nightPool, v2DaySitSlot, v2NavId, mealForecast, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
+    generateDay, generateDay2, generateTransitionEve, buildStats2, nightPool, v2DaySitSlot, v2NavId, mealForecast, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
     autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,

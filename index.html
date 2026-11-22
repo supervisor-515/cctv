@@ -1009,7 +1009,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.4.4</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.4.5</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1242,7 +1242,7 @@ body.ro .no-ro{display:none!important}
             <tbody>
               <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>주간상황</span></th>
                 <td class="na"></td>
-                <td><select id="g2DaySit" title="당일 주간 상황병 (13:30 고정, 21:30·야간만 추가 가능) — 휴일은 없음"></select></td>
+                <td><select id="g2DaySit" title="당일 주간 상황병 (월~목 14:30·금 13:30 고정, 21:30·야간만 추가 가능) — 휴일은 없음"></select></td>
                 <td><select id="g2NextDaySit" title="다음날 주간 상황병 (오늘 야간 제외)"></select></td></tr>
               <tr><th class="rh"><span class="rl"><i style="background:var(--sit)"></i>야간상황<small>·휴일</small></span></th>
                 <td><select id="g2PrevSit" title="전날 야간 상황병 (당일 CCTV 전체 면제)"></select></td>
@@ -1598,7 +1598,7 @@ body.ro .no-ro{display:none!important}
     <div class="panel">
       <p class="smallnote v2only" style="font-size:var(--fs-sm)">
         1일 기준: 당일 06:30~익일 05:30 (1시간 단위 24개 슬롯). 주간 06:30~16:30 (11칸), 저녁 17:30~21:30 (5칸), 야간 4개 번초(1번초 22:30+02:30, 2번초 23:30+03:30, 3번초 00:30+04:30, 4번초 01:30+05:30).<br>
-        <b>상황병</b>(예약·직접 지정, 위병조장 불가): 평일은 <b>주간 상황병</b>과 <b>야간(당직) 상황병</b>으로 나뉩니다. 주간 상황병은 13:30 고정 CCTV, 그 외 주간·저녁 칸은 빠지고 21:30·야간은 들어갈 수 있으며 전날 야간이 면제됩니다(근무일로 세고 그날 CCTV도 카운트). 야간 상황병은 10:30 고정 CCTV, 전날 야간·당일·다음날 면제(당일·다음날 근무일 제외, 고정 CCTV 카운트 안 함). 같은 사람이 둘 다 맡으면 10:30·13:30 고정, 야간 상황병 규칙을 따릅니다. 주말·휴일은 상황병 1명이 종일, 고정 CCTV 없이 야간 상황병과 같은 규칙. 배식조는 근무 전날만 가능(주간 상황병은 당일만 불가), 전날 야간자는 배식조 불가.<br>
+        <b>상황병</b>(예약·직접 지정, 위병조장 불가): 평일은 <b>주간 상황병</b>과 <b>야간(당직) 상황병</b>으로 나뉩니다. 주간 상황병은 월~목 14:30·금 13:30 고정 CCTV, 그 외 주간·저녁 칸은 빠지고 21:30·야간은 들어갈 수 있으며 전날 야간이 면제됩니다(근무일로 세고 그날 CCTV도 카운트). 야간 상황병은 10:30 고정 CCTV, 전날 야간·당일·다음날 면제(당일·다음날 근무일 제외, 고정 CCTV 카운트 안 함). 같은 사람이 둘 다 맡으면 10:30과 주간 고정칸, 야간 상황병 규칙을 따릅니다. 주말·휴일은 상황병 1명이 종일, 고정 CCTV 없이 야간 상황병과 같은 규칙. 배식조는 근무 전날만 가능(주간 상황병은 당일만 불가), 전날 야간자는 배식조 불가.<br>
         <b>위병조장</b>: 평일(월~금) A·B·C 3명, 주말·휴일 1명(일반병만). A는 배정률 낮은 순 → 오래 안 선 순, B·C는 합산 배정률, 주말·휴일은 따로 셉니다. A·B·주말은 전날 야간자 제외(C는 가능). 당일 주간·저녁 CCTV는 안 서고, 야간은 후보 부족 시 B·C·주말만 투입합니다. 위병조장 시간(A 3.5h, B·C 4h, 주말·휴일 2h)은 평균 근무시간에 포함합니다.<br>
         <b>배식조</b>: [배식조 가능] 인원 중 매일 2명. 평일 / 토 / 일·휴일을 따로 셉니다. 당일 CCTV 전체 열외·전날 야간 제외·이틀 연속 금지·위병조장 중복 금지. 근무시간(토 2h, 그 외 3h)은 평균 근무시간에 들어갑니다.<br>
         <b>개인정비시간 칸</b>(월~목 17:30·18:30·19:30, 금 16:30~19:30): 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. <b>상황병은 이 칸들과 금요일 추가순찰에서 빠집니다</b>(30분만 겹치는 20:30·금 15:30은 일반 배정). 20:30(0.5h), 금 15:30(0.5h)·추가순찰(0.5h), 금 17:30(1.5h)도 시간에 들어갑니다. 평일 위병조장A·배식조 날은 1시간 침해로 셉니다. 주말·휴일 제외.<br>
@@ -1618,7 +1618,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.4.4"></script>
+<script src="engine.js?v=9.4.5"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2716,7 +2716,7 @@ function renderSchedTimeline(s, who, ed){
     const id = (s.assign&&s.assign[slot]) || fixedHere || null;
     const subs=[];
     if((slot==='14:30'||slot==='13:30') && (fixedHere || (ed && ed.orig.fixed && ed.orig.fixed[slot]))) subs.push(['sit','상황']);
-    if(v2 && id && dayGroup(s.date,s.workHoliday)!=='weekend' && ((slot==='10:30' && id===s.situationId) || (slot==='13:30' && id===s.daySitId))) subs.push(['sit', slot==='10:30' ? '야간상황 고정' : '주간상황 고정']);
+    if(v2 && id && dayGroup(s.date,s.workHoliday)!=='weekend' && ((slot==='10:30' && id===s.situationId) || (slot===v2DaySitSlot(s.date) && id===s.daySitId))) subs.push(['sit', slot==='10:30' ? '야간상황 고정' : '주간상황 고정']);
     if(s.relaxed&&s.relaxed[slot]) subs.push(['relax', s.relaxed[slot]]);
     if(pm[slot]) subs.push(['patrol','개인정비']);
     colL.appendChild(row('D:'+slot, slot, id, {subs, inline:[id&&roleTag(id)], h:slotHours(slot).toFixed(1)+'h'}));
@@ -3053,7 +3053,7 @@ function edKeyInfo(s, key){
   if(key==='nextXmess') return {title:'다음날 추가배식조 변경', sub:md(addDays(s.date,1)), note:'익일 추가배식조만 변경됩니다. 대상자는 당일 야간 배정에서 제외되어야 합니다 (기 배정 시 점검 목록 표시). 익일 근무표 생성 시 해당 인원이 추가배식조로 지정됩니다.'};
   if(key==='duty') return {title:'당직 변경', sub:md(s.date), note:'당직 지정만 변경되며 배정 슬롯은 유지됩니다.'};
   if(key==='sit') return {title:(s.v2 && dayGroup(s.date,s.workHoliday)!=='weekend' ? '야간 상황병' : '상황병')+' 변경', sub:md(s.date), note:'지정만 바뀌고 배정 칸은 그대로입니다.'+(s.v2?' 고정 CCTV(10:30) 칸도 함께 바꾸십시오.':'')};
-  if(key==='daySit') return {title:'주간 상황병 변경', sub:md(s.date), note:'지정만 바뀌고 배정 칸은 그대로입니다. 고정 CCTV(13:30) 칸도 함께 바꾸십시오.'};
+  if(key==='daySit') return {title:'주간 상황병 변경', sub:md(s.date), note:'지정만 바뀌고 배정 칸은 그대로입니다. 고정 CCTV('+v2DaySitSlot(s.date)+') 칸도 함께 바꾸십시오.'};
   return {title:(key==='meal'?'밥교대':'다음날 밥교대')+' 변경', sub:md(s.date),
     note:'밥교대 담당자 변경 시 제약 충돌이 발생하는 슬롯만 대체 인원으로 자동 재조정합니다. 선택 시 연동 변경 슬롯이 사전 표시됩니다.'};
 }
@@ -3179,7 +3179,7 @@ function pbDayInfo(p, ds){
     return {word:'유조차', cls:'cw-fuel', label:'유조차 (정)', cond:cond+' (분모 제외)'};
   }
   if(p.kind==='duty') return {word:'당직예약', cls:'cw-duty', label:'당직 예약', cond:'당직 지정'};
-  if(p.kind==='sitday') return {word:'주간상황', cls:'cw-sit', label:'주간 상황병 예약', cond:'주간 상황병 지정 (13:30 고정, 21:30·야간만 추가 가능)'};
+  if(p.kind==='sitday') return {word:'주간상황', cls:'cw-sit', label:'주간 상황병 예약', cond:'주간 상황병 지정 (월~목 14:30·금 13:30 고정, 21:30·야간만 추가 가능)'};
   if(V2()) return {word:'야간상황', cls:'cw-sit', label:'야간 상황병 예약', cond:'야간(당직) 상황병 지정 — 주말·휴일은 종일 상황병'};
   return {word:'상황예약', cls:'cw-sit', label:'상황병 예약', cond:'상황병 지정'};
 }
@@ -5679,11 +5679,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.4.4"></script>
+<script src="firebase-config.js?v=9.4.5"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.4.4"></script>
+<script src="sync.js?v=9.4.5"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

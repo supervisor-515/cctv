@@ -340,9 +340,9 @@ test('v2 주간·야간 상황병: 고정 CCTV(13:30·10:30), 면제, 근무일�
     assert.deepStrictEqual(E.validateSchedule2(s).hard, [], s.date);
     if (wk) {
       assert.strictEqual(s.assign['10:30'], s.situationId, s.date + ' 10:30');
-      assert.strictEqual(s.assign['13:30'], s.daySitId, s.date + ' 13:30');
-      assert.deepStrictEqual(of(s.situationId).filter(k => !['D:10:30', 'D:13:30'].includes(k)), [], s.date + ' 야간 상황병 다른 칸');
-      if (s.daySitId !== s.situationId) assert.ok(of(s.daySitId).every(k => ['D:13:30', 'E:21:30'].includes(k) || k[0] === 'N'), s.date + ' 주간 상황병 칸');
+      const ds2 = E.v2DaySitSlot(s.date); assert.strictEqual(s.assign[ds2], s.daySitId, s.date + ' ' + ds2);
+      assert.deepStrictEqual(of(s.situationId).filter(k => !['D:10:30', 'D:' + ds2].includes(k)), [], s.date + ' 야간 상황병 다른 칸');
+      if (s.daySitId !== s.situationId) assert.ok(of(s.daySitId).every(k => ['D:' + ds2, 'E:21:30'].includes(k) || k[0] === 'N'), s.date + ' 주간 상황병 칸');
     } else {
       assert.strictEqual(s.daySitId, null); assert.deepStrictEqual(of(s.situationId), [], s.date + ' 주말 상황병 CCTV 없음');
     }
@@ -356,7 +356,7 @@ test('v2 주간·야간 상황병: 고정 CCTV(13:30·10:30), 면제, 근무일�
   const one = all.find(s => !isHol(s.date) && s.daySitId && s.daySitId !== s.situationId), id = one.daySitId;
   const before = E.buildStats2(one.date), after = E.buildStats2(E.addDays(one.date, 1));
   assert.strictEqual(after[id].denom, before[id].denom + 1);
-  assert.ok(after[id].slotNum['13:30'] === before[id].slotNum['13:30'] + 1);
+  const fx = E.v2DaySitSlot(one.date); assert.ok(after[id].slotNum[fx] === before[id].slotNum[fx] + 1);
   const nn = all.find(s => !isHol(s.date) && s.situationId), nid = nn.situationId;
   const b2 = E.buildStats2(nn.date), a2 = E.buildStats2(E.addDays(nn.date, 2));
   assert.strictEqual(a2[nid].denom, b2[nid].denom); assert.strictEqual(a2[nid].slotNum['10:30'], b2[nid].slotNum['10:30']);

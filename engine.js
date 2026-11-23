@@ -1756,7 +1756,7 @@ function repairKeyLabel(k){ return k==='P' ? '17:00 순찰' : k[0]==='D' ? k.sli
    'duty'·'sit' 역할 지정. (밥교대는 연쇄 조정이 필요해 repairRoleChange로 바꾼다) */
 const SCHED_KEYS = [...DAY_SLOTS.map(sl=>'D:'+sl), 'P', ...EVENING.map(sl=>'E:'+sl),
                     ...NIGHT_BUNCHO.map(b=>'N:'+b.id), 'duty', 'sit', 'meal', 'nextMeal', 'xmess', 'nextXmess'];
-/* 새 시스템(v2) 역할 키 — gateA·B·C·H / mess0·1 / nextGateA… / nextMess0·1 */
+/* 새 시스템(v2) 역할 키 — gateA·B·H (gateC는 예전 표 호환) / mess0·1 / nextGateA… / nextMess0·1 */
 const V2_ROLE_KEYS = ['gateA','gateB','gateC','gateH','mess0','mess1','nextGateA','nextGateB','nextGateC','nextGateH','nextMess0','nextMess1'];
 V2_ROLE_KEYS.forEach(k=>SCHED_KEYS.push(k));
 SCHED_KEYS.push('daySit');   // 새 체계 주간 상황병
@@ -2326,11 +2326,13 @@ function workHeatmap(wid, from, to, today){
 
 /* ============================================================
    새 배정 시스템(v2) — 전환 버튼을 누르기 전까지는 쓰이지 않는다.
-   당직하사·고정 CCTV·운항병 폐지 / 위병조장 A·B·C(평일)·H(토·일·휴일) / 배식조 매일 2명 /
+   당직하사·고정 CCTV·운항병 폐지 / 위병조장 A·B(평일)·H(토·일·휴일) / 배식조 매일 2명 /
    저녁 17:30~21:30 일반 배정 / 개인정비시간 CCTV 순번.
    솔버(solve·greedyFill·localImprove)와 점수(score)는 기존 것을 그대로 쓴다.
    ============================================================ */
-const GATE_HOURS = {A:3.5, B:4, C:4, H:2};
+/* 위병조장 — A 07:00~08:30·14:30~18:30(5.5h), B 08:30~14:30(6h), 주말·휴일 1명 2h.
+   C는 폐지(예전 표에 남은 C는 통계에서 B로 센다) */
+const GATE_HOURS = {A:5.5, B:6, C:6, H:2};
 const NIGHT_HOURS2 = 2;
 /* v2: 배식조 근무시간 — 토 2h, 그 외 요일 3h (평균 근무시간에 산입) */
 /* v2 주간 상황병 고정 CCTV — 월~목 14:30, 금 13:30 (운항병 고정 09:30·13:30 / 금 09:30·14:30과 겹치지 않게) */
@@ -2341,7 +2343,7 @@ const PTIME_LOSS = {gateA:1, mess:1};   // v2: 야간 번초 1개 = 실제 근�
 /* 평일('wd') / 주말·휴일('we') — v2는 두 쪽의 CCTV 카운트를 완전히 따로 센다 */
 function v2DayType(ds, workHoliday){ return dayGroup(ds, workHoliday)==='weekend' ? 'we' : 'wd'; }   // 위병조장 근무시간(평균 근무시간에 산입)
 /* since: 전환일(이 날짜부터 v2 표·통계). gap*: 위병조장 텀(일) — 후보가 없을 때만 완화되는 소프트 제약 */
-function v2cfg(){ return Object.assign({since:null, gapA:7, gapBC:4, gapAny:4, gapH:7}, (DB.settings && DB.settings.v2) || {}); }
+function v2cfg(){ return Object.assign({since:null, gapA:7, gapB:7, gapAny:4, gapH:7}, (DB.settings && DB.settings.v2) || {}); }
 function isV2(){ return !!(DB.settings && DB.settings.v2 && DB.settings.v2.since); }
 /* v2 운항병(일반병 1명) — 평일 주간은 고정칸만, 야간은 금·토 중 주 1회, 위병조장 제외, 배식조는 주말·휴일만.
    개인정비 칸·저녁·주말·휴일 주간은 다른 사람과 같이 배정한다 */
@@ -2404,8 +2406,8 @@ function _computeStats2(uptoDate, month, type){
       patrolNum:0, patrolDen:0, patrolGNum:{weekday:0,weekend:0}, patrolGDen:{weekday:0,weekend:0},
       // 개인정비시간 CCTV: 시간·대상일수·마지막 날·순번 칸별 횟수
       pHours:0, pDen:0, pLast:'', pSlot:{},
-      // 위병조장: A / BC(합산) / H(토·일·휴일) — 각각 횟수·대상일수·마지막 날
-      gate:{A:{num:0,den:0,last:''}, BC:{num:0,den:0,last:''}, H:{num:0,den:0,last:''}},
+      // 위병조장: A / B / H(토·일·휴일) — 각각 횟수·대상일수·마지막 날
+      gate:{A:{num:0,den:0,last:''}, B:{num:0,den:0,last:''}, H:{num:0,den:0,last:''}},
       // 배식조: 평일 / 토 / 일+휴일
       messNum:{weekday:0,sat:0,sun:0}, messDen:{weekday:0,sat:0,sun:0}, messLast:'',
       // 구 화면 코드가 읽는 필드(전환 후에는 쓰지 않음)
@@ -2442,8 +2444,8 @@ function _computeStats2(uptoDate, month, type){
         r.denom++; r.slotDen++; r.groupDen[g]++; r.nightDen++; r.nightGDen[ng]++;
         if(s.assign['16:30']!==w.id && (s.fixed||{})['17:30']!==w.id){ r.patrolDen++; r.patrolGDen[mg]++; }
       }
-      if(wk && (gate.A===w.id || !gateIds.includes(w.id)) && !outing.includes(w.id)) r.pDen++;   // 위병조장A 날은 대상일(1h 침해), B·C 날은 제외
-      if(ok && isGeneralW(w)){ if(wk){ r.gate.A.den++; r.gate.BC.den++; } else r.gate.H.den++; }
+      if(wk && (gate.A===w.id || !gateIds.includes(w.id)) && !outing.includes(w.id)) r.pDen++;   // 위병조장A 날은 대상일(1h 침해), B 날은 제외
+      if(ok && isGeneralW(w)){ if(wk){ r.gate.A.den++; r.gate.B.den++; } else r.gate.H.den++; }
     });
     AS.forEach(slot=>{
       const id = DAY_SLOTS.includes(slot) ? (s.assign||{})[slot] : (s.fixed||{})[slot];
@@ -2467,7 +2469,7 @@ function _computeStats2(uptoDate, month, type){
     }
     Object.entries(gate).forEach(([k,id])=>{
       const r = id && st[id]; if(!r) return;
-      const q = r.gate[k==='A'?'A': k==='H'?'H':'BC']; q.last=ds; addH(id, GATE_HOURS[k]);
+      const q = r.gate[k==='A'?'A': k==='H'?'H':'B']; q.last=ds; addH(id, GATE_HOURS[k]);   // 예전 표의 C는 B로
       if(okReset[id]) q.num++;
       if(k==='A' && wk){ r.pHours += PTIME_LOSS.gateA; r.pLast = ds; }   // 위병조장A: 개인정비시간 1h 침해
     });
@@ -2498,14 +2500,14 @@ function v2GateStat(stats, t, wid, grp){
 function v2PickGate(kind, t, taken, stats){ const r=v2GateRank(kind, t, taken, stats); return r.length ? r[0].id : null; }
 function v2PickMess(t, taken, stats){ const r=v2MessRank(t, taken, stats); return r.length ? r[0].id : null; }
 function v2GateRank(kind, t, taken, stats){
-  const grp = kind==='A' ? 'A' : kind==='H' ? 'H' : 'BC', cfg = v2cfg();
+  const grp = kind==='A' ? 'A' : kind==='H' ? 'H' : 'B', cfg = v2cfg();
   let pool = activeWorkers().filter(w=> isGeneralW(w) && w.id!==v2NavId() && !inInactive(w, t.ds) && !t.out.has(w.id) && !taken.has(w.id)
-    && !(kind!=='C' && t.prevNight && t.prevNight.has(w.id))     // A·B·H는 전날 야간자 불가(C만 가능)
+    && !(t.prevNight && t.prevNight.has(w.id))                   // 전날 야간자 불가(A·B·주말 모두)
     && !(kind==='A' && t.outing.has(w.id))                        // 외출자는 A 불가
     && !(t.slotCtx && mealBlockedBySlotEx(t.slotCtx, w.id)));
   const far = (last, gap)=> !last || dayDiff(last, t.ds) >= gap;
-  const anyLast = id => ['A','BC','H'].map(g=>v2GateStat(stats, t, id, g).last).sort().pop();
-  const gap = grp==='A' ? cfg.gapA : grp==='H' ? cfg.gapH : cfg.gapBC;
+  const anyLast = id => ['A','B','H'].map(g=>v2GateStat(stats, t, id, g).last).sort().pop();
+  const gap = grp==='A' ? cfg.gapA : grp==='H' ? cfg.gapH : cfg.gapB;
   [w=> far(v2GateStat(stats, t, w.id, grp).last, gap), w=> far(anyLast(w.id), cfg.gapAny)]
     .forEach(f=>{ const nx=pool.filter(f); if(nx.length) pool=nx; });
   return pool.map(w=>{ const q=v2GateStat(stats, t, w.id, grp);
@@ -2563,7 +2565,7 @@ function generateDay2(input){
   /* 1) 오늘 위병조장 → 배식조 (전날 표에서 정해진 사람이 오늘 못 서면 다시 뽑는다) */
   const tToday = {ds, wh, out:new Set([...exempt, ...ctx.bothEx, ...ctx.dayEx, ctx.daySitId].filter(Boolean)), prevNight, outing:new Set(ctx.outing),
                   slotCtx:ctx, today:null, prevMess:new Set(prev && prev.v2 ? (prev.messIds||[]) : [])};
-  const kinds = wk ? ['A','B','C'] : ['H'];
+  const kinds = wk ? ['A','B'] : ['H'];
   const gate = {}, taken = new Set();
   const preGate = Object.assign({}, prev && prev.v2 ? prev.nextGate : null, input.gate);   // 직접 지정 > 전날 표에서 정해진 사람
   kinds.forEach(k=>{ const id=preGate[k];
@@ -2582,7 +2584,7 @@ function generateDay2(input){
   const nextOff = input.nextOff || prebookOn(nds).filter(p=> p.kind!=='duty' && p.kind!=='situation' && p.kind!=='sitday').map(p=>p.wid);
   const tNext = {ds:nds, wh:nwh, out:new Set([ctx.situationId, ctx.nextSituationId, ctx.nextDaySitId, ...nextOff].filter(Boolean)), prevNight:null,
                  outing:new Set(), slotCtx:null, today:{date:ds, workHoliday:wh, gate, messIds}, prevMess:new Set(messIds)};
-  const nKinds = dayGroup(nds, nwh)!=='weekend' ? ['A','B','C'] : ['H'];
+  const nKinds = dayGroup(nds, nwh)!=='weekend' ? ['A','B'] : ['H'];
   const nextGate = {}, nTaken = new Set();
   nKinds.forEach(k=>{ const id=(input.nextGate||{})[k]; if(id){ nextGate[k]=id; nTaken.add(id); } });
   nKinds.forEach(k=>{ if(nextGate[k]) return; nextGate[k] = v2PickGate(k, tNext, nTaken, allStats); if(nextGate[k]) nTaken.add(nextGate[k]); });
@@ -2598,7 +2600,7 @@ function generateDay2(input){
   const eveCand = elig.filter(id=> !gateIds.includes(id) && id!==daySit);
   const nightOut = new Set([ctx.nextSituationId, ctx.nextDaySitId, nextGate.A, nextGate.B, nextGate.H, ...nextMessIds, ...ctx.nightEx].filter(Boolean));
   const nightCand = elig.filter(id=> !gateIds.includes(id) && !nightOut.has(id) && id!==navId);
-  const gateNight = [gate.B, gate.C, gate.H].filter(id=> id && elig.includes(id) && !nightOut.has(id));   // 부족 시에만 야간 투입
+  const gateNight = [gate.A, gate.B, gate.H].filter(id=> id && elig.includes(id) && !nightOut.has(id));   // 부족 시에만 야간 투입(평일 A·B는 야간이 빌 때만)
 
   /* 4) 유조차 운전병(정) 부분근무 — 기존 규칙 그대로 */
   const fuelPb = fuelTruckOn(ds);
@@ -2702,9 +2704,9 @@ function generateDay2(input){
   const better = (x, y)=> (x.unfilled-y.unfilled) || (x.triple-y.triple) || (x.consec-y.consec);   // <0 이면 x가 낫다
   let best = run(buildDomains([]), true);
   if(best.unfilled){ const r=run(buildDomains([]), false); if(better(r,best)<0) best=r; }
-  // 야간이 비거나 연속이 생기면 당일 위병조장(B·C·H)을 야간 후보에 넣어 다시 푼다
-  if(gateNight.length && (best.unfilled || best.consec)){
-    const r=run(buildDomains(gateNight), best.eveOnce); if(better(r,best)<0) best=r;
+  // 당일 위병조장을 야간 후보에 넣어 다시 푼다 — 평일 A·B는 연속 야간까지 써도 번초가 빌 때만, 주말·휴일 위병조장은 연속 야간을 피할 때도
+  if(gateNight.length && (best.unfilled || (!wk && best.consec))){
+    const r=run(buildDomains(gateNight), best.eveOnce); if(wk ? r.unfilled<best.unfilled : better(r,best)<0) best=r;
   }
   const result = best.assign;
 
@@ -2806,7 +2808,7 @@ function validateSchedule2(s){
       if(wkd && mess.includes(nv)) soft.push(nm+': 운항병인데 평일 배식조 배정');
     } }
   const wk = dayGroup(s.date, s.workHoliday)!=='weekend';
-  (wk ? ['A','B','C'] : ['H']).forEach(k=>{ if(!gate[k]) soft.push('위병조장'+(k==='H'?'':k)+' 미배정'); });
+  (wk ? ['A','B'] : ['H']).forEach(k=>{ if(!gate[k]) soft.push('위병조장'+(k==='H'?'':k)+' 미배정'); });
   if(mess.length<2) soft.push('배식조 '+mess.length+'/2');
   Object.entries(occ).forEach(([wid, sl])=>{ if(sl.filter(x=>EVENING.includes(x)).length>1) soft.push(nameOf(wid)+': 저녁 2칸'); });
   return {hard:[...new Set(hard)], soft:[...new Set(soft)]};
@@ -2885,15 +2887,15 @@ function explainAssignment2(s, key){
       out: new Set(rk.next ? [s.situationId, s.nextSituationId, s.nextDaySitId].filter(Boolean) : [...exempt, ...(s.bothEx||[]), ...(s.dayEx||[]), s.daySitId].filter(Boolean)),
       prevMess: new Set(rk.next ? mess : (prev && prev.v2 ? (prev.messIds||[]) : []))};
     if(rk.gate){
-      const k = rk.idx, order=['A','B','C','H'];
+      const k = rk.idx, order=['A','B','H'];
       const taken = new Set(order.slice(0, order.indexOf(k)).map(x=>tg[x]).filter(Boolean));
       o.title = (rk.next?'다음날 ':'')+'위병조장'+(k==='H'?'':k);
       const cfg=v2cfg();
-      o.lines.push(k==='A' ? '일반병 중 A 배정률(선 횟수 ÷ 대상 평일)이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자·외출자는 제외합니다.'
-        : k==='H' ? '일반병 중 주말 배정률이 낮은 순으로 뽑습니다(평일 A·B·C와 별도 집계). 전날 야간자는 제외합니다.'
-        : '일반병 중 B·C 합산 배정률이 낮은 순으로 뽑습니다. B는 전날 야간자 제외, C는 가능합니다.');
-      o.lines.push('텀: 같은 종류 '+(k==='A'?cfg.gapA:k==='H'?cfg.gapH:cfg.gapBC)+'일, 위병조장 전체 '+cfg.gapAny+'일 안에 선 사람은 다른 후보가 있으면 뺍니다.');
-      const grp = k==='A'?'A':k==='H'?'H':'BC';
+      o.lines.push(k==='A' ? '07:00~08:30·14:30~18:30. 일반병 중 A 배정률(선 횟수 ÷ 대상 평일)이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자·외출자는 제외합니다.'
+        : k==='H' ? '일반병 중 주말 배정률이 낮은 순으로 뽑습니다(평일 A·B와 별도 집계). 전날 야간자는 제외합니다.'
+        : '08:30~14:30. 일반병 중 B 배정률이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자는 제외합니다.');
+      o.lines.push('텀: 같은 종류 '+(k==='A'?cfg.gapA:k==='H'?cfg.gapH:cfg.gapB)+'일, 위병조장 전체 '+cfg.gapAny+'일 안에 선 사람은 다른 후보가 있으면 뺍니다.');
+      const grp = k==='A'?'A':k==='H'?'H':'B';
       return finish(v2GateRank(k, t, taken, stats).map(e=>({id:e.id, reason: grp+' '+e.num+'회/'+e.den+'일('+pc(e.num,e.den)+') · 마지막 '+md(e.last)})));
     }
     const taken = new Set([...Object.values(tg).filter(Boolean), ...tm.slice(0, rk.idx)]);
@@ -2937,7 +2939,6 @@ function explainAssignment2(s, key){
       if([ng.A, ng.B, ng.H].includes(id)) return '다음날 위병조장';
       if((s.nextMessIds||[]).includes(id)) return '다음날 배식조';
       if((s.nightEx||[]).includes(id)) return '야간 열외';
-      if(gate.A===id) return '당일 위병조장A';
       if(NIGHT_BUNCHO.some(b=> b.id!==v.bunchoId && (s.night||{})[b.id]===id)) return '오늘 다른 번초 근무';
     }
     if(id===v2NavId() && id!==who && (isN || (isDaySl && dayGroup(ds,wh)!=='weekend'))) return isN ? '운항병(금·토 주 1회 야간만)' : '운항병(평일 고정칸만)';
@@ -2996,7 +2997,9 @@ function nightPool(s){
   const stats = v2 ? buildStats2(ds, null, v2DayType(ds, s.workHoliday)) : buildStats(ds);
   const blocked=[], put={};
   const tierDefs = v2
-    ? [['ok','정상','야간 우선 후보'],['gate','위병조장','당일 위병조장B·C·주말 — 연속 야간을 피하려고 투입'],['c2','이틀 연속','전날 야간자 — 후보가 모자랄 때'],['c3','3일 연속','그저께·어제 야간자 — 최후']]
+    ? (dayGroup(ds, s.workHoliday)!=='weekend'
+      ? [['ok','정상','야간 우선 후보'],['c2','이틀 연속','전날 야간자 — 후보가 모자랄 때'],['c3','3일 연속','그저께·어제 야간자'],['gate','위병조장','당일 위병조장A·B — 그래도 번초가 빌 때만(최후)']]
+      : [['ok','정상','야간 우선 후보'],['gate','위병조장','당일 주말·휴일 위병조장 — 연속 야간을 피하려고 투입'],['c2','이틀 연속','전날 야간자 — 후보가 모자랄 때'],['c3','3일 연속','그저께·어제 야간자 — 최후']])
     : [['ok','정상','야간 우선 후보'],['c2','이틀 연속','전날 야간자 — 후보가 모자랄 때'],['c3','3일 연속','그저께·어제 야간자 — 최후'],['meal','밥교대','당일 밥교대 — 야간이 비었을 때만']];
   tierDefs.forEach(([k])=>{ put[k]=[]; });
   let why;
@@ -3008,7 +3011,6 @@ function nightPool(s){
       if(id===s.nextDaySitId) return '다음날 주간 상황병';
       if((s.messIds||[]).includes(id)) return '당일 배식조';
       if((s.nextMessIds||[]).includes(id)) return '다음날 배식조';
-      if(gate.A===id) return '당일 위병조장A';
       if(id===v2NavId() && !onB(id)) return '운항병(금·토 주 1회 야간만)';
       if([ng.A,ng.B,ng.H].includes(id)) return '다음날 위병조장';
       if((s.bothEx||[]).includes(id) && id!==fuelNight) return '전체 열외';
@@ -3040,7 +3042,7 @@ function nightPool(s){
     const e={id, on:b, nights:st.nightNum||0, rate: st.nightDen ? st.nightNum/st.nightDen : 0, last,
              note: [r ? r+' (직접 지정)' : '', exN.length ? exN.join('·')+'번초 열외' : ''].filter(Boolean).join(' · ')};
     const k = pn.has(id) ? (p2.has(id) ? 'c3' : 'c2')
-            : v2 && [s.gate&&s.gate.B, s.gate&&s.gate.C, s.gate&&s.gate.H].includes(id) ? 'gate'
+            : v2 && Object.values(s.gate||{}).includes(id) ? 'gate'
             : !v2 && id===s.mealId ? 'meal' : 'ok';
     put[k].push(e);
   });
@@ -3052,7 +3054,7 @@ function nightPool(s){
 /* ---------- 밥교대(새 체계: 위병조장) 예상 순번 ----------
    from부터 n일. 이미 만든 근무표는 그 표의 값(확정), 마지막 표의 '다음날' 몫도 확정,
    그 뒤는 지금 등록된 휴가·일정으로 근무표를 미리 만들어 본 결과(예상) — 실제 DB는 건드리지 않는다.
-   반환 [{date, list:[{k:'meal'|'A'|'B'|'C'|'H', id}], state:'fixed'|'next'|'guess'|'none'}] */
+   반환 [{date, list:[{k:'meal'|'A'|'B'|'H', id}], state:'fixed'|'next'|'guess'|'none'}] */
 function mealForecast(from, n){
   const v2=isV2(), pick = s => v2 ? ['A','B','C','H'].filter(k=> s.gate && k in s.gate).map(k=>({k, id:s.gate[k]||null}))
                                      : [{k:'meal', id:s.mealId||null}];

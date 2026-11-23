@@ -1,7 +1,7 @@
 /* 새 배정 시스템(v2) 시뮬레이션 — 실제 데이터는 건드리지 않는다(백업 파일을 읽어 메모리에서만 생성).
    사용: node tools/simulate-v2.js <백업.json> [일수=90]
    환경변수: SIT=이름,이름,…(상황병 명단·순번)  OUTING=평일 하루 외출 인원(기본 0)
-            GAPA GAPBC GAPANY GAPH(위병조장 텀)  VERBOSE=1(사람별 표)
+            GAPA GAPB GAPANY GAPH(위병조장 텀)  VERBOSE=1(사람별 표)
             MESS_ALL=1(전원 배식조 가능)  SIT_NOMESS=1(상황병을 배식조에서 제외)  SIT_NONIGHT=1(상황병을 야간에서 제외) — 가정 비교용
    휴가·열외는 과거 근무표의 실제 열외를 13주(91일) 뒤로 옮겨 재현한다. */
 "use strict";
@@ -23,7 +23,7 @@ const start = E.addDays(E.latestSchedDate(), 1);
 const hist = DB.schedules;
 E.switchToV2(start);
 { const c = E.v2cfg(), n = (v, d) => v === undefined ? d : +v;   // 지정하지 않으면 앱 기본값
-  DB.settings.v2 = Object.assign(c, { gapA: n(env.GAPA, c.gapA), gapBC: n(env.GAPBC, c.gapBC), gapAny: n(env.GAPANY, c.gapAny), gapH: n(env.GAPH, c.gapH) }); }
+  DB.settings.v2 = Object.assign(c, { gapA: n(env.GAPA, c.gapA), gapB: n(env.GAPB, c.gapB), gapAny: n(env.GAPANY, c.gapAny), gapH: n(env.GAPH, c.gapH) }); }
 // 과거 열외 재현: 주 단위 배식조(폐지)는 빼고, 유조차 일정은 같은 간격으로 옮긴다
 const oldPb = DB.prebook;
 DB.prebook = oldPb.filter(p => p.kind === 'fueltruck' || p.kind === 'fuelsub')
@@ -82,11 +82,11 @@ console.log('완화 단계(tier)별 일수', tiers, '· 하루 최다 근무 칸
 const gen = act().filter(E.isGeneralW), all = act();
 const pAvg = all.filter(w => st[w.id].pDen > 0 && !E.isSituationW(w)).map(w => st[w.id].pHours / st[w.id].pDen);
 console.log(`개인정비 CCTV 시간/대상일(상황병 제외): ${mm(pAvg)} (표준편차 ${f(sd(pAvg), 3)})`);
-['A', 'BC', 'H'].forEach(g => { const a = gen.map(w => st[w.id].gate[g].num); console.log(`위병조장 ${g} 횟수: ${mm(a)} (표준편차 ${f(sd(a))})`); });
+['A', 'B', 'H'].forEach(g => { const a = gen.map(w => st[w.id].gate[g].num); console.log(`위병조장 ${g} 횟수: ${mm(a)} (표준편차 ${f(sd(a))})`); });
 // 위병조장 간격
-const gaps = { any: [], A: [], BC: [] }, lastG = {};
+const gaps = { any: [], A: [], B: [] }, lastG = {};
 made.forEach(s => Object.entries(s.gate).forEach(([k, id]) => {
-  if (!id) return; const g = k === 'A' ? 'A' : k === 'H' ? 'H' : 'BC', L = lastG[id] = lastG[id] || {};
+  if (!id) return; const g = k === 'A' ? 'A' : k === 'H' ? 'H' : 'B', L = lastG[id] = lastG[id] || {};
   const dd = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
   if (L.any) gaps.any.push(dd(L.any, s.date)); if (L[g] && gaps[g]) gaps[g].push(dd(L[g], s.date));
   L.any = s.date; L[g] = s.date;
@@ -105,7 +105,7 @@ const cls = w => E.isSituationW(w) ? '상황' : E.isGeneralW(w) ? '일반' : '�
     { const mh = ws.map(w => messH[w.id] || 0); console.log(`<${c}> 그중 배식조 ${f(sum(mh), 1)}h (1인 ${f(sum(mh) / ws.length, 1)}h)`); }
     console.log(`<${c} ${ws.length}명> 총 근무시간 합 ${f(sum(h), 1)}h · 1인 평균 ${f(sum(h) / ws.length, 1)}h (${mm(h)}) · 대상일 평균 ${f(sum(d) / ws.length, 1)}일 · 대상일당 ${f(sum(h) / sum(d))}h · 야간 1인 평균 ${f(sum(n) / ws.length, 1)}회 · 배식조 1인 평균 ${f(sum(m) / ws.length, 1)}회`); }); }
 if (env.VERBOSE) {
-  console.log('이름\t구분\t대상일\t평균h\t개인정비h/일\tA\tBC\tH\t배식(평/토/일)\t야간\t상황');
-  all.forEach(w => { const r = st[w.id]; console.log([w.name, cls(w), r.denom, f(E.avgHours(r)), r.pDen ? f(r.pHours / r.pDen, 3) : '-', r.gate.A.num, r.gate.BC.num, r.gate.H.num,
+  console.log('이름\t구분\t대상일\t평균h\t개인정비h/일\tA\tB\tH\t배식(평/토/일)\t야간\t상황');
+  all.forEach(w => { const r = st[w.id]; console.log([w.name, cls(w), r.denom, f(E.avgHours(r)), r.pDen ? f(r.pHours / r.pDen, 3) : '-', r.gate.A.num, r.gate.B.num, r.gate.H.num,
     [r.messNum.weekday, r.messNum.sat, r.messNum.sun].join('/'), r.nightNum, r.sitCnt].join('\t')); });
 }

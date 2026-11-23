@@ -41,12 +41,12 @@ test('v2: 60일 연속 생성 — 하드 위반 없음, 미배정 없음', () =>
   });
 });
 
-test('v2: 평일은 위병조장 A·B·C(일반병 3명), 토·일·휴일은 1명 / 배식조 매일 2명 / 당직·고정칸 없음', () => {
+test('v2: 평일은 위병조장 A·B(일반병 2명), 토·일·휴일은 1명 / 배식조 매일 2명 / 당직·고정칸 없음', () => {
   const db = setup();
   runDays(db, '2027-03-01', 14).forEach(s => {
     const g = Object.values(s.gate);
     if (isHol(s.date)) assert.deepStrictEqual(Object.keys(s.gate), ['H']);
-    else { assert.deepStrictEqual(Object.keys(s.gate).sort(), ['A', 'B', 'C']); assert.strictEqual(new Set(g).size, 3); }
+    else { assert.deepStrictEqual(Object.keys(s.gate).sort(), ['A', 'B']); assert.strictEqual(new Set(g).size, 2); }
     g.forEach(id => assert.match(id, /^g/));
     assert.strictEqual(s.messIds.length, 2);
     assert.ok(!s.messIds.some(id => g.includes(id)));
@@ -235,7 +235,7 @@ test('v2: 카운트 초기화 — 기준일 이전 CCTV 횟수·분모·근무�
   ['rotAllNum', 'rotAllDen', 'pHours', 'pDen'].forEach(k => assert.strictEqual(r[k], before[k], k));
   assert.deepStrictEqual(r.messNum, before.messNum); assert.deepStrictEqual(r.messDen, before.messDen);
   assert.deepStrictEqual(r.tieDay, before.tieDay); assert.deepStrictEqual(r.tieNight, before.tieNight);
-  ['A', 'BC', 'H'].forEach(g => assert.strictEqual(r.gate[g].den, 0, '위병조장 분모 ' + g));
+  ['A', 'B', 'H'].forEach(g => assert.strictEqual(r.gate[g].den, 0, '위병조장 분모 ' + g));
 });
 
 test('v2: 신병→일반병 전환 후 같은 기간 일반병과 비슷하게 받는다(신병 시절 많이 선 시간을 갚지 않음)', () => {
@@ -249,11 +249,13 @@ test('v2: 신병→일반병 전환 후 같은 기간 일반병과 비슷하게 
   const gen = db.workers.filter(w => /^g/.test(w.id)).map(w => avg(w.id));
   const ratio = avg('r0') / (gen.reduce((a, b) => a + b, 0) / gen.length);
   // 위병조장: 신병 시절이 '설 수 있었는데 안 선 날'로 소급되면 전환 후 계속 몰아받는다(수정 전 1.3배 안팎)
-  const gc = id => { const g = st[id].gate; return (g.A.num + g.BC.num + g.H.num) / st[id].denom; };
+  const gc = id => { const g = st[id].gate; return (g.A.num + g.B.num + g.H.num) / st[id].denom; };
   const gAvg = db.workers.filter(w => /^g/.test(w.id)).map(w => gc(w.id)).reduce((a, b) => a + b, 0) / 9;
   // 초기화가 없으면 신병 시절 기록 때문에 0.95 안팎까지 떨어진다
   assert.ok(ratio > 0.975 && ratio < 1.06, '전환자 ÷ 일반병 = ' + ratio.toFixed(3));
-  assert.ok(gc('r0') / gAvg < 1.15, '위병조장 전환자 ÷ 일반병 = ' + (gc('r0') / gAvg).toFixed(3));
+  assert.ok(gc('r0') / gAvg < 1.25, '위병조장 전환자 ÷ 일반병 = ' + (gc('r0') / gAvg).toFixed(3));
+  // 평일 위병조장이 하루 2명이라 1회 차이도 10% 넘게 보인다 — 종류별로 일반병 최다 횟수를 넘지 않으면 된다
+  ['A', 'B', 'H'].forEach(k => assert.ok(st.r0.gate[k].num <= Math.max(...db.workers.filter(w => /^g/.test(w.id)).map(w => st[w.id].gate[k].num)), '전환자 위병조장' + k));
 });
 
 test('nightPool: 야간 후보 티어 — 실제 야간 근무자는 후보에 있고, 제외 사유가 엔진 규칙과 맞다', () => {
@@ -265,7 +267,9 @@ test('nightPool: 야간 후보 티어 — 실제 야간 근무자는 후보에 �
     assert.ok(P.tiers.flatMap(t => t.list).filter(e => e.on).length === Object.values(s.night).filter(Boolean).length);
     assert.ok(bl.includes(s.situationId) && bl.includes(s.nextSituationId));
     s.messIds.concat(s.nextMessIds).forEach(id => assert.ok(bl.includes(id) || Object.values(s.night).includes(id)));
-    if (s.gate.A) assert.ok(bl.includes(s.gate.A));
+    const tierOf = id => (P.tiers.find(t => t.list.some(e => e.id === id)) || {}).key;
+    Object.values(s.gate).forEach(id => { if (ids.includes(id)) assert.strictEqual(tierOf(id), 'gate', s.date); });
+    if (!isHol(s.date)) assert.strictEqual(P.tiers[P.tiers.length - 1].key, 'gate');   // 평일 위병조장은 맨 마지막 티어
     if (i > 0) Object.values(all[i - 1].night).forEach(id => { if (ids.includes(id)) assert.ok(['c2', 'c3'].includes(P.tiers.find(t => t.list.some(e => e.id === id)).key)); });
     assert.strictEqual(new Set(ids.concat(bl)).size, ids.length + bl.length);   // 한 사람은 한 곳에만
   });
@@ -386,4 +390,33 @@ test('전환 전날: 구 방식으로 만들되 17:30·18:30·19:30은 일반 �
   const t = E.generateDay2(E.autoInputFor(since));
   assert.deepStrictEqual(E.validateSchedule2(t).hard, []);
   assert.strictEqual(t.daySitId, 'e4'); assert.strictEqual(t.situationId, 'e5');
+});
+
+test('v2: 위병조장 A(07:00~08:30·14:30~18:30 5.5h)·B(08:30~14:30 6h) — 둘 다 전날 야간자 불가, 평일 당일 야간은 번초가 빌 때만', () => {
+  assert.strictEqual(E.GATE_HOURS.A, 5.5); assert.strictEqual(E.GATE_HOURS.B, 6); assert.strictEqual(E.GATE_HOURS.H, 2);
+  const db = setup();
+  const all = runDays(db, '2027-03-01', 42);
+  all.forEach((s, i) => {
+    assert.ok(!('C' in s.gate) && !('C' in (s.nextGate || {})), s.date);
+    if (i > 0) { const pn = Object.values(all[i - 1].night); Object.values(s.gate).forEach(id => assert.ok(!pn.includes(id), s.date + ' 전날 야간자 위병조장')); }
+    const nk = Object.values(s.night);
+    if (!isHol(s.date)) Object.values(s.gate).forEach(id => assert.ok(!nk.includes(id), s.date + ' 인원이 충분한데 평일 위병조장 야간 투입'));
+    Object.values(s.nextGate || {}).forEach(id => assert.ok(!nk.includes(id), s.date + ' 다음날 위병조장 야간'));
+  });
+  const st = E.buildStats2(null);
+  const gen = db.workers.filter(w => /^g/.test(w.id));
+  const spread = n => Math.max(...n) - Math.min(...n);
+  assert.ok(spread(gen.map(w => st[w.id].gate.A.num)) <= 1, 'A 횟수 편차');   // A는 엄격 순번
+  assert.ok(spread(gen.map(w => st[w.id].gate.B.num)) <= 2, 'B 횟수 편차');
+  assert.ok(spread(gen.map(w => st[w.id].gate.A.num + st[w.id].gate.B.num)) <= 2, 'A+B 횟수 편차');
+});
+
+test('v2: 일반병이 모자라 야간이 빌 때만 당일 평일 위병조장을 야간에 넣는다', () => {
+  const db = setup(7, 8);
+  const off = ds => db.workers.filter(w => /^g[4-7]$/.test(w.id)).map(w => w.id);   // 일반병 절반이 계속 빠짐
+  const all = runDays(db, '2027-03-01', 10, off);
+  all.filter(s => !isHol(s.date)).forEach(s => {
+    const nk = Object.values(s.night), used = Object.values(s.gate).filter(id => nk.includes(id));
+    if (used.length) assert.ok(s.warnings.some(w => /위병조장 인원을 야간/.test(w)), s.date);
+  });
 });

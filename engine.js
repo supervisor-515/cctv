@@ -112,8 +112,8 @@ function normWorker(w,i){
     // 말년: 메커니즘상 신병과 동일 취급(roleReady=false)이되 카운트 초기화는 하지 않음.
     isNavigator: !!w.isNavigator,
     isVeteran: !!w.isVeteran,
-    // 관제병: 구분(신병·당직·상황병 등)은 그대로 두고 덧붙는 표시 — 토요일 07:30~14:30 열외, 운항병이 상황병인 날의 전날·당일 야간 열외
-    isController: !!w.isController,
+    // 안식교: 구분과 별개인 표시 — 토요일 07:30~14:30 열외(구 방식: 토요일 밥교대 제외 / 새 체계: 토요일 위병조장·배식조 제외)
+    isSabbath: !!w.isSabbath,
     canMeal: w.canMeal!==undefined ? !!w.canMeal : true,
     canXmess: !!w.canXmess,   // 추가배식조 후보(토글) — 평일 1명 순번제
     xmessSince: /^\d{4}-\d{2}-\d{2}$/.test(w.xmessSince||'') ? w.xmessSince : null,   // 토글을 켠 날 — 순번 배정률 분모의 시작
@@ -321,26 +321,21 @@ function isNavigator(w){ return !!w.isNavigator; }
 function isVeteran(w){ return !!w.isVeteran; }
 function activeWorkers(){ return DB.workers.filter(w=>w.active); }
 /* 활성 운항병 1명(없으면 null) */
-/* ---------- 관제병 규칙 ----------
-   ① 토요일(휴일이어도)은 07:30~14:30 주간 칸 고정 열외(06:30·15:30·16:30·저녁·야간은 그대로)
-   ② 운항병이 상황병인 날(D)에는 D-1·D 근무표의 야간(번초) 열외 — 그 표의 상황병/다음날 상황병으로 판단 */
-const CONTROLLER_SAT_SLOTS = ['07:30','08:30','09:30','10:30','11:30','12:30','13:30','14:30'];
-function controllers(){ return DB.workers.filter(w=>w.active && w.isController); }
-function controllerSatSlotEx(ds){
+/* ---------- 안식교 ----------
+   토요일(휴일이어도)은 07:30~14:30 주간 칸 고정 열외(06:30·15:30·16:30·저녁·야간은 그대로).
+   구 방식은 이 열외가 밥교대 시간과 겹쳐 토요일 밥교대에서도 빠지고, 새 체계는 토요일 위병조장·배식조에서 뺀다. */
+const SABBATH_SAT_SLOTS = ['07:30','08:30','09:30','10:30','11:30','12:30','13:30','14:30'];
+function sabbathWorkers(){ return DB.workers.filter(w=>w.active && w.isSabbath); }
+function sabbathSatSlotEx(ds){
   const out={}; if(dow(ds)!==6) return out;
-  controllers().forEach(w=>{ out[w.id]=CONTROLLER_SAT_SLOTS.slice(); });
+  sabbathWorkers().forEach(w=>{ out[w.id]=SABBATH_SAT_SLOTS.slice(); });
   return out;
 }
-function controllerNightEx(situationId, nextSituationId){
-  const nav=[situationId, nextSituationId].map(id=>id && DB.workers.find(w=>w.id===id)).some(w=>w && w.isNavigator);
-  return nav ? controllers().map(w=>w.id) : [];
-}
-/* 표 입력(ctx)에 관제병 규칙을 합친다 — 사용자가 고른 열외는 그대로 두고 더하기만 */
-function applyControllerRules(ds, ctx){
-  const add=controllerSatSlotEx(ds);
-  Object.entries(add).forEach(([wid,us])=>{ ctx.slotEx[wid]=[...new Set([...(ctx.slotEx[wid]||[]), ...us])]; });
-  const nx=controllerNightEx(ctx.situationId, ctx.nextSituationId);
-  if(nx.length) ctx.nightEx=[...new Set([...(ctx.nightEx||[]), ...nx])];
+/* 그날 토요일 열외라 위병조장·배식조에 못 넣는가(새 체계) */
+function sabbathOff(w, ds){ return !!(w && w.isSabbath) && dow(ds)===6; }
+/* 표 입력(ctx)에 안식교 열외를 합친다 — 사용자가 고른 열외는 그대로 두고 더하기만 */
+function applySabbathRules(ds, ctx){
+  Object.entries(sabbathSatSlotEx(ds)).forEach(([wid,us])=>{ ctx.slotEx[wid]=[...new Set([...(ctx.slotEx[wid]||[]), ...us])]; });
   return ctx;
 }
 function activeNavigator(){ return DB.workers.find(w=>w.active && w.isNavigator) || null; }
@@ -1210,7 +1205,7 @@ function autoNextMeal(ds, ctx){
     // 오늘 밥교대자는 야간 후보 부족 시 오늘 야간에 투입될 수 있음 → 다음날 밥교대로 또 뽑히면 이틀 연속 우려.
     // 그러므로 다음날 밥교대 후보에서 오늘 밥교대자를 제외한다.
     dayEx: [...(ctx.dayEx||[]), ctx.mealId, ctx.nextXmessId].filter(Boolean), bothEx: ctx.bothEx||[],   // 다음날 추가배식조는 다음날 밥교대 불가
-    slotEx: controllerSatSlotEx(nextDs),   // 다음날이 토요일이면 관제병은 밥교대 시간과 겹쳐 후보에서 빠진다
+    slotEx: sabbathSatSlotEx(nextDs),   // 다음날이 토요일이면 안식교 인원은 밥교대 시간과 겹쳐 후보에서 빠진다
     mealId: null,
     stats: buildStats(nextDs)
   };
@@ -1269,7 +1264,7 @@ function generateDay(input){
     slotEx: normSlotEx(input.slotEx),
     nextWorkHoliday: !!input.nextWorkHoliday,
   };
-  applyControllerRules(ds, ctx);
+  applySabbathRules(ds, ctx);
   // 통계는 '이 날짜 이전' 표 기준
   ctx.stats = buildStats(ds);
   ctx._todayHours = {};
@@ -2035,7 +2030,7 @@ function explainAssignment(s, key){
     const nctx={date:nd, workHoliday:ctx.nextWorkHoliday, dutyId:ctx.nextDutyId, situationId:ctx.nextSituationId,
       prevDutyId:ctx.dutyId, prevSituationId:ctx.situationId, nextDutyId:ctx.next2DutyId, nextSituationId:ctx.next2SituationId,
       prev2DutyId:prev?prev.dutyId||null:null, prev2SituationId:prev?prev.situationId||null:null,
-      dayEx:[...(ctx.dayEx||[]), ctx.mealId, s.nextXmessId].filter(Boolean), bothEx:ctx.bothEx||[], slotEx:controllerSatSlotEx(nd), _todayMeal:ctx.mealId, _xm:s.nextXmessId,
+      dayEx:[...(ctx.dayEx||[]), ctx.mealId, s.nextXmessId].filter(Boolean), bothEx:ctx.bothEx||[], slotEx:sabbathSatSlotEx(nd), _todayMeal:ctx.mealId, _xm:s.nextXmessId,
       stats:null};
     // 생성 당시엔 오늘 표가 아직 없었다 — 오늘 표를 잠시 빼고 다음날 기준 통계를 계산해야 같은 순위가 나온다
     { const keep=DB.schedules[ds]; delete DB.schedules[ds]; invalidateStats();
@@ -2510,6 +2505,7 @@ function v2GateRank(kind, t, taken, stats){
   const grp = kind==='A' ? 'A' : kind==='H' ? 'H' : 'B', cfg = v2cfg();
   let pool = activeWorkers().filter(w=> isGeneralW(w) && w.id!==v2NavId() && !inInactive(w, t.ds) && !t.out.has(w.id) && !taken.has(w.id)
     && !(t.prevNight && t.prevNight.has(w.id))                   // 전날 야간자 불가(A·B·주말 모두)
+    && !sabbathOff(w, t.ds)                                       // 안식교: 토요일 위병조장 불가
     && !(kind==='A' && t.outing.has(w.id))                        // 외출자는 A 불가
     && !(t.slotCtx && mealBlockedBySlotEx(t.slotCtx, w.id)));
   const far = (last, gap)=> !last || dayDiff(last, t.ds) >= gap;
@@ -2523,7 +2519,7 @@ function v2GateRank(kind, t, taken, stats){
 function v2MessRank(t, taken, stats){
   const xg = messGroup(t.ds, t.wh), tm = t.today ? (t.today.messIds||[]) : [];
   const txg = t.today ? messGroup(t.today.date, t.today.workHoliday) : null;
-  let pool = activeWorkers().filter(w=> w.canXmess && !(w.id===v2NavId() && dayGroup(t.ds, t.wh)!=='weekend') && !inInactive(w, t.ds) && !t.out.has(w.id) && !taken.has(w.id)
+  let pool = activeWorkers().filter(w=> w.canXmess && !(w.id===v2NavId() && dayGroup(t.ds, t.wh)!=='weekend') && !sabbathOff(w, t.ds) && !inInactive(w, t.ds) && !t.out.has(w.id) && !taken.has(w.id)
     && !(t.prevNight && t.prevNight.has(w.id)));   // 전날 야간자는 배식조 불가(다음날 몫은 오늘 야간에서 빼서 지킨다)
   [w=> !t.prevMess.has(w.id)]   // 이틀 연속 금지 (후보 없을 때만 완화)
     .forEach(f=>{ const nx=pool.filter(f); if(nx.length) pool=nx; });
@@ -2553,6 +2549,7 @@ function generateDay2(input){
     dayEx: input.dayEx||[], nightEx: input.nightEx||[], bothEx: input.bothEx||[],
     slotEx: normSlotEx(input.slotEx, true), outing: input.outing||[]
   };
+  applySabbathRules(ds, ctx);   // 안식교: 토요일 07:30~14:30 열외
   const wk = dayGroup(ds, wh)!=='weekend';
   if(!wk) ctx.outing = [];
   if(!wk){ if(!ctx.situationId) ctx.situationId=ctx.daySitId; ctx.daySitId=null; }   // 주말·휴일: 상황병 한 명(야간 상황병과 같은 규칙)
@@ -2796,6 +2793,7 @@ function validateSchedule2(s){
     if(W(id) && !isGeneralW(W(id))) hard.push(nameOf(id)+': 일반병이 아닌데 위병조장');
   });
   if(gate.A && (s.outing||[]).includes(gate.A)) hard.push(nameOf(gate.A)+': 외출자인데 위병조장A');
+  gateIds.concat(mess).forEach(id=>{ if(sabbathOff(W(id), s.date)) soft.push(nameOf(id)+': 안식교인데 토요일 위병조장·배식조'); });
   mess.forEach(id=>{
     if(exempt.includes(id)) hard.push(nameOf(id)+': 상황병 당일·다음날인데 배식조');
     if(id===s.daySitId) hard.push(nameOf(id)+': 주간 상황병인데 배식조');
@@ -3118,7 +3116,7 @@ if(typeof module!=='undefined' && module.exports){
     migrate, normWorker, normPrebook, normSched,
     // 날짜/그룹
     pad, todayStr, addDays, dow, dayGroup, nightGroup, mealGroup, latestSchedDate,
-    holidayName, isHolidayDate, prebookOn, controllerSatSlotEx, controllerNightEx, CONTROLLER_SAT_SLOTS, weekMonday, fuelTruckOn, fuelAllowedOn, fuelAllowedKey,
+    holidayName, isHolidayDate, prebookOn, sabbathSatSlotEx, sabbathOff, SABBATH_SAT_SLOTS, weekMonday, fuelTruckOn, fuelAllowedOn, fuelAllowedKey,
     // 근무자
     W, nameOf, isRecruit, isNavigator, isVeteran, activeNavigator, navFixedDaySlots, navNightBalance,
     activeWorkers, inInactive, presentOn, scheduleRefCount,

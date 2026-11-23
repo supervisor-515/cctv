@@ -424,3 +424,20 @@ test('v2: 일반병이 모자라 야간이 빌 때만 당일 평일 위병조장
     if (used.length) assert.ok(s.warnings.some(w => /위병조장 인원을 야간/.test(w)), s.date);
   });
 });
+
+test('v2 안식교: 토요일 07:30~14:30 열외, 토요일 위병조장·배식조 제외(다른 요일은 평소대로)', () => {
+  const db = setup();
+  const sab = db.workers.find(w => w.id === 'g0'); sab.isSabbath = true; sab.canXmess = true;
+  const all = runDays(db, '2027-03-01', 35);
+  let other = 0;
+  all.forEach(s => {
+    const sat = E.dow(s.date) === 6;
+    const ids = Object.values(s.gate).concat(s.messIds);
+    if (sat) {
+      assert.ok(!ids.includes(sab.id), s.date + ' 토요일 위병조장·배식조');
+      E.SABBATH_SAT_SLOTS.forEach(sl => assert.notStrictEqual(s.assign[sl], sab.id, s.date + ' ' + sl));
+      assert.ok(!E.validateSchedule2(s).soft.some(m => /안식교/.test(m)));
+    } else if (ids.includes(sab.id)) other++;
+  });
+  assert.ok(other > 0, '다른 요일에는 위병조장·배식조를 선다');
+});

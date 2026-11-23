@@ -520,7 +520,7 @@ function schedHoursByWorker(s){
   const fx=s.fixed||{};
   ['18:30','19:30','20:30','21:30','14:30','13:30'].forEach(k=> add(fx[k], 1));
   add(fx['17:30'], 1+DB.settings.patrolBonus);
-  if(s.v2){ Object.entries(s.gate||{}).forEach(([k,id])=> add(id, GATE_HOURS[k]));   // 위병조장 근무시간
+  if(s.v2){ Object.entries(s.gate||{}).forEach(([k,id])=> add(id, v2GateHours(k, s.date)));   // 위병조장 근무시간
     (s.messIds||[]).forEach(id=> add(id, v2MessHours(s.date))); }                     // 배식조 근무시간
   return h;
 }
@@ -2330,15 +2330,22 @@ function workHeatmap(wid, from, to, today){
    저녁 17:30~21:30 일반 배정 / 개인정비시간 CCTV 순번.
    솔버(solve·greedyFill·localImprove)와 점수(score)는 기존 것을 그대로 쓴다.
    ============================================================ */
-/* 위병조장 — A 07:00~08:30·14:30~18:30(5.5h), B 08:30~14:30(6h), 주말·휴일 1명 2h.
+/* 위병조장 — 월~목 A 07:00~08:30·14:30~18:30(5.5h), B 08:30~14:30(6h)
+              금   A 07:00~08:30·14:00~17:00(4.5h), B 08:30~14:00(5.5h) / 주말·휴일 1명 2h.
    C는 폐지(예전 표에 남은 C는 통계에서 B로 센다) */
-const GATE_HOURS = {A:5.5, B:6, C:6, H:2};
+const GATE_HOURS = {A:5.5, B:6, C:6, H:2};            // 월~목(기본)
+const GATE_HOURS_FRI = {A:4.5, B:5.5, C:5.5, H:2};
+const GATE_TIME = {A:'07:00~08:30·14:30~18:30', B:'08:30~14:30'}, GATE_TIME_FRI = {A:'07:00~08:30·14:00~17:00', B:'08:30~14:00'};
+function v2GateHours(k, ds){ return (dow(ds)===5 ? GATE_HOURS_FRI : GATE_HOURS)[k]; }
+function v2GateTime(k, ds){ return (dow(ds)===5 ? GATE_TIME_FRI : GATE_TIME)[k] || ''; }
+/* 위병조장A의 개인정비시간 침해 — 월~목 17:30~18:30(1h), 금 15:30~17:00(1.5h) */
+function v2GateALoss(ds){ return dow(ds)===5 ? 1.5 : PTIME_LOSS.gateA; }
 const NIGHT_HOURS2 = 2;
 /* v2: 배식조 근무시간 — 토 2h, 그 외 요일 3h (평균 근무시간에 산입) */
 /* v2 주간 상황병 고정 CCTV — 월~목 14:30, 금 13:30 (운항병 고정 09:30·13:30 / 금 09:30·14:30과 겹치지 않게) */
 function v2DaySitSlot(ds){ return dow(ds)===5 ? '13:30' : '14:30'; }
 function v2MessHours(ds){ return dow(ds)===6 ? 2 : 3; }
-/* v2: 평일에 위병조장A·배식조를 서면 개인정비시간을 1시간 빼앗긴다 — 개인정비 CCTV 시간에 1h로 산입(그날도 대상일로 센다) */
+/* v2: 평일에 위병조장A(월~목 1h, 금 1.5h)·배식조(1h)를 서면 개인정비시간을 빼앗긴다 — 개인정비 CCTV 시간에 산입(그날도 대상일로 센다) */
 const PTIME_LOSS = {gateA:1, mess:1};   // v2: 야간 번초 1개 = 실제 근무 2시간
 /* 평일('wd') / 주말·휴일('we') — v2는 두 쪽의 CCTV 카운트를 완전히 따로 센다 */
 function v2DayType(ds, workHoliday){ return dayGroup(ds, workHoliday)==='weekend' ? 'we' : 'wd'; }   // 위병조장 근무시간(평균 근무시간에 산입)
@@ -2469,9 +2476,9 @@ function _computeStats2(uptoDate, month, type){
     }
     Object.entries(gate).forEach(([k,id])=>{
       const r = id && st[id]; if(!r) return;
-      const q = r.gate[k==='A'?'A': k==='H'?'H':'B']; q.last=ds; addH(id, GATE_HOURS[k]);   // 예전 표의 C는 B로
+      const q = r.gate[k==='A'?'A': k==='H'?'H':'B']; q.last=ds; addH(id, v2GateHours(k, ds));   // 예전 표의 C는 B로
       if(okReset[id]) q.num++;
-      if(k==='A' && wk){ r.pHours += PTIME_LOSS.gateA; r.pLast = ds; }   // 위병조장A: 개인정비시간 1h 침해
+      if(k==='A' && wk){ r.pHours += v2GateALoss(ds); r.pLast = ds; }   // 위병조장A: 개인정비시간 침해(월~목 1h, 금 1.5h)
     });
     mess.forEach(id=>{ if(st[id]){ st[id].messNum[xg]++; st[id].messLast=ds; addH(id, v2MessHours(ds)); } });
     if(s.situationId && st[s.situationId] && okReset[s.situationId]) st[s.situationId].sitCnt++;
@@ -2664,7 +2671,7 @@ function generateDay2(input){
     ctx._todayHours[id]=(ctx._todayHours[id]||0) + (sl==='17:30' ? 1+DB.settings.patrolBonus : 1);
     ctx._todayCount[id]=(ctx._todayCount[id]||0)+1;
   });
-  gateIds.forEach(id=>{ const k=Object.keys(gate).find(x=>gate[x]===id); ctx._todayHours[id]=GATE_HOURS[k]; ctx._todayCount[id]=1; });
+  gateIds.forEach(id=>{ const k=Object.keys(gate).find(x=>gate[x]===id); ctx._todayHours[id]=v2GateHours(k, ds); ctx._todayCount[id]=1; });
   if(navNight){ ctx._todayHours[navId]=(ctx._todayHours[navId]||0)+NIGHT_HOURS2; ctx._todayCount[navId]=(ctx._todayCount[navId]||0)+1; }
 
   /* 6) 변수·도메인 — 나머지 주간 칸 + 나머지 저녁 칸(일반 배정) + 야간 번초 */
@@ -2891,9 +2898,9 @@ function explainAssignment2(s, key){
       const taken = new Set(order.slice(0, order.indexOf(k)).map(x=>tg[x]).filter(Boolean));
       o.title = (rk.next?'다음날 ':'')+'위병조장'+(k==='H'?'':k);
       const cfg=v2cfg();
-      o.lines.push(k==='A' ? '07:00~08:30·14:30~18:30. 일반병 중 A 배정률(선 횟수 ÷ 대상 평일)이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자·외출자는 제외합니다.'
+      o.lines.push(k==='A' ? v2GateTime('A', tds)+'. 일반병 중 A 배정률(선 횟수 ÷ 대상 평일)이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자·외출자는 제외합니다.'
         : k==='H' ? '일반병 중 주말 배정률이 낮은 순으로 뽑습니다(평일 A·B와 별도 집계). 전날 야간자는 제외합니다.'
-        : '08:30~14:30. 일반병 중 B 배정률이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자는 제외합니다.');
+        : v2GateTime('B', tds)+'. 일반병 중 B 배정률이 낮은 순, 같으면 오래 안 선 순으로 뽑습니다. 전날 야간자는 제외합니다.');
       o.lines.push('텀: 같은 종류 '+(k==='A'?cfg.gapA:k==='H'?cfg.gapH:cfg.gapB)+'일, 위병조장 전체 '+cfg.gapAny+'일 안에 선 사람은 다른 후보가 있으면 뺍니다.');
       const grp = k==='A'?'A':k==='H'?'H':'B';
       return finish(v2GateRank(k, t, taken, stats).map(e=>({id:e.id, reason: grp+' '+e.num+'회/'+e.den+'일('+pc(e.num,e.den)+') · 마지막 '+md(e.last)})));
@@ -2959,7 +2966,7 @@ function explainAssignment2(s, key){
               reason:'순찰 '+pc(r.patrolGNum[pg], r.patrolGDen[pg])+' · 평균 '+avgHours(r).toFixed(2)+'h'}; }).sort((x,y)=> (x.a-y.a) || lastCmp2(x,y));
   }else if(!isN && pStrictSlots(ds,wh).includes(slot)){
     o.title=slot+' (개인정비시간)';
-    o.lines.push('평일 위병조장A·배식조를 선 날은 개인정비시간 1시간 침해로 셉니다. 개인정비시간(폰 사용) 겹침 칸입니다. 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. 상황병(구분)·당일 위병조장·배식조·외출자는 제외합니다.');
+    o.lines.push('평일 위병조장A(월~목 1h, 금 1.5h)·배식조(1h)를 선 날은 개인정비시간 침해로 셉니다. 개인정비시간(폰 사용) 겹침 칸입니다. 대상일당 개인정비 CCTV 시간이 적은 사람부터 덜 선 칸에 넣습니다. 상황병(구분)·당일 위병조장·배식조·외출자는 제외합니다.');
     list = cands.map(w=>{ const r=stats[w.id], a=r.pHours/Math.max(1,r.pDen);
       return {id:w.id, a, last:r.pLast||'', reason:'개인정비 '+a.toFixed(2)+'h/일 ('+r.pHours+'h ÷ '+r.pDen+'일) · 마지막 '+md(r.pLast)}; }).sort((x,y)=> (x.a-y.a) || lastCmp2(x,y));
   }else if(isRotationVar(v)){
@@ -3118,7 +3125,7 @@ if(typeof module!=='undefined' && module.exports){
     // 통계
     buildStats, invalidateStats, slotHours, schedHoursByWorker, dischargeDate, serviceProgress, rate, avgHours, stdev, cv, gini, shrunkRate, scaledCnt,
     // 배정
-    generateDay, generateDay2, generateTransitionEve, buildStats2, nightPool, v2DaySitSlot, v2NavId, mealForecast, v2DayType, v2MessHours, PTIME_LOSS, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
+    generateDay, generateDay2, generateTransitionEve, buildStats2, nightPool, v2DaySitSlot, v2NavId, mealForecast, v2DayType, v2MessHours, PTIME_LOSS, GATE_HOURS_FRI, v2GateHours, v2GateTime, v2GateALoss, v2SitBarred, NIGHT_HOURS2, isV2, explainAssignment2, autoInputFor2, V2_ROLE_KEYS, validateSchedule2, switchToV2, v2cfg, pHoursMap, pStrictSlots, outingSlots, messGroup, isGeneralW, isSituationW, GATE_HOURS,
     autoInputFor, assignMeal, mealCandidates, dayCandidates, nightCandidates, patrolCandidates, score,
     // 검증
     validateSchedule, validateScheduleCached, prebookConflictsFor, repairRoleChange, repairKeyLabel,

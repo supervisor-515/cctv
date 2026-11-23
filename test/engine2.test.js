@@ -95,7 +95,8 @@ test('v2: 개인정비 CCTV 시간 — 월~목 17:30 1h·20:30 0.5h, 금 15:30 0
   const st = E.buildStats2(null), want = {};
   all.forEach(s => { const pm = E.pHoursMap(s.date, s.workHoliday);
     Object.entries(pm).forEach(([sl, h]) => { const id = sl === 'P' ? s.patrolExtra : E.DAY_SLOTS.includes(sl) ? s.assign[sl] : s.fixed[sl]; if (id) want[id] = (want[id] || 0) + h; });
-    if (Object.keys(pm).length) [s.gate.A, ...s.messIds].forEach(id => { if (id) want[id] = (want[id] || 0) + 1; }); });   // 평일 위병조장A·배식조: 1h 침해
+    if (Object.keys(pm).length) { if (s.gate.A) want[s.gate.A] = (want[s.gate.A] || 0) + (E.dow(s.date) === 5 ? 1.5 : 1);   // 위병조장A: 월~목 1h, 금 1.5h 침해
+      s.messIds.forEach(id => { want[id] = (want[id] || 0) + 1; }); } });   // 배식조: 1h
   db.workers.forEach(w => assert.strictEqual(st[w.id].pHours, want[w.id] || 0, w.id));
 });
 
@@ -146,7 +147,7 @@ test('v2 연결부: 저장 형식 보존·통계 전환·검증·배정 이유·
     assert.ok(Array.isArray(E.validateSchedule(s)));
     E.SCHED_KEYS.forEach(k => { const x = E.explainAssignment(s, k); assert.ok(x && Array.isArray(x.lines) && x.lines.length, s.date + ' ' + k); });
     const h = E.schedHoursByWorker(s);
-    Object.entries(s.gate).forEach(([k, id]) => assert.ok(h[id] >= E.GATE_HOURS[k]));
+    Object.entries(s.gate).forEach(([k, id]) => assert.ok(h[id] >= E.v2GateHours(k, s.date)));
     assert.ok(E.personalKeys(s, s.gate.A || s.gate.H).some(k => /^R:gate/.test(k)));
     assert.ok(E.personalKeys(s, s.messIds[0]).includes('R:mess'));
   });
@@ -177,7 +178,7 @@ test('v2: 평일과 주말·휴일 카운트 분리, 야간 번초 2시간', () 
   });
   // 야간 2시간: 표 한 장의 시간 합 = 주간 11 + 07:30 가산 0.5 + 저녁 5 + 17:30 가산 0.5 + 순찰 0.5 + 야간 4×2 + 위병조장
   const s = all[0], h = E.schedHoursByWorker(s);
-  const gateH = Object.keys(s.gate).reduce((a, k) => a + E.GATE_HOURS[k], 0), messH = s.messIds.length * E.v2MessHours(s.date);
+  const gateH = Object.keys(s.gate).reduce((a, k) => a + E.v2GateHours(k, s.date), 0), messH = s.messIds.length * E.v2MessHours(s.date);
   assert.strictEqual(Object.values(h).reduce((a, b) => a + b, 0), 11 + 0.5 + 5 + 0.5 + 0.5 + 8 + gateH + messH);
   assert.ok(h[s.night[1]] >= 2);
   // 주말 근무표를 만들 때는 평일 기록이 순위에 영향을 주지 않는다: 평일 표를 바꿔도 주말 표는 같게 나온다
@@ -252,7 +253,8 @@ test('v2: 신병→일반병 전환 후 같은 기간 일반병과 비슷하게 
   const gc = id => { const g = st[id].gate; return (g.A.num + g.B.num + g.H.num) / st[id].denom; };
   const gAvg = db.workers.filter(w => /^g/.test(w.id)).map(w => gc(w.id)).reduce((a, b) => a + b, 0) / 9;
   // 초기화가 없으면 신병 시절 기록 때문에 0.95 안팎까지 떨어진다
-  assert.ok(ratio > 0.975 && ratio < 1.06, '전환자 ÷ 일반병 = ' + ratio.toFixed(3));
+  // 위병조장 1회가 4.5~6h 덩어리라 1회 차이로도 평균이 4% 안팎 움직인다(위병조장 횟수 자체는 아래에서 종류별로 확인)
+  assert.ok(ratio > 0.975 && ratio < 1.08, '전환자 ÷ 일반병 = ' + ratio.toFixed(3));
   assert.ok(gc('r0') / gAvg < 1.25, '위병조장 전환자 ÷ 일반병 = ' + (gc('r0') / gAvg).toFixed(3));
   // 평일 위병조장이 하루 2명이라 1회 차이도 10% 넘게 보인다 — 종류별로 일반병 최다 횟수를 넘지 않으면 된다
   ['A', 'B', 'H'].forEach(k => assert.ok(st.r0.gate[k].num <= Math.max(...db.workers.filter(w => /^g/.test(w.id)).map(w => st[w.id].gate[k].num)), '전환자 위병조장' + k));
@@ -393,7 +395,9 @@ test('전환 전날: 구 방식으로 만들되 17:30·18:30·19:30은 일반 �
 });
 
 test('v2: 위병조장 A(07:00~08:30·14:30~18:30 5.5h)·B(08:30~14:30 6h) — 둘 다 전날 야간자 불가, 평일 당일 야간은 번초가 빌 때만', () => {
-  assert.strictEqual(E.GATE_HOURS.A, 5.5); assert.strictEqual(E.GATE_HOURS.B, 6); assert.strictEqual(E.GATE_HOURS.H, 2);
+  assert.strictEqual(E.v2GateHours('A', '2027-03-04'), 5.5); assert.strictEqual(E.v2GateHours('B', '2027-03-04'), 6);   // 목
+  assert.strictEqual(E.v2GateHours('A', '2027-03-05'), 4.5); assert.strictEqual(E.v2GateHours('B', '2027-03-05'), 5.5);   // 금 A 07:00~08:30·14:00~17:00, B 08:30~14:00
+  assert.strictEqual(E.v2GateHours('H', '2027-03-06'), 2); assert.strictEqual(E.v2GateALoss('2027-03-05'), 1.5); assert.strictEqual(E.v2GateALoss('2027-03-04'), 1);
   const db = setup();
   const all = runDays(db, '2027-03-01', 42);
   all.forEach((s, i) => {

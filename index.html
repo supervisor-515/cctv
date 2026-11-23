@@ -980,6 +980,10 @@ body.ro #gen,body.ro #people,body.ro #settings,body.ro #backup{display:none!impo
 body.ro .btn.danger{display:none!important}
 body:not(.v2) .v2only{display:none!important}
 body.v2 .v1only{display:none!important}
+/* 전환 전날 생성 화면은 구 방식 */
+body.v2.geneve #gen table.v1only{display:table!important}
+body.v2.geneve #gen p.v1only{display:block!important}
+body.v2.geneve #gen .v2only{display:none!important}
 .btn.solid-danger{background:var(--err);color:#fff;border-color:var(--err);font-weight:700}
 .roles-next{margin-top:8px}
 .roles-next>small{display:block;color:var(--ink-faint);font-size:var(--fs-sm);margin:0 0 4px 2px}
@@ -1009,7 +1013,7 @@ body.ro .no-ro{display:none!important}
   <header class="top">
     <div class="logo"><h1>CCTV 근무표</h1></div>
     <div class="spacer"></div>
-    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.4.6</span>
+    <span class="pill" title="앱 버전 — 새 버전이 나오면 아래에 [새로고침] 알림이 뜹니다">v9.4.7</span>
     <span class="pill" id="roBadge" style="display:none">열람 전용</span>
     <button class="pill sybadge" id="syBadge" type="button" style="display:none" title="서버 동기화 상태 — 눌러서 열기"></button>
   </header>
@@ -1618,7 +1622,7 @@ body.ro .no-ro{display:none!important}
     </div>
   </section>
 </div>
-<script src="engine.js?v=9.4.6"></script>
+<script src="engine.js?v=9.4.7"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -2058,8 +2062,14 @@ function refreshGenSafe(){
   if(genKeep()){ const n=$('#gStale'); if(n) n.style.display=''; return; }
   refreshGenSelectors();
 }
+/* 전환 전날(새 체계 전환 후 그 전날 날짜): 구 방식 생성 화면 — 다음날 당직·상황병·밥교대·추가배식조 칸은 잠그고,
+   17:30·18:30·19:30은 새 체계처럼 자동 배정(generateTransitionEve) */
+function genEve(){ return V2() && !!$('#gDate').value && $('#gDate').value===addDays(v2cfg().since,-1); }
 function refreshGenSelectors(){
-  if(V2()) return refreshGenSelectors2();
+  const eve=genEve(); document.body.classList.toggle('geneve', eve);
+  if(V2() && !eve) return refreshGenSelectors2();
+  // 전환 후 구분이 바뀌었으므로 전환 전날은 활성 인원 전체에서 고른다
+  const DL=()=> eve ? activeWorkers() : dutyList(), SL=()=> eve ? activeWorkers() : sitList();
   GEN.dirty=false; { const n=$('#gStale'); if(n) n.style.display='none'; }
   const ds=$('#gDate').value||todayStr();
   $('#gDate').value=ds;
@@ -2068,13 +2078,13 @@ function refreshGenSelectors(){
   // 사전등록(달력·일정 탭) 반영 — 새로 만드는 날짜에만, 기존 표가 있으면 표의 값 우선
   const pb=prebookOn(ds), pbNext=prebookOn(addDays(ds,1)), pbNext2=prebookOn(addDays(ds,2));
   const pbPick=(arr,kind)=>{ const e=arr.find(p=>p.kind===kind); return e?e.wid:null; };
-  fillSelect($('#gDuty'), dutyList(), {selected: existing?existing.dutyId:(pbPick(pb,'duty')||(prev?prev.nextDutyId:null))});
-  fillSelect($('#gSit'),  sitList(),  {selected: existing?existing.situationId:(pbPick(pb,'situation')||(prev?prev.nextSituationId:null))});
-  fillSelect($('#gNextDuty'), dutyList(), {selected: existing?existing.nextDutyId:pbPick(pbNext,'duty')});
-  fillSelect($('#gNextSit'),  sitList(),  {selected: existing?existing.nextSituationId:pbPick(pbNext,'situation')});
+  fillSelect($('#gDuty'), DL(), {selected: existing?existing.dutyId:(pbPick(pb,'duty')||(prev?prev.nextDutyId:null))});
+  fillSelect($('#gSit'),  SL(),  {selected: existing?existing.situationId:(pbPick(pb,'situation')||(prev?prev.nextSituationId:null))});
+  fillSelect($('#gNextDuty'), DL(), {selected: existing?existing.nextDutyId:pbPick(pbNext,'duty')});
+  fillSelect($('#gNextSit'),  SL(),  {selected: existing?existing.nextSituationId:pbPick(pbNext,'situation')});
   // 이틀 뒤 당직/상황병: 고정 슬롯은 없고, 다음날 밥교대 후보에서 빼기 위한 정보
-  fillSelect($('#gNext2Duty'), dutyList(), {selected: existing?existing.next2DutyId:pbPick(pbNext2,'duty')});
-  fillSelect($('#gNext2Sit'),  sitList(),  {selected: existing?existing.next2SituationId:pbPick(pbNext2,'situation')});
+  fillSelect($('#gNext2Duty'), DL(), {selected: existing?existing.next2DutyId:pbPick(pbNext2,'duty')});
+  fillSelect($('#gNext2Sit'),  SL(),  {selected: existing?existing.next2SituationId:pbPick(pbNext2,'situation')});
   fillSelect($('#gNextMeal'), mealList(), {blank:'⚙ 자동 배정', selected: existing?existing.nextMealId:null});
   { const nm=$('#gNextMeal');
     const noneOpt=el('option'); noneOpt.value='__none__'; noneOpt.textContent='— 익일 미편성 —';
@@ -2122,14 +2132,14 @@ function refreshGenSelectors(){
   // 전날 당직/상황병: 전날 표가 있으면 자동·비활성, 없으면 직접 입력 활성화
   const pd=$('#gPrevDuty'), ps=$('#gPrevSit'), pv=$('#gPrevView');
   if(prev){
-    fillPrevSelect(pd, dutyList(), prev.dutyId, false);
-    fillPrevSelect(ps, sitList(), prev.situationId, false);
+    fillPrevSelect(pd, DL(), prev.dutyId, false);
+    fillPrevSelect(ps, SL(), prev.situationId, false);
     pv.innerHTML='';
     pv.appendChild(el('span','pill','전일 근무표에서 자동 연계'));
     if(prev.night){ const ids=Object.values(prev.night).filter(Boolean).map(nameOf); if(ids.length) pv.appendChild(el('span','pill','전일 야간 · '+esc(ids.join(', ')))); }
   }else{
-    fillPrevSelect(pd, dutyList(), existing?existing.prevDutyId:null, true);
-    fillPrevSelect(ps, sitList(), existing?existing.prevSituationId:null, true);
+    fillPrevSelect(pd, DL(), existing?existing.prevDutyId:null, true);
+    fillPrevSelect(ps, SL(), existing?existing.prevSituationId:null, true);
     pv.innerHTML='<span class="muted">전일 근무표 없음: 수동 지정 필요 (미지정 시 20:30·21:30 미편성 및 열외 미적용)</span>';
   }
   // 일괄 생성 기본값: 마지막 생성일 다음날부터 1주
@@ -2137,6 +2147,10 @@ function refreshGenSelectors(){
     const L=latestSchedDate(); const s0=L?addDays(L,1):todayStr();
     $('#bgStart').value=s0; $('#bgEnd').value=addDays(s0,6);
   }
+  if(eve){   // 전환 전날: 다음날 몫은 만들지 않는다(전환일부터 새 체계)
+    ['#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit'].forEach(id=>{ $(id).value=''; $(id).disabled=true; });
+    ['#gNextMeal','#gNextXmess'].forEach(id=>{ $(id).value='__none__'; $(id).disabled=true; });
+  }else ['#gNextDuty','#gNextSit','#gNext2Duty','#gNext2Sit','#gNextMeal','#gNextXmess'].forEach(id=>{ $(id).disabled=false; });
   previewGen();
 }
 /* 전날 셀렉트 채우기: 현재 대상이 목록에 없으면(비활성/전환 등) 보강 옵션 추가 */
@@ -2388,7 +2402,8 @@ function openPick(sel){
   openSheet('pickSheet');
 }
 function previewGen(){
-  if(V2()) return previewGen2();
+  if(V2() && !genEve()) return previewGen2();
+  if(genEve() && !_forceV1){ _forceV1=true; try{ return previewGen(); } finally{ _forceV1=false; } }   // 전환 전날: 구 방식 통계로 미리보기
   syncMatrixCells();
   const box=$('#gPreview'); if(!box) return;
   const ds=$('#gDate').value; if(!ds){ box.innerHTML=''; return; }
@@ -2446,7 +2461,7 @@ function previewGen(){
   }else if(rnm.auto){
     m2.appendChild(el('span','miss','익일 밥교대 후보 부족'));
   }else{
-    m2.appendChild(el('span','muted','미편성 (17:30 공석)'));
+    m2.appendChild(el('span','muted', genEve() ? '만들지 않음 (17:30은 자동 배정)' : '미편성 (17:30 공석)'));
   }
   box.appendChild(m2);
 
@@ -2461,6 +2476,7 @@ function previewGen(){
     need.appendChild(el('span', short?'miss':'pill',
       esc(b.label)+' '+n+'명 / '+b.units.length+(b.id==='night'?'번초':'칸')+(short?' 부족':'')));
   });
+  if(genEve()){ const e=el('div','ln'); e.appendChild(el('span','k','전환 전날')); e.appendChild(el('span','muted','구 방식으로 만들되 17:30·18:30·19:30은 새 체계처럼 자동 배정합니다(새 체계 상황병 제외). 다음날 당직·상황병·밥교대·추가배식조는 만들지 않고, 전환일 주간·야간 상황병 예약은 오늘 야간에서 빠집니다.')); box.appendChild(e); }
   if(nightPool.filter(w=> NIGHT_UNITS.some(u=>!slotExcluded(ctx,w.id,u))).length < 4)
     need.appendChild(el('span','muted','(야간 가용인원 부족: 밥교대 인원 투입 예상)'));
   box.appendChild(need);
@@ -2495,7 +2511,7 @@ $('#gRun').addEventListener('click',()=>{
   const eve = v2 && ds===addDays(v2cfg().since,-1);   // 전환 전날: 구 방식 + 17:30~19:30만 새 방식(자동 입력)
   if(v2 && ds<v2cfg().since && !eve){ alert('전환일('+v2cfg().since+') 전전날 이전은 새로 생성할 수 없습니다.'); return; }
   if(DB.schedules[ds] && !confirm(ds+' 근무표가 이미 존재합니다.\n기존 배정 및 수동 편집 내역을 삭제하고 새로 생성하시겠습니까?')) return;
-  const input= eve ? null : v2 ? gen2Input() : {
+  const input= (v2 && !eve) ? gen2Input() : {
     date:ds, workHoliday:$('#gHoliday').checked, nextWorkHoliday:$('#gNextHoliday').checked,
     dutyId:$('#gDuty').value||null, situationId:$('#gSit').value||null,
     nextDutyId:$('#gNextDuty').value||null, nextSituationId:$('#gNextSit').value||null,
@@ -2508,7 +2524,7 @@ $('#gRun').addEventListener('click',()=>{
   const t0=performance.now();
   const existed=!!DB.schedules[ds];
   const snap=snapshotDays([ds], calMd(ds)+(existed?' 재생성':' 생성'));
-  const sched = eve ? generateTransitionEve(ds) : v2 ? generateDay2(input) : generateDay(input);
+  const sched = eve ? generateTransitionEve(ds, input) : v2 ? generateDay2(input) : generateDay(input);
   DB.schedules[ds]=sched; save();
   offerUndo(snap, calMd(ds)+' 근무표를 '+(existed?'다시 ':'')+'만들었습니다');
   const ms=Math.round(performance.now()-t0);
@@ -2728,6 +2744,7 @@ function renderSchedTimeline(s, who, ed){
     const [cls]=EVENING_LABEL[slot];
     const subs=[];
     if(v2){ if(pm[slot]) subs.push(['patrol','개인정비']); }
+    else if(s.transitionEve && ['17:30','18:30','19:30'].includes(slot)) subs.push(['patrol','개인정비 배정']);   // 전환 전날: 새 체계식 자동 배정
     else subs.push([cls, EVENING_SHORT[slot]]);
     if(slot==='17:30' && id && s.nextMealId && id!==s.nextMealId) subs.push(['relax','밥교대자와 다름']);
     return row('E:'+slot, slot, id||null, {subs, inline:[id&&roleTag(id)], h:slot==='17:30'?(1+DB.settings.patrolBonus).toFixed(1)+'h':'1.0h', emptyText:'—'});
@@ -5682,11 +5699,11 @@ window.addEventListener('load',()=>{
 </script>
 <!-- 서버 동기화(선택): firebase-config.js가 있으면 자동 설정, 없으면 404 무시.
      오프라인이면 SDK 로드가 실패하고 sync.js가 로컬 전용으로 동작합니다. -->
-<script src="firebase-config.js?v=9.4.6"></script>
+<script src="firebase-config.js?v=9.4.7"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="sync.js?v=9.4.6"></script>
+<script src="sync.js?v=9.4.7"></script>
 
 <!-- 서비스 워커 등록: 설치(홈 화면 추가)와 오프라인 동작.
      file:// 로 열면 등록되지 않습니다(http/https 또는 localhost 필요). -->

@@ -3083,11 +3083,11 @@ function mealForecast(from, n){
    전환일 전날은 구 방식(당직하사·상황병·밥교대 등)으로 만들되, 17:30·18:30·19:30은 다음날 밥교대·상황병·당직 고정 대신
    새 체계처럼 일반 배정한다(새 체계 상황병 제외). 다음날(전환일)의 주간·야간 상황병은 오늘 야간에서 뺀다.
    역할·열외는 전날 표와 일정에서 자동으로 가져온다(구 방식 통계 사용). */
-function generateTransitionEve(ds){
+function generateTransitionEve(ds, input){   // input: 생성 탭에서 고른 구 방식 값(없으면 전날 표·일정에서 자동)
   const nds=addDays(ds,1);
   _forceV1=true; invalidateStats();
   try{
-    const inp=autoInputFor(ds);
+    const inp=input ? Object.assign({}, input) : autoInputFor(ds);
     const sits=prebookOn(nds).filter(p=>p.kind==='situation'||p.kind==='sitday').map(p=>p.wid);
     Object.assign(inp, {transitionEve:true, nextDutyId:null, nextSituationId:null, next2DutyId:null, next2SituationId:null,
       nextMealId:'__none__', nextXmessId:'__none__', nightEx:[...new Set([...(inp.nightEx||[]), ...sits])]});
